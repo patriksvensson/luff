@@ -1,0 +1,97 @@
+@inject IScopedSender Sender
+
+<div class="env">
+    <p class="cfg-lede">
+        Environment variables are encrypted and <b>write-only</b> — you can set and remove them, but never read a
+        value back. They take effect on the next deploy.
+    </p>
+
+    <div class="env-add">
+        <input class="input mono env-key" placeholder="KEY" @bind="_newKey" />
+        <span class="env-eq mono">=</span>
+        <input class="input mono env-val" type="password" placeholder="value" @bind="_newValue" />
+        <button class="btn btn-primary" @onclick="Add" disabled="@(_busy || string.IsNullOrWhiteSpace(_newKey))">Set</button>
+    </div>
+
+    @if (_error is not null)
+    {
+        <div class="cfg-error">@_error</div>
+    }
+
+    @if (_keys is null)
+    {
+        <div class="eyebrow env-loading">Loading…</div>
+    }
+    else if (_keys.Count == 0)
+    {
+        <div class="cfg-empty">No environment variables set.</div>
+    }
+    else
+    {
+        <div class="env-list">
+            @foreach (var key in _keys)
+            {
+                <div class="card env-row">
+                    <span class="mono env-name">@key</span>
+                    <span class="mono env-masked">••••••••••</span>
+                    <span class="spacer"></span>
+                    <button class="env-remove" @onclick="() => Remove(key)" disabled="@_busy">Remove</button>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public string App { get; set; } = string.Empty;
+
+    private IReadOnlyList<string>? _keys;
+    private string _newKey = string.Empty;
+    private string _newValue = string.Empty;
+    private bool _busy;
+    private string? _error;
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        var vars = await Sender.Send(new ListEnvVarsHandler.Request(App));
+        _keys = [.. vars.Select(variable => variable.Key)];
+    }
+
+    private async Task Add()
+    {
+        _busy = true;
+        _error = null;
+        try
+        {
+            await Sender.Send(new SetEnvVarHandler.Request(App, _newKey.Trim(), _newValue));
+            _newKey = string.Empty;
+            _newValue = string.Empty;
+            await LoadAsync();
+        }
+        catch (LuffException exception)
+        {
+            _error = exception.Message;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task Remove(string key)
+    {
+        _busy = true;
+        try
+        {
+            await Sender.Send(new UnsetEnvVarHandler.Request(App, key));
+            await LoadAsync();
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

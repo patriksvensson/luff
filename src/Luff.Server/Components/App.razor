@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <base href="/" />
+    <title>Luff</title>
+    <link rel="stylesheet" href="fonts/fonts.css" />
+    <link rel="stylesheet" href="css/tokens.css?v=@Version" />
+    <link rel="stylesheet" href="css/app.css?v=@Version" />
+    <link rel="stylesheet" href="Luff.Server.styles.css?v=@Version" />
+    <HeadOutlet @rendermode="PageRenderMode" />
+</head>
+<body>
+    <Routes @rendermode="PageRenderMode" />
+    <script src="_framework/blazor.web.js"></script>
+</body>
+</html>
+
+@code {
+    private static readonly string Version = DateTimeOffset.UtcNow.Ticks.ToString("x");
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = null!;
+
+    private IComponentRenderMode? PageRenderMode =>
+        HttpContext.AcceptsInteractiveRouting() ? InteractiveServer : null;
+}

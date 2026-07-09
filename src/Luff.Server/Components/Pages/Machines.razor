@@ -1,0 +1,226 @@
+@page "/machines"
+@attribute [Authorize]
+@implements IDisposable
+@inject IScopedSender Sender
+@inject IFleetEvents Fleet
+@inject NavigationManager Navigation
+
+<PageTitle>Machines · Luff</PageTitle>
+
+<div class="page-head">
+    <h1 class="page-title">Machines</h1>
+    <p class="page-lede">The hosts Luff deploys to — each dials out and holds one link open.</p>
+    @if (_isAdmin)
+    {
+        <span class="spacer"></span>
+        <button class="btn btn-primary" @onclick="StartEnroll">+ Add machine</button>
+    }
+</div>
+
+@if (_fleet is null)
+{
+    <div class="eyebrow fleet-loading">Loading…</div>
+}
+else if (_fleet.Count == 0)
+{
+    <div class="cfg-empty">No machines enrolled yet.@(_isAdmin ? " Add one to start deploying." : "")</div>
+}
+else
+{
+    <div class="fleet">
+        @foreach (var machine in _fleet)
+        {
+            <div class="card fleet-row">
+                <span class="dot @Dot(machine.Status)"></span>
+                <div class="fleet-ident">
+                    <div class="fleet-name-line">
+                        <span class="mono fleet-name">@machine.Name</span>
+                        @if (machine.FrontDoor)
+                        {
+                            <span class="badge badge-green">front door</span>
+                        }
+                    </div>
+                    <span class="fleet-sub">@StatusLine(machine)</span>
+                </div>
+                <span class="spacer"></span>
+                @if (machine.Apps.Count > 0)
+                {
+                    <span class="fleet-apps mono">@string.Join(" · ", machine.Apps)</span>
+                }
+                @if (machine.Version is not null)
+                {
+                    <span class="mono fleet-version">v@machine.Version</span>
+                }
+                @if (_isAdmin)
+                {
+                    <button class="fleet-remove" @onclick="() => Remove(machine.Name)" disabled="@_busy">Remove</button>
+                }
+            </div>
+        }
+    </div>
+}
+
+@if (_enrolling)
+{
+    <Modal Width="md" OnClose="CloseEnroll">
+        <div class="enroll">
+            <div class="enroll-head">
+                <h2 class="enroll-title">Add a machine</h2>
+                <button class="pipe-close" @onclick="CloseEnroll" aria-label="Close">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="m6 6 12 12M18 6 6 18" /></svg>
+                </button>
+            </div>
+
+            @if (_minted is null)
+            {
+                <label class="field">
+                    <span class="field-label">Name</span>
+                    <input class="input mono" @bind="_enrollName" @bind:event="oninput" placeholder="e.g. hetzner-fsn1" />
+                </label>
+                @if (_enrollError is not null)
+                {
+                    <div class="trigger-error">@_enrollError</div>
+                }
+                <div class="confirm-actions">
+                    <button class="btn btn-ghost" @onclick="CloseEnroll">Cancel</button>
+                    <button class="btn btn-primary" @onclick="Mint" disabled="@(_busy || string.IsNullOrWhiteSpace(_enrollName))">Create token</button>
+                </div>
+            }
+            else
+            {
+                <p class="enroll-lede">
+                    Start the Luff agent on <span class="mono">@_minted.Name</span> with the config below. The token
+                    is shown <b>once</b>.
+                </p>
+                <pre class="enroll-cmd"><code>Agent__Name=@_minted.Name
+Agent__EnrollmentSecret=@_minted.Token
+Agent__ServerAddress=http://@(_serverHost):8081</code></pre>
+                <p class="enroll-hint">A packaged one-line installer is on the way; for now the agent reads this from its environment.</p>
+
+                <div class="enroll-wait">
+                    @if (_connected)
+                    {
+                        <span class="dot dot-green"></span>
+                        <span class="enroll-connected"><span class="mono">@_minted.Name</span> connected</span>
+                    }
+                    else
+                    {
+                        <span class="dot dot-amber"></span>
+                        <span class="enroll-waiting">Waiting for <span class="mono">@_minted.Name</span> to dial in…</span>
+                    }
+                </div>
+
+                <div class="confirm-actions">
+                    <button class="btn btn-primary" @onclick="CloseEnroll">Done</button>
+                </div>
+            }
+        </div>
+    </Modal>
+}
+
+@code {
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthState { get; set; }
+
+    private bool _isAdmin;
+    private IReadOnlyList<FleetAgent>? _fleet;
+    private bool _busy;
+    private IDisposable? _subscription;
+    private string _serverHost = "your-control-plane";
+
+    private bool _enrolling;
+    private string _enrollName = string.Empty;
+    private EnrollAgentResponse? _minted;
+    private bool _connected;
+    private string? _enrollError;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (AuthState is not null)
+        {
+            var state = await AuthState;
+            _isAdmin = state.User.IsInRole("Admin");
+        }
+
+        _serverHost = new Uri(Navigation.BaseUri).Host;
+        _subscription = Fleet.Subscribe(OnFleetEvent);
+        await Reload();
+    }
+
+    private async Task Reload() =>
+        _fleet = await Sender.Send(new FleetOverviewHandler.Request());
+
+    private Task OnFleetEvent(string agent, bool connected)
+    {
+        return InvokeAsync(async () =>
+        {
+            if (_minted?.Name == agent && connected)
+            {
+                _connected = true;
+            }
+
+            await Reload();
+            StateHasChanged();
+        });
+    }
+
+    private void StartEnroll()
+    {
+        _enrollName = string.Empty;
+        _minted = null;
+        _connected = false;
+        _enrollError = null;
+        _enrolling = true;
+    }
+
+    private void CloseEnroll() => _enrolling = false;
+
+    private async Task Mint()
+    {
+        _busy = true;
+        _enrollError = null;
+        try
+        {
+            _minted = await Sender.Send(new EnrollAgentHandler.Request(_enrollName.Trim()));
+            await Reload();
+        }
+        catch (LuffException exception)
+        {
+            _enrollError = exception.Message;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task Remove(string name)
+    {
+        _busy = true;
+        try
+        {
+            await Sender.Send(new RemoveAgentHandler.Request(name));
+            await Reload();
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private static string Dot(string status) => status switch
+    {
+        "connected" => "dot-green",
+        "pending" => "dot-amber",
+        _ => "dot-red",
+    };
+
+    private static string StatusLine(FleetAgent machine) => machine.Status switch
+    {
+        "connected" => "connected",
+        "pending" => "pending · waiting to connect",
+        _ => machine.LastSeen is null ? "disconnected" : $"disconnected · last seen {machine.LastSeen}",
+    };
+
+    public void Dispose() => _subscription?.Dispose();
+}

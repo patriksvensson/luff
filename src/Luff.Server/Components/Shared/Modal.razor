@@ -1,0 +1,18 @@
+<div class="modal-overlay" @onclick="Backdrop">
+    <div class="modal-card modal-@Width" role="dialog" aria-modal="true" @onclick:stopPropagation="true">
+        @ChildContent
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    [Parameter]
+    public string Width { get; set; } = "md";
+
+    [Parameter]
+    public EventCallback OnClose { get; set; }
+
+    private async Task Backdrop() => await OnClose.InvokeAsync();
+}

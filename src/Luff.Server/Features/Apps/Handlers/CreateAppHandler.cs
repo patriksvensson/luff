@@ -1,0 +1,99 @@
+namespace Luff.Server.Features;
+
+public sealed class CreateAppHandler : IRequestHandler<CreateAppHandler.Request, AppResponse>
+{
+    private readonly LuffDbContext _database;
+
+    public sealed class Request : IRequest<AppResponse>
+    {
+        public string Name { get; }
+        public string Image { get; }
+        public int InternalPort { get; }
+        public string? Kind { get; }
+        public string? Domain { get; }
+        public string? TlsMode { get; }
+
+        public Request(
+            string name, string image, int internalPort,
+            string? kind = null, string? domain = null, string? tlsMode = null)
+        {
+            Name = name ?? throw new ArgumentNullException(nameof(name));
+            Image = image ?? throw new ArgumentNullException(nameof(image));
+            InternalPort = internalPort;
+            Kind = kind;
+            Domain = domain;
+            TlsMode = tlsMode;
+        }
+    }
+
+    public CreateAppHandler(LuffDbContext database)
+    {
+        _database = database ?? throw new ArgumentNullException(nameof(database));
+    }
+
+    public async Task<AppResponse> Handle(Request request, CancellationToken cancellationToken)
+    {
+        var exists = await _database.Apps.AnyAsync(app => app.Name == request.Name, cancellationToken);
+        if (exists)
+        {
+            throw new AppAlreadyExistsException(request.Name);
+        }
+
+        var kind = AppKinds.Parse(request.Kind);
+        var domain = string.IsNullOrWhiteSpace(request.Domain) ? null : request.Domain.Trim();
+
+        if (kind == AppKind.Web && domain is null)
+        {
+            throw new InvalidDomainException();
+        }
+
+        if (kind != AppKind.Web)
+        {
+            if (domain is not null)
+            {
+                if (kind == AppKind.Internal)
+                {
+                    throw new InternalServiceDomainException();
+                }
+
+                throw new DirectAppDomainException();
+            }
+
+            if (AppKinds.IsReservedName(request.Name))
+            {
+                throw new ReservedServiceNameException(request.Name);
+            }
+        }
+
+        var app = new App
+        {
+            Name = request.Name,
+            Kind = kind,
+            Image = request.Image,
+            Domain = domain,
+            InternalPort = request.InternalPort,
+            // TLS is only meaningful for a web app's route; an internal service keeps the default and ignores it.
+            TlsMode = TlsRouting.ParseMode(request.TlsMode),
+            // An internal service has no HTTP endpoint, so default it to the agent-side TCP readiness probe.
+            HealthCheckType = kind == AppKind.Web ? AppHealthCheckType.Docker : AppHealthCheckType.Tcp,
+        };
+
+        _database.Apps.Add(app);
+        await _database.SaveChangesAsync(cancellationToken);
+
+        return app.ToResponse();
+    }
+}
+
+public static class CreateAppHandlerExtensions
+{
+    public static async Task<AppResponse> CreateApp(
+        this ISender sender, string name, string image, int internalPort,
+        string? kind = null, string? domain = null, string? tlsMode = null,
+        CancellationToken cancellationToken = default)
+    {
+        return await sender.Send(
+            new CreateAppHandler.Request(name, image, internalPort, kind, domain, tlsMode),
+            cancellationToken);
+    }
+}

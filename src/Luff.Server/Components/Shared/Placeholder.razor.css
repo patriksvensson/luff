@@ -1,0 +1,28 @@
+.placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    min-height: 320px;
+    padding: 48px;
+    border: 1px dashed var(--border-strong);
+    border-radius: var(--radius-lg);
+    text-align: center;
+}
+
+.placeholder-icon {
+    color: var(--text-faint);
+    margin-bottom: 4px;
+}
+
+.placeholder-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.placeholder-note {
+    color: var(--text-dim);
+    max-width: 40ch;
+}

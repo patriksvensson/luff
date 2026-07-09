@@ -1,0 +1,169 @@
+@inject IScopedSender Sender
+@inject AgentRegistry Registry
+
+<div class="machines">
+    <div class="machines-head">
+        <p class="machines-lede">Where <span class="machines-app">@Detail.Name</span> is running. A deploy fans across these oldest-first.</p>
+        @if (_isAdmin)
+        {
+            @if (_attaching)
+            {
+                <div class="attach-form">
+                    <select class="input mono attach-select" @bind="_attachAgent">
+                        <option value="">Choose a machine…</option>
+                        @foreach (var name in Available())
+                        {
+                            <option value="@name">@name</option>
+                        }
+                    </select>
+                    <button class="btn btn-primary btn-sm" @onclick="Attach" disabled="@(_busy || string.IsNullOrEmpty(_attachAgent))">Attach</button>
+                    <button class="btn btn-ghost btn-sm" @onclick="() => _attaching = false">Cancel</button>
+                </div>
+            }
+            else
+            {
+                <button class="btn btn-ghost btn-sm" @onclick="StartAttach">+ Attach machine</button>
+            }
+        }
+    </div>
+
+    @if (_error is not null)
+    {
+        <div class="cfg-error">@_error</div>
+    }
+
+    @if (Detail.Machines.Count == 0)
+    {
+        <div class="card machines-empty">Not attached to any machine. Attach one to deploy <span class="mono">@Detail.Name</span> there.</div>
+    }
+    else
+    {
+        <div class="machine-list">
+            @foreach (var machine in Detail.Machines)
+            {
+                <div class="card machine-row">
+                    <span class="dot @(machine.Connected ? "dot-green" : "dot-red")"></span>
+                    <div class="machine-ident">
+                        <div class="machine-ident-top">
+                            <span class="mono machine-name">@machine.Agent</span>
+                            @if (machine.FrontDoor)
+                            {
+                                <span class="chip">front door</span>
+                            }
+                        </div>
+                        <div class="machine-sub mono">@(machine.Connected ? machine.Health : "disconnected")</div>
+                    </div>
+
+                    <span class="spacer"></span>
+
+                    @if (machine.Behind)
+                    {
+                        <span class="badge badge-amber">
+                            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M12 3.6 2.4 20.2h19.2z" /><path d="M12 10v4.2" /><path d="M12 17.4h.01" />
+                            </svg>
+                            <span class="badge-tag">@machine.RunningTag</span> · 1 behind
+                        </span>
+                    }
+                    else
+                    {
+                        <div class="machine-version">
+                            <span class="mono machine-tag">@(machine.RunningTag ?? "—")</span>
+                            <span class="machine-on">on intended</span>
+                        </div>
+                    }
+
+                    @if (_isAdmin)
+                    {
+                        <button class="machine-detach" @onclick="() => Detach(machine.Agent)" disabled="@_busy">Detach</button>
+                    }
+                </div>
+            }
+        </div>
+
+        @if (Detail.State == AppHealthState.Drift)
+        {
+            <div class="drift-banner">
+                <span>These machines are on different versions. Redeploy <span class="mono">@Detail.CurrentTag</span> to reconcile.</span>
+                <button class="btn drift-btn" @onclick="Redeploy">Redeploy to reconcile</button>
+            </div>
+        }
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public AppDetail Detail { get; set; } = null!;
+
+    [Parameter]
+    public EventCallback OnChanged { get; set; }
+
+    [Parameter]
+    public EventCallback OnRedeploy { get; set; }
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthState { get; set; }
+
+    private bool _isAdmin;
+    private bool _attaching;
+    private string _attachAgent = string.Empty;
+    private bool _busy;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (AuthState is not null)
+        {
+            var state = await AuthState;
+            _isAdmin = state.User.IsInRole("Admin");
+        }
+    }
+
+    private IEnumerable<string> Available() =>
+        Registry.List()
+            .Select(agent => agent.Name)
+            .Where(name => Detail.Machines.All(machine => machine.Agent != name))
+            .Order(StringComparer.Ordinal);
+
+    private void StartAttach()
+    {
+        _attachAgent = string.Empty;
+        _attaching = true;
+    }
+
+    private async Task Attach()
+    {
+        _busy = true;
+        _error = null;
+        try
+        {
+            await Sender.Send(new AttachAppHandler.Request(_attachAgent, Detail.Name));
+            _attaching = false;
+            await OnChanged.InvokeAsync();
+        }
+        catch (LuffException exception)
+        {
+            _error = exception.Message;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task Detach(string agent)
+    {
+        _busy = true;
+        try
+        {
+            await Sender.Send(new DetachAppHandler.Request(agent, Detail.Name));
+            await OnChanged.InvokeAsync();
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task Redeploy() => await OnRedeploy.InvokeAsync();
+}

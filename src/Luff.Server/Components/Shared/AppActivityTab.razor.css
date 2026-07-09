@@ -1,0 +1,50 @@
+.activity-empty {
+    padding: 28px;
+    color: var(--text-dim);
+}
+
+.activity-list {
+    display: flex;
+    flex-direction: column;
+}
+
+.activity-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px 4px;
+    border-top: 1px solid var(--border);
+}
+
+.activity-row:first-child {
+    border-top: none;
+}
+
+.activity-tag {
+    font-size: 14px;
+    color: var(--text);
+}
+
+.activity-status {
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+.activity-status.is-ok {
+    color: var(--green-dim);
+}
+
+.activity-status.is-failed {
+    color: var(--red);
+}
+
+.activity-status.is-progress {
+    color: var(--amber);
+}
+
+.activity-when {
+    min-width: 72px;
+    text-align: right;
+    font-size: 13px;
+    color: var(--text-dim);
+}

@@ -1,0 +1,271 @@
+@implements IAsyncDisposable
+@inject IScopedSender Sender
+@inject IDeployEvents Events
+@inject TimeProvider Time
+
+<Modal Width="@(_mode == "running" ? "lg" : "md")" OnClose="Close">
+    @if (_mode == "trigger" && Kind == "rollback")
+    {
+        <div class="confirm">
+            <div class="confirm-icon">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M9 5 4 10l5 5" /><path d="M4 10h10a6 6 0 0 1 0 12h-3" />
+                </svg>
+            </div>
+            <h2 class="confirm-title">Roll @App back to @(PreviousTag ?? "—")?</h2>
+            <div class="confirm-tags mono">
+                <span class="confirm-from">@CurrentTag</span>
+                <span class="confirm-arrow">→</span>
+                <span class="confirm-to">@PreviousTag</span>
+            </div>
+            <p class="confirm-note">Runs the same safe zero-downtime pipeline. The current version keeps serving until @PreviousTag is healthy.</p>
+            @if (_error is not null)
+            {
+                <div class="trigger-error">@_error</div>
+            }
+            <div class="confirm-actions">
+                <button class="btn btn-ghost" @onclick="Close">Cancel</button>
+                <button class="btn btn-primary" @onclick="Run" disabled="@(_busy || PreviousTag is null)">Roll back</button>
+            </div>
+        </div>
+    }
+    else if (_mode == "trigger")
+    {
+        <div class="trigger">
+            <div class="trigger-head">
+                <h2 class="trigger-title">Deploy <span class="trigger-app">@App</span></h2>
+                <button class="pipe-close" @onclick="Close" aria-label="Close">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="m6 6 12 12M18 6 6 18" /></svg>
+                </button>
+            </div>
+
+            <label class="field">
+                <span class="field-label">Image tag</span>
+                <input class="input mono" @bind="_tag" @bind:event="oninput"
+                       placeholder="@(CurrentTag is null ? "e.g. v1.2.3" : $"redeploy current ({CurrentTag})")" />
+            </label>
+
+            <div class="trigger-targets">
+                <span class="eyebrow">Rolls across @Machines.Count @(Machines.Count == 1 ? "machine" : "machines"), oldest-first</span>
+                <div class="trigger-target-list">
+                    @foreach (var machine in Machines)
+                    {
+                        <div class="trigger-target">
+                            <span class="dot dot-neutral"></span>
+                            <span class="mono">@machine</span>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            @if (_error is not null)
+            {
+                <div class="trigger-error">@_error</div>
+            }
+            @if (Machines.Count == 0)
+            {
+                <div class="trigger-note">Attach a machine first — this app runs nowhere yet.</div>
+            }
+
+            <div class="confirm-actions">
+                <button class="btn btn-ghost" @onclick="Close">Cancel</button>
+                <button class="btn btn-primary" @onclick="Run" disabled="@(_busy || Machines.Count == 0)">Deploy</button>
+            </div>
+        </div>
+    }
+    else
+    {
+        <DeployPipeline App="App" Verb="@Verb" FromTag="@_fromTag" ToTag="@_toTag"
+                        Elapsed="@_elapsed" Lanes="_orderedLanes" Outcome="@_outcome"
+                        AppUrl="@AppUrl" AppDomain="@AppDomain" FailureText="@_failureText" OnClose="Close" />
+    }
+</Modal>
+
+@code {
+    [Parameter, EditorRequired]
+    public string App { get; set; } = string.Empty;
+
+    [Parameter]
+    public string Kind { get; set; } = "deploy";
+
+    [Parameter]
+    public string? CurrentTag { get; set; }
+
+    [Parameter]
+    public string? PreviousTag { get; set; }
+
+    [Parameter]
+    public IReadOnlyList<string> Machines { get; set; } = [];
+
+    [Parameter]
+    public string? AppDomain { get; set; }
+
+    [Parameter]
+    public bool Https { get; set; }
+
+    [Parameter]
+    public EventCallback OnClose { get; set; }
+
+    private string _mode = "trigger";
+    private string _tag = string.Empty;
+    private string? _error;
+    private bool _busy;
+    private string _outcome = "running";
+    private string? _failureText;
+    private string? _fromTag;
+    private string _toTag = string.Empty;
+    private string _elapsed = "0.0s";
+    private readonly Dictionary<string, DeployLane> _lanes = new(StringComparer.Ordinal);
+    private IReadOnlyList<DeployLane> _orderedLanes = [];
+    private IDisposable? _subscription;
+    private CancellationTokenSource? _ticker;
+    private long _startedAt;
+
+    private string Verb => Kind == "rollback" ? "Rolling back" : "Deploying";
+
+    private string? AppUrl =>
+        AppDomain is null ? null : (Https ? "https://" : "http://") + AppDomain;
+
+    private async Task Run()
+    {
+        _busy = true;
+        _error = null;
+
+        var tag = string.IsNullOrWhiteSpace(_tag) ? null : _tag.Trim();
+        InitLanes();
+        _fromTag = CurrentTag;
+        _mode = "running";
+        _outcome = "running";
+
+        try
+        {
+            var deployment = Kind == "rollback"
+                ? await Sender.Send(new RollbackHandler.Request(App))
+                : await Sender.Send(new TriggerDeploymentHandler.Request(App, tag));
+
+            _toTag = deployment.Tag;
+
+            if (deployment.Status == "Failed")
+            {
+                _outcome = "failed";
+                _failureText = deployment.FailureReason ?? "The deploy could not start.";
+                return;
+            }
+
+            _subscription = Events.Subscribe(deployment.Id, OnEvent);
+            StartTicker();
+        }
+        catch (LuffException exception)
+        {
+            _mode = "trigger";
+            _error = exception.Message;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private void InitLanes()
+    {
+        _lanes.Clear();
+        foreach (var machine in Machines)
+        {
+            _lanes[machine] = new DeployLane { Agent = machine, OldTag = CurrentTag };
+        }
+
+        _orderedLanes = [.. Machines.Select(machine => _lanes[machine])];
+    }
+
+    private Task OnEvent(DeployEvent deployEvent)
+    {
+        return InvokeAsync(() =>
+        {
+            if (_lanes.TryGetValue(deployEvent.Agent, out var lane))
+            {
+                lane.Started = true;
+                if (deployEvent.Kind == DeployEventKind.Progress)
+                {
+                    lane.Phase = deployEvent.Phase;
+                }
+                else
+                {
+                    lane.Done = true;
+                    lane.Failed = !deployEvent.Healthy;
+                    if (deployEvent.Healthy)
+                    {
+                        lane.ServingTag = deployEvent.RunningTag;
+                    }
+                }
+            }
+
+            UpdateOutcome();
+            StateHasChanged();
+        });
+    }
+
+    private void UpdateOutcome()
+    {
+        var failed = _lanes.Values.FirstOrDefault(lane => lane.Failed);
+        if (failed is not null)
+        {
+            _outcome = "failed";
+            _failureText = $"Failed on {failed.Agent} at {Stage(failed.Phase)} — old version still serving.";
+            StopTicker();
+            return;
+        }
+
+        if (_lanes.Count > 0 && _lanes.Values.All(lane => lane.Done))
+        {
+            _outcome = "succeeded";
+            StopTicker();
+        }
+    }
+
+    private static string Stage(string? phase) => phase switch
+    {
+        DeployPhase.Pulling => "pull",
+        DeployPhase.Starting => "start",
+        DeployPhase.Healthy => "health",
+        DeployPhase.Swapping => "swap",
+        DeployPhase.Draining => "drain",
+        _ => "start",
+    };
+
+    private void StartTicker()
+    {
+        _startedAt = Time.GetTimestamp();
+        _ticker = new CancellationTokenSource();
+        _ = TickAsync(_ticker.Token);
+    }
+
+    private async Task TickAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(300));
+            while (await timer.WaitForNextTickAsync(cancellationToken))
+            {
+                _elapsed = $"{Time.GetElapsedTime(_startedAt).TotalSeconds:0.0}s";
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+        }
+    }
+
+    private void StopTicker()
+    {
+        _ticker?.Cancel();
+    }
+
+    private async Task Close() => await OnClose.InvokeAsync();
+
+    public async ValueTask DisposeAsync()
+    {
+        StopTicker();
+        _subscription?.Dispose();
+        await ValueTask.CompletedTask;
+    }
+}

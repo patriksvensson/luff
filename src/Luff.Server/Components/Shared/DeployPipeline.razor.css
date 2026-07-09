@@ -1,0 +1,327 @@
+.pipeline {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Header */
+
+.pipe-head {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 18px;
+}
+
+.pipe-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 20px;
+    font-weight: 600;
+}
+
+.pipe-app {
+    color: var(--green);
+}
+
+.pipe-tags {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    height: 30px;
+    padding: 0 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+}
+
+.pipe-from {
+    color: var(--text-dim);
+}
+
+.pipe-arrow {
+    color: var(--green);
+}
+
+.pipe-to {
+    color: var(--text);
+    font-weight: 600;
+}
+
+/* Queued banner */
+
+.pipe-queued {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 15px;
+    margin-bottom: 18px;
+    border: 1px solid var(--amber-border);
+    background: var(--amber-soft);
+    border-radius: var(--radius);
+    color: var(--amber);
+    font-size: 13px;
+}
+
+/* Legend */
+
+.pipe-legend {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    padding-top: 18px;
+    border-top: 1px solid var(--border);
+    margin-bottom: 8px;
+}
+
+.legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text-dim);
+}
+
+.legend-swatch {
+    width: 11px;
+    height: 11px;
+    border-radius: 3px;
+}
+
+.swatch-old {
+    background: #6f8cff;
+}
+
+.swatch-new {
+    background: var(--green);
+}
+
+.pipe-elapsed {
+    font-size: 11.5px;
+    letter-spacing: 0.06em;
+    color: var(--text-dim);
+}
+
+/* Lanes */
+
+.lanes {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.lane {
+    padding: 18px 20px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg);
+}
+
+.lane-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 18px;
+}
+
+.lane-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.lane-status {
+    font-size: 13px;
+}
+
+.status-queued { color: var(--text-dim); }
+.status-running { color: var(--amber); }
+.status-done { color: var(--green); }
+.status-failed { color: var(--red); }
+
+.serving {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 26px;
+    padding: 0 11px;
+    border-radius: var(--radius-sm);
+    font-size: 12.5px;
+    background: var(--surface-strong);
+}
+
+.serving-new { color: var(--green); }
+.serving-old { color: var(--text-muted); }
+
+.dot-blue {
+    background: #6f8cff;
+    box-shadow: 0 0 0 3px rgba(111, 140, 255, 0.12);
+}
+
+/* Stepper */
+
+.stepper {
+    display: flex;
+    padding: 0 4px;
+}
+
+.step {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 11px;
+    position: relative;
+}
+
+.step::before {
+    content: "";
+    position: absolute;
+    top: 6px;
+    right: 50%;
+    left: -50%;
+    height: 2px;
+    background: var(--border-strong);
+}
+
+.step:first-child::before {
+    display: none;
+}
+
+.step-node {
+    width: 13px;
+    height: 13px;
+    border-radius: 50%;
+    background: var(--surface-strong);
+    border: 2px solid var(--border-strong);
+    position: relative;
+    z-index: 1;
+}
+
+.step-label {
+    font-size: 12px;
+    color: var(--text-dim);
+}
+
+/* reached steps get a coloured incoming connector */
+.step-done::before,
+.step-active::before,
+.step-failed::before {
+    background: var(--green);
+}
+
+.step-done .step-node {
+    background: var(--green);
+    border-color: var(--green);
+}
+
+.step-done .step-label {
+    color: var(--text-muted);
+}
+
+.step-active .step-node {
+    background: var(--amber);
+    border-color: var(--amber);
+    box-shadow: 0 0 0 4px var(--amber-soft);
+    animation: pulse 1.4s ease-in-out infinite;
+}
+
+.step-active .step-label {
+    color: var(--amber);
+    font-weight: 500;
+}
+
+.step-failed::before {
+    background: var(--red);
+}
+
+.step-failed .step-node {
+    background: var(--red);
+    border-color: var(--red);
+}
+
+.step-failed .step-label {
+    color: var(--red);
+}
+
+@keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 4px var(--amber-soft); }
+    50% { box-shadow: 0 0 0 7px transparent; }
+}
+
+/* Footer */
+
+.pipe-foot {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-top: 22px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+}
+
+.foot-text {
+    min-width: 0;
+}
+
+.foot-reassure {
+    color: var(--text-muted);
+    font-size: 13.5px;
+}
+
+.foot-title {
+    font-weight: 600;
+    color: var(--text);
+}
+
+.foot-note {
+    font-size: 12.5px;
+    color: var(--text-dim);
+    margin-top: 2px;
+}
+
+.pipe-foot .btn,
+.pipe-foot .foot-mark,
+.pipe-foot .foot-spinner {
+    flex: none;
+}
+
+.pipe-foot .link {
+    font-size: 13px;
+}
+
+.foot-text {
+    margin-right: auto;
+}
+
+.foot-mark {
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+}
+
+.foot-ok {
+    color: var(--green);
+    background: var(--green-soft);
+}
+
+.foot-fail {
+    color: var(--red);
+    background: var(--red-soft);
+}
+
+.foot-spinner {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 2px solid var(--border-strong);
+    border-top-color: var(--green);
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}

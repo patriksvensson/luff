@@ -1,0 +1,200 @@
+@implements IAsyncDisposable
+@inject IScopedSender Sender
+
+<div class="logs">
+    @if (_machines.Count == 0)
+    {
+        <div class="cfg-empty">This app runs nowhere yet — attach a machine to see its logs.</div>
+    }
+    else
+    {
+        <div class="logs-bar">
+            @if (_machines.Count > 1)
+            {
+                <div class="logs-picker">
+                    @foreach (var machine in Detail.Machines)
+                    {
+                        <button class="logs-machine @(machine.Agent == _agent ? "is-active" : null)"
+                                @onclick="() => Select(machine.Agent)">
+                            <span class="dot @(machine.Connected ? "dot-green" : "dot-red")"></span>
+                            <span class="mono">@machine.Agent</span>
+                        </button>
+                    }
+                </div>
+            }
+            else
+            {
+                <span class="eyebrow logs-single">Tailing <span class="mono">@_agent</span></span>
+            }
+
+            <span class="spacer"></span>
+
+            <span class="logs-state">
+                <span class="dot @(_streaming ? "dot-green" : "dot-neutral")"></span>
+                @(_streaming ? "Live" : "Stopped")
+            </span>
+            <button class="btn btn-ghost btn-sm" @onclick="Clear" disabled="@(_lines.Count == 0)">Clear</button>
+        </div>
+
+        @if (_error is not null)
+        {
+            <div class="cfg-error">@_error</div>
+        }
+
+        <div class="logs-view">
+            @if (_lines.Count == 0)
+            {
+                <div class="logs-waiting eyebrow">@(_error is null ? "Waiting for output…" : "No output.")</div>
+            }
+            else
+            {
+                @foreach (var line in Newest())
+                {
+                    <div class="logs-line @(line.Stream == "stderr" ? "is-err" : null)">
+                        @if (line.Timestamp is { } timestamp)
+                        {
+                            <span class="logs-ts mono">@timestamp.ToLocalTime().ToString("HH:mm:ss.fff")</span>
+                        }
+                        <span class="logs-text mono">@line.Line</span>
+                    </div>
+                }
+            }
+        </div>
+
+        <p class="logs-foot eyebrow">Live tail · last @MaxLines lines · not persisted</p>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public AppDetail Detail { get; set; } = null!;
+
+    private const int MaxLines = 1000;
+
+    private List<string> _machines = [];
+    private string? _agent;
+    private readonly List<LogEvent> _lines = [];
+    private bool _streaming;
+    private string? _error;
+    private CancellationTokenSource? _cts;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _machines = Detail.Machines.Select(machine => machine.Agent).ToList();
+        _agent = Detail.Machines.FirstOrDefault(machine => machine.Connected)?.Agent ?? _machines.FirstOrDefault();
+
+        if (_agent is not null)
+        {
+            await StartAsync();
+        }
+    }
+
+    private async Task Select(string machine)
+    {
+        if (machine == _agent)
+        {
+            return;
+        }
+
+        await StopAsync();
+        _agent = machine;
+        _lines.Clear();
+        await StartAsync();
+    }
+
+    private async Task StartAsync()
+    {
+        _error = null;
+        var cts = new CancellationTokenSource();
+        _cts = cts;
+
+        try
+        {
+            var stream = await Sender.Send(new TailLogsHandler.Request(Detail.Name, _agent), cts.Token);
+            _streaming = true;
+            _ = PumpAsync(stream, cts);
+        }
+        catch (LuffException exception)
+        {
+            _error = exception.Message;
+            _streaming = false;
+        }
+    }
+
+    private async Task PumpAsync(IAsyncEnumerable<LogEvent> stream, CancellationTokenSource cts)
+    {
+        try
+        {
+            await foreach (var logEvent in stream)
+            {
+                await InvokeAsync(() =>
+                {
+                    if (_cts != cts)
+                    {
+                        return;
+                    }
+
+                    _lines.Add(logEvent);
+                    if (_lines.Count > MaxLines)
+                    {
+                        _lines.RemoveRange(0, _lines.Count - MaxLines);
+                    }
+
+                    StateHasChanged();
+                });
+            }
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        catch (Exception exception)
+        {
+            await InvokeAsync(() =>
+            {
+                if (_cts == cts)
+                {
+                    _error = exception.Message;
+                    StateHasChanged();
+                }
+            });
+        }
+        finally
+        {
+            await InvokeAsync(() =>
+            {
+                if (_cts == cts)
+                {
+                    _streaming = false;
+                    StateHasChanged();
+                }
+            });
+        }
+    }
+
+    private async Task StopAsync()
+    {
+        if (_cts is not null)
+        {
+            await _cts.CancelAsync();
+            _cts.Dispose();
+            _cts = null;
+        }
+
+        _streaming = false;
+    }
+
+    private void Clear() => _lines.Clear();
+
+    private IEnumerable<LogEvent> Newest()
+    {
+        for (var index = _lines.Count - 1; index >= 0; index--)
+        {
+            yield return _lines[index];
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await StopAsync();
+    }
+}

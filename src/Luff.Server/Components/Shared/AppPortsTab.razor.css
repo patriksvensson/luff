@@ -1,0 +1,63 @@
+.port-add {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.port-host {
+    flex: 1;
+}
+
+.port-container {
+    flex: 1;
+}
+
+.port-arrow {
+    color: var(--text-dim);
+}
+
+.port-add .btn {
+    flex: none;
+    height: 42px;
+}
+
+.port-loading {
+    padding: 8px 0;
+}
+
+.port-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 16px;
+}
+
+.port-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 18px;
+}
+
+.port-src,
+.port-tgt {
+    font-size: 14px;
+    color: var(--text);
+}
+
+.port-remove {
+    flex: none;
+    font-size: 13px;
+    color: var(--text-dim);
+    transition: color 120ms ease;
+}
+
+.port-remove:hover:not(:disabled) {
+    color: var(--red);
+}
+
+.port-remove:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+}

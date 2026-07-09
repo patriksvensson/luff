@@ -1,0 +1,145 @@
+<div class="overview">
+    <div class="overview-top">
+        <div class="card ov-card">
+            <div class="eyebrow">Running version</div>
+            @if (Detail.CurrentTag is not null)
+            {
+                <div class="ov-version">
+                    <span class="mono ov-tag">@Detail.CurrentTag</span>
+                    @if (Detail.PreviousTag is not null)
+                    {
+                        <span class="mono ov-prev">prev @Detail.PreviousTag</span>
+                    }
+                </div>
+                <div class="ov-note">Intended version across the fleet</div>
+            }
+            else
+            {
+                <div class="ov-version"><span class="mono ov-tag ov-none">—</span></div>
+                <div class="ov-note">Not deployed yet</div>
+            }
+        </div>
+
+        <div class="card ov-card">
+            <div class="eyebrow">Health</div>
+            <div class="ov-health">
+                <span class="dot @HealthDot"></span>
+                <span class="ov-health-title">@HealthTitle</span>
+            </div>
+            <div class="ov-note">@HealthNote</div>
+        </div>
+    </div>
+
+    <div class="card ov-config">
+        <div class="eyebrow">Configuration</div>
+        <div class="ov-config-grid">
+            <div class="ov-field">
+                <div class="ov-label">Image</div>
+                <div class="mono ov-value">@Detail.Image</div>
+            </div>
+            @if (Detail.Internal)
+            {
+                <div class="ov-field">
+                    <div class="ov-label">Address</div>
+                    <div class="mono ov-value ov-domain">@Detail.InternalHost</div>
+                </div>
+                <div class="ov-field">
+                    <div class="ov-label">Service port</div>
+                    <div class="mono ov-value">@Detail.InternalPort</div>
+                </div>
+            }
+            else if (Detail.Direct)
+            {
+                <div class="ov-field">
+                    <div class="ov-label">Container port</div>
+                    <div class="mono ov-value">@Detail.InternalPort</div>
+                </div>
+            }
+            else
+            {
+                <div class="ov-field">
+                    <div class="ov-label">Domain</div>
+                    <div class="mono ov-value ov-domain">@Detail.Domain</div>
+                </div>
+                <div class="ov-field">
+                    <div class="ov-label">Internal port</div>
+                    <div class="mono ov-value">@Detail.InternalPort</div>
+                </div>
+                <div class="ov-field">
+                    <div class="ov-label">TLS</div>
+                    <div class="mono ov-value @(Detail.TlsTrusted ? "ov-tls-ok" : "ov-tls-warn")">@Detail.TlsLabel</div>
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="card ov-machines">
+        <div class="ov-machines-head">
+            <div class="eyebrow">Machines · @Detail.Machines.Count</div>
+            @if (Detail.Machines.Count > 0)
+            {
+                <a class="link" href="apps/@Detail.Name/machines">View all →</a>
+            }
+        </div>
+
+        @if (Detail.Machines.Count == 0)
+        {
+            <div class="ov-empty">Not attached to a machine yet.</div>
+        }
+        else
+        {
+            @foreach (var machine in Detail.Machines.Take(4))
+            {
+                <div class="ov-machine">
+                    <span class="dot @(machine.Connected ? "dot-green" : "dot-red")"></span>
+                    <span class="mono ov-machine-name">@machine.Agent</span>
+                    @if (machine.FrontDoor)
+                    {
+                        <span class="chip">front door</span>
+                    }
+                    <span class="spacer"></span>
+                    @if (machine.Behind)
+                    {
+                        <span class="mono ov-behind">behind · @machine.RunningTag</span>
+                    }
+                    else
+                    {
+                        <span class="mono ov-machine-tag">@(machine.RunningTag ?? "—")</span>
+                    }
+                </div>
+            }
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public AppDetail Detail { get; set; } = null!;
+
+    private string HealthDot => Detail.State switch
+    {
+        AppHealthState.Live => "dot-green",
+        AppHealthState.Deploying or AppHealthState.Drift => "dot-amber",
+        AppHealthState.Failed => "dot-red",
+        _ => "dot-neutral",
+    };
+
+    private string HealthTitle => Detail.State switch
+    {
+        AppHealthState.Live => "Healthy",
+        AppHealthState.Deploying => "Deploying",
+        AppHealthState.Drift => "Up, with drift",
+        AppHealthState.Failed => "Last deploy failed",
+        _ => "Dormant",
+    };
+
+    private string HealthNote => Detail.State switch
+    {
+        AppHealthState.Live => "Running the intended version across the fleet.",
+        AppHealthState.Deploying => "A rollout is in progress.",
+        AppHealthState.Drift =>
+            $"Serving fine — {Detail.BehindCount} {(Detail.BehindCount == 1 ? "machine is" : "machines are")} a version behind after a partial rollout.",
+        AppHealthState.Failed => "The last deploy failed; the previous version keeps serving.",
+        _ => Detail.Machines.Count == 0 ? "Not attached to a machine yet." : "Attached, waiting for its first deploy.",
+    };
+}

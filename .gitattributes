@@ -1,0 +1,21 @@
+# Enforce LF line endings across the repo — in the object store AND the working
+# tree, on every OS. Mirrors .editorconfig (end_of_line = LF) at the Git level so
+# checkouts are byte-identical everywhere. Without it, core.autocrlf=true gives
+# Windows a CRLF working tree, which breaks LF-sensitive string assertions
+# (e.g. the Luff.Server.Tests ComposeRenderer YAML tests).
+* text=auto eol=lf
+
+# Shell scripts must stay LF to run.
+*.sh text eol=lf
+
+# Never normalize binaries (none today; guards future additions).
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.ico  binary
+*.pdf  binary
+*.zip  binary
+*.gz   binary
+*.exe  binary
+*.dll  binary

@@ -1,0 +1,120 @@
+@page "/login"
+@layout EmptyLayout
+@attribute [AllowAnonymous]
+@attribute [ExcludeFromInteractiveRouting]
+@using Microsoft.AspNetCore.Authentication
+@using Microsoft.AspNetCore.Authentication.Cookies
+@inject CredentialVerifier Verifier
+@inject NavigationManager Navigation
+
+<PageTitle>Sign in · Luff</PageTitle>
+
+<div class="login">
+    <div class="login-card">
+        <div class="login-brand">
+            <svg viewBox="0 0 24 24" width="26" height="26" fill="none" aria-hidden="true">
+                <path d="M12.8 3.2 4.6 15.6c-.4.6 0 1.4.8 1.4h7.4V3.6c0-.8-1-.9-1.4-.4z" fill="var(--green)" />
+                <path d="M15 17h4.2c.8 0 1.2.9.7 1.5l-1.5 1.9c-.2.2-.4.3-.7.3H10"
+                      stroke="var(--green)" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+            <span>Luff</span>
+        </div>
+
+        <h1 class="login-title">Sign in</h1>
+        <p class="login-sub">Deployment dashboard</p>
+
+        <EditForm Model="Input" method="post" OnValidSubmit="Authenticate" FormName="login">
+            <label class="field">
+                <span class="field-label">Username</span>
+                <InputText class="input" @bind-Value="Input!.Username" autocomplete="username" autofocus />
+            </label>
+
+            <label class="field">
+                <span class="field-label">Password</span>
+                <InputText type="password" class="input" @bind-Value="Input!.Password" autocomplete="current-password" />
+            </label>
+
+            @if (_failed)
+            {
+                <div class="login-error">Incorrect username or password.</div>
+            }
+
+            <button class="btn btn-primary login-submit" type="submit">Sign in</button>
+        </EditForm>
+
+        <p class="login-note">
+            <span class="dot dot-amber"></span>
+            <span>Connection is encrypted with a self-signed certificate.</span>
+        </p>
+    </div>
+</div>
+
+@code {
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = null!;
+
+    [SupplyParameterFromForm]
+    private Credentials? Input { get; set; }
+
+    [SupplyParameterFromQuery]
+    private string? ReturnUrl { get; set; }
+
+    private bool _failed;
+
+    protected override void OnInitialized() => Input ??= new();
+
+    private async Task Authenticate()
+    {
+        try
+        {
+            var user = await Verifier.VerifyAsync(Input!.Username, Input.Password, HttpContext.RequestAborted);
+
+            if (user.TwoFactorEnabled)
+            {
+                // Password is right but incomplete: hand off to the code step with a short-lived,
+                // role-less pending cookie rather than the real auth cookie
+                var pending = new ClaimsIdentity(
+                    [new Claim(ClaimTypes.Name, user.Username)], JwtAuth.TwoFactorPendingScheme);
+                await HttpContext.SignInAsync(JwtAuth.TwoFactorPendingScheme, new ClaimsPrincipal(pending));
+
+                Navigation.NavigateTo(
+                    $"/login/2fa?returnUrl={Uri.EscapeDataString(SafeReturnUrl())}", forceLoad: true);
+                return;
+            }
+
+            var claims = new List<Claim>
+            {
+                new(ClaimTypes.Name, user.Username),
+                new(ClaimTypes.Role, user.Role.ToString()),
+            };
+            var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+            await HttpContext.SignInAsync(
+                CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(identity));
+
+            Navigation.NavigateTo(user.MustChangePassword ? "/welcome" : SafeReturnUrl(), forceLoad: true);
+        }
+        catch (InvalidCredentialsException)
+        {
+            _failed = true;
+        }
+    }
+
+    private string SafeReturnUrl()
+    {
+        if (!string.IsNullOrEmpty(ReturnUrl)
+            && ReturnUrl.StartsWith('/')
+            && !ReturnUrl.StartsWith("//")
+            && Uri.IsWellFormedUriString(ReturnUrl, UriKind.Relative))
+        {
+            return ReturnUrl;
+        }
+
+        return "/";
+    }
+
+    public sealed class Credentials
+    {
+        public string Username { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
+    }
+}

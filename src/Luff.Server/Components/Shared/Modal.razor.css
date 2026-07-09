@@ -1,0 +1,40 @@
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    display: grid;
+    place-items: center;
+    padding: 24px;
+    background: var(--overlay);
+    backdrop-filter: blur(2px);
+    animation: overlay-in 120ms ease;
+}
+
+.modal-card {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-modal);
+    animation: card-in 140ms ease;
+}
+
+.modal-md {
+    max-width: 460px;
+    padding: 28px;
+}
+
+.modal-lg {
+    max-width: 760px;
+    padding: 26px 28px 22px;
+}
+
+@keyframes overlay-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes card-in {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+}

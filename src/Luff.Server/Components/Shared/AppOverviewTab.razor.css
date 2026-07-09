@@ -1,0 +1,127 @@
+.overview {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.overview-top {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.ov-card {
+    padding: 24px;
+}
+
+.ov-version {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin-top: 14px;
+}
+
+.ov-tag {
+    font-size: 34px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--text);
+}
+
+.ov-none {
+    color: var(--text-dim);
+}
+
+.ov-prev {
+    font-size: 14px;
+    color: var(--text-dim);
+}
+
+.ov-note {
+    margin-top: 12px;
+    font-size: 13px;
+    color: var(--text-dim);
+}
+
+.ov-health {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.ov-health-title {
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.ov-config {
+    padding: 24px;
+}
+
+.ov-config-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 22px 40px;
+    margin-top: 18px;
+}
+
+.ov-label {
+    margin-bottom: 7px;
+    font-size: 12.5px;
+    color: var(--text-dim);
+}
+
+.ov-value {
+    font-size: 14px;
+    color: var(--text);
+}
+
+.ov-domain,
+.ov-tls-ok {
+    color: var(--green);
+}
+
+.ov-tls-warn {
+    color: var(--amber);
+}
+
+.ov-machines {
+    padding: 22px 24px;
+}
+
+.ov-machines-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+}
+
+.ov-empty {
+    padding: 10px 0;
+    color: var(--text-dim);
+}
+
+.ov-machine {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 15px 0;
+    border-top: 1px solid var(--border);
+}
+
+.ov-machine-name {
+    font-size: 14px;
+    color: var(--text);
+}
+
+.ov-machine-tag {
+    font-size: 14px;
+    color: var(--text-muted);
+}
+
+.ov-behind {
+    font-size: 13px;
+    color: var(--amber);
+}

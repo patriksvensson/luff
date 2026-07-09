@@ -1,0 +1,67 @@
+namespace Luff.Server.Features;
+
+public static class AgentEndpoints
+{
+    public static RouteGroupBuilder MapAgentEndpoints(this RouteGroupBuilder group)
+    {
+        var agents = group
+            .MapGroup("/agents")
+            .WithTags("Agents")
+            .RequireAuthorization(JwtAuth.AdminPolicy);
+
+        agents.MapGet("/", ListAgents)
+            .WithName("Agents_List");
+
+        agents.MapPost("/", Enroll)
+            .WithName("Agents_Enroll")
+            .ProducesProblem(StatusCodes.Status409Conflict);
+
+        agents.MapDelete("/{name}", Remove)
+            .WithName("Agents_Remove")
+            .ProducesProblem(StatusCodes.Status404NotFound);
+
+        agents.MapPut("/{name}/apps/{appName}", Attach)
+            .WithName("Agents_Attach")
+            .ProducesProblem(StatusCodes.Status404NotFound);
+
+        agents.MapDelete("/{name}/apps/{appName}", Detach)
+            .WithName("Agents_Detach")
+            .ProducesProblem(StatusCodes.Status404NotFound);
+
+        return group;
+    }
+
+    private static IEnumerable<AgentResponse> ListAgents(AgentRegistry registry)
+    {
+        return registry.List()
+            .Select(agent => new AgentResponse(agent.Name, agent.Status.ToString(), agent.Version));
+    }
+
+    private static async Task<Created<EnrollAgentResponse>> Enroll(
+        EnrollAgentRequest request, ISender sender, CancellationToken cancellationToken)
+    {
+        var response = await sender.EnrollAgent(request.Name, cancellationToken);
+        return TypedResults.Created($"/api/v1/agents/{response.Name}", response);
+    }
+
+    private static async Task<NoContent> Remove(
+        string name, ISender sender, CancellationToken cancellationToken)
+    {
+        await sender.RemoveAgent(name, cancellationToken);
+        return TypedResults.NoContent();
+    }
+
+    private static async Task<NoContent> Attach(
+        string name, string appName, ISender sender, CancellationToken cancellationToken)
+    {
+        await sender.AttachApp(name, appName, cancellationToken);
+        return TypedResults.NoContent();
+    }
+
+    private static async Task<NoContent> Detach(
+        string name, string appName, ISender sender, CancellationToken cancellationToken)
+    {
+        await sender.DetachApp(name, appName, cancellationToken);
+        return TypedResults.NoContent();
+    }
+}

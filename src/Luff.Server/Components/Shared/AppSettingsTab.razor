@@ -1,0 +1,176 @@
+@inject IScopedSender Sender
+@inject NavigationManager Navigation
+
+<div class="settings">
+    @if (_image is null)
+    {
+        <div class="eyebrow settings-loading">Loading…</div>
+    }
+    else
+    {
+        <div class="card settings-config">
+            <div class="eyebrow">Configuration</div>
+            <div class="settings-grid">
+                <label class="field">
+                    <span class="field-label">Image</span>
+                    <input class="input mono" @bind="_image" />
+                </label>
+                @if (!_frontless)
+                {
+                    <label class="field">
+                        <span class="field-label">Domain</span>
+                        <input class="input mono" @bind="_domain" />
+                    </label>
+                }
+                <label class="field settings-port">
+                    <span class="field-label">@PortLabel</span>
+                    <input class="input mono" type="number" @bind="_port" />
+                </label>
+            </div>
+
+            @if (!_frontless)
+            {
+                <div class="field settings-tls">
+                    <span class="field-label">TLS termination</span>
+                    <div class="tls-modes">
+                        <button type="button" class="tls-mode @(_tlsMode == "Managed" ? "is-active" : null)"
+                                @onclick='() => _tlsMode = "Managed"'>
+                            <span class="tls-mode-name">Managed</span>
+                            <span class="tls-mode-desc">Luff obtains the certificate automatically</span>
+                        </button>
+                        <button type="button" class="tls-mode @(_tlsMode == "External" ? "is-active" : null)"
+                                @onclick='() => _tlsMode = "External"'>
+                            <span class="tls-mode-name">External</span>
+                            <span class="tls-mode-desc">A load balancer in front terminates TLS</span>
+                        </button>
+                    </div>
+                    <p class="tls-served">@ServedScheme</p>
+                </div>
+            }
+
+            <p class="settings-note">
+                @if (_direct)
+                {
+                    <text>Publish host ports on the Ports tab. Image and container port apply on the next deploy (in place, brief downtime).</text>
+                }
+                else if (_internal)
+                {
+                    <text>Reachable by sibling apps as <span class="mono">@App:@_port</span>. Image and port apply on the next deploy.</text>
+                }
+                else
+                {
+                    <text>Domain and TLS changes take effect <b>immediately</b> — traffic re-points live. Image and port apply on the next deploy.</text>
+                }
+            </p>
+            @if (_error is not null)
+            {
+                <div class="cfg-error">@_error</div>
+            }
+            <div class="settings-actions">
+                <button class="btn btn-primary" @onclick="Save" disabled="@_busy">Save</button>
+                @if (_saved)
+                {
+                    <span class="settings-saved">Saved</span>
+                }
+            </div>
+        </div>
+
+        <div class="card danger">
+            <div class="eyebrow danger-label">Danger zone</div>
+            @if (!_confirming)
+            {
+                <div class="danger-row">
+                    <span class="danger-text">Delete this app and its config. Running containers are left to drain.</span>
+                    <button class="btn danger-btn" @onclick="() => _confirming = true">Delete app</button>
+                </div>
+            }
+            else
+            {
+                <div class="danger-row">
+                    <span class="danger-text">Delete <span class="mono">@App</span>? This can't be undone.</span>
+                    <button class="btn btn-ghost" @onclick="() => _confirming = false">Cancel</button>
+                    <button class="btn danger-btn" @onclick="Delete" disabled="@_busy">Delete</button>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public string App { get; set; } = string.Empty;
+
+    [Parameter]
+    public EventCallback OnChanged { get; set; }
+
+    private string? _image;
+    private bool _internal;
+    private bool _direct;
+    private bool _frontless => _internal || _direct;
+    private string _domain = string.Empty;
+    private int _port;
+    private string _tlsMode = "Managed";
+    private bool _busy;
+    private bool _saved;
+    private bool _confirming;
+    private string? _error;
+
+    private string PortLabel => _frontless ? (_direct ? "Container port" : "Service port") : "Internal port";
+
+    private string ServedScheme => _tlsMode == "External"
+        ? "Serves HTTP on :80 — TLS is terminated by your load balancer."
+        : AppHealth.IsAutoDomain(_domain)
+            ? "Serves HTTP on :80 — sslip.io default domains are plain HTTP."
+            : "Serves HTTPS on :443 — a Let's Encrypt certificate is obtained automatically.";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var app = await Sender.Send(new GetAppHandler.Request(App));
+        _image = app.Image;
+        _internal = app.Kind == "Internal";
+        _direct = app.Kind == "Direct";
+        _domain = app.Domain ?? string.Empty;
+        _port = app.InternalPort;
+        _tlsMode = app.TlsMode;
+    }
+
+    private async Task Save()
+    {
+        _busy = true;
+        _error = null;
+        _saved = false;
+        try
+        {
+            await Sender.Send(new UpdateAppHandler.Request(
+                App, _image!, _port,
+                domain: _frontless ? null : _domain.Trim(),
+                tlsMode: _frontless ? null : _tlsMode));
+            _saved = true;
+            await OnChanged.InvokeAsync();
+        }
+        catch (LuffException exception)
+        {
+            _error = exception.Message;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task Delete()
+    {
+        _busy = true;
+        try
+        {
+            await Sender.Send(new DeleteAppHandler.Request(App));
+            Navigation.NavigateTo("apps");
+        }
+        catch (LuffException exception)
+        {
+            _error = exception.Message;
+            _confirming = false;
+            _busy = false;
+        }
+    }
+}

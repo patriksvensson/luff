@@ -1,0 +1,129 @@
+@inject IScopedSender Sender
+@inject NavigationManager Navigation
+@inject TimeProvider Time
+
+<div class="wh">
+    <p class="cfg-lede">
+        Let CI trigger a deploy by calling this webhook after it pushes an image. The token is part of the URL and
+        is shown <b>once</b> — copy it when you create it.
+    </p>
+
+    @if (_created is not null)
+    {
+        <div class="card wh-reveal">
+            <span class="badge badge-amber">
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="5" y="11" width="14" height="9" rx="1.6" /><path d="M8 11V8a4 4 0 0 1 8 0v3" />
+                </svg>
+                <span class="wh-reveal-name">@_created.Name</span> · shown once — copy it now
+            </span>
+            <div class="mono wh-url">@WebhookUrl(_created.Token)</div>
+        </div>
+    }
+
+    <div class="wh-form">
+        <input class="input wh-name-input" @bind="_name" @bind:event="oninput" placeholder="Name, e.g. github-actions" />
+        <button class="btn btn-primary" @onclick="Create" disabled="@(_busy || string.IsNullOrWhiteSpace(_name))">+ Create webhook token</button>
+    </div>
+
+    @if (_error is not null)
+    {
+        <div class="cfg-error">@_error</div>
+    }
+
+    @if (_tokens is null)
+    {
+        <div class="eyebrow wh-loading">Loading…</div>
+    }
+    else if (_tokens.Count == 0)
+    {
+        <div class="cfg-empty">No webhook tokens yet.</div>
+    }
+    else
+    {
+        <div class="wh-list">
+            @foreach (var token in _tokens)
+            {
+                <div class="card wh-row">
+                    <div class="wh-ident">
+                        <span class="wh-name">@(string.IsNullOrEmpty(token.Name) ? "unnamed" : token.Name)</span>
+                        <span class="wh-meta">
+                            <span class="mono wh-id">@token.Id.ToString()[..8]</span>
+                            · created @Rel(token.CreatedAt)
+                            @(token.LastUsedAt is null ? "· never used" : $"· last used {Rel(token.LastUsedAt.Value)}")
+                        </span>
+                    </div>
+                    <span class="spacer"></span>
+                    <button class="wh-revoke" @onclick="() => Revoke(token.Id)" disabled="@_busy">Revoke</button>
+                </div>
+            }
+        </div>
+    }
+
+    <div class="wh-snippet">
+        <div class="eyebrow">CI snippet</div>
+        <pre class="mono card wh-code"><span class="wh-comment"># after your build pushes the image</span>
+curl -X POST "$LUFF_WEBHOOK" \
+  -H "Content-Type: application/json" \
+  -d '@("{" + "\"tag\":\"v1.4.4\"" + "}")'</pre>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public string App { get; set; } = string.Empty;
+
+    private IReadOnlyList<TokenResponse>? _tokens;
+    private CreateTokenResponse? _created;
+    private string _name = string.Empty;
+    private bool _busy;
+    private string? _error;
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync() =>
+        _tokens = await Sender.Send(new ListWebhookTokensHandler.Request(App));
+
+    private async Task Create()
+    {
+        _busy = true;
+        _error = null;
+        try
+        {
+            _created = await Sender.Send(new CreateWebhookTokenHandler.Request(App, _name.Trim()));
+            _name = string.Empty;
+            await LoadAsync();
+        }
+        catch (LuffException exception)
+        {
+            _error = exception.Message;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task Revoke(Guid id)
+    {
+        _busy = true;
+        try
+        {
+            await Sender.Send(new RevokeWebhookTokenHandler.Request(App, id));
+            if (_created?.Id == id)
+            {
+                _created = null;
+            }
+
+            await LoadAsync();
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private string WebhookUrl(string token) => $"{Navigation.BaseUri}webhook/{token}";
+
+    private string Rel(DateTimeOffset at) => AppHealth.Relative(Time.GetUtcNow() - at);
+}

@@ -1,0 +1,116 @@
+@page "/login/2fa"
+@layout EmptyLayout
+@attribute [AllowAnonymous]
+@attribute [ExcludeFromInteractiveRouting]
+@using Microsoft.AspNetCore.Authentication
+@using Microsoft.AspNetCore.Authentication.Cookies
+@inject TwoFactorService TwoFactor
+@inject LuffDbContext Database
+@inject NavigationManager Navigation
+
+<PageTitle>Two-factor · Luff</PageTitle>
+
+<div class="login">
+    <div class="login-card">
+        <div class="login-brand">
+            <svg viewBox="0 0 24 24" width="26" height="26" fill="none" aria-hidden="true">
+                <path d="M12.8 3.2 4.6 15.6c-.4.6 0 1.4.8 1.4h7.4V3.6c0-.8-1-.9-1.4-.4z" fill="var(--green)" />
+                <path d="M15 17h4.2c.8 0 1.2.9.7 1.5l-1.5 1.9c-.2.2-.4.3-.7.3H10"
+                      stroke="var(--green)" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+            <span>Luff</span>
+        </div>
+
+        <h1 class="login-title">Two-factor</h1>
+        <p class="login-sub">Enter the code from your authenticator app</p>
+
+        <EditForm Model="Input" method="post" OnValidSubmit="Verify" FormName="twofactor">
+            <label class="field">
+                <span class="field-label">Authentication code</span>
+                <InputText class="input mono" @bind-Value="Input!.Code"
+                           autocomplete="one-time-code" inputmode="numeric" autofocus />
+            </label>
+
+            @if (_failed)
+            {
+                <div class="login-error">That code didn't match. Try again, or use a backup code.</div>
+            }
+
+            <button class="btn btn-primary login-submit" type="submit">Verify</button>
+        </EditForm>
+
+        <p class="login-note">
+            <span>Lost your device? Enter one of your backup codes instead.</span>
+        </p>
+    </div>
+</div>
+
+@code {
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = null!;
+
+    [SupplyParameterFromForm]
+    private CodeInput? Input { get; set; }
+
+    [SupplyParameterFromQuery]
+    private string? ReturnUrl { get; set; }
+
+    private bool _failed;
+
+    protected override void OnInitialized() => Input ??= new();
+
+    private async Task Verify()
+    {
+        var pending = await HttpContext.AuthenticateAsync(JwtAuth.TwoFactorPendingScheme);
+        var username = pending.Principal?.Identity?.Name;
+        if (string.IsNullOrEmpty(username))
+        {
+            Navigation.NavigateTo("/login", forceLoad: true);
+            return;
+        }
+
+        var user = await Database.Users.FindAsync([username], HttpContext.RequestAborted);
+        if (user is null || !user.TwoFactorEnabled)
+        {
+            await HttpContext.SignOutAsync(JwtAuth.TwoFactorPendingScheme);
+            Navigation.NavigateTo("/login", forceLoad: true);
+            return;
+        }
+
+        if (!await TwoFactor.VerifyAsync(user, Input!.Code, HttpContext.RequestAborted))
+        {
+            _failed = true;
+            return;
+        }
+
+        var claims = new List<Claim>
+        {
+            new(ClaimTypes.Name, user.Username),
+            new(ClaimTypes.Role, user.Role.ToString()),
+        };
+        var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+        await HttpContext.SignInAsync(
+            CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(identity));
+        await HttpContext.SignOutAsync(JwtAuth.TwoFactorPendingScheme);
+
+        Navigation.NavigateTo(user.MustChangePassword ? "/welcome" : SafeReturnUrl(), forceLoad: true);
+    }
+
+    private string SafeReturnUrl()
+    {
+        if (!string.IsNullOrEmpty(ReturnUrl)
+            && ReturnUrl.StartsWith('/')
+            && !ReturnUrl.StartsWith("//")
+            && Uri.IsWellFormedUriString(ReturnUrl, UriKind.Relative))
+        {
+            return ReturnUrl;
+        }
+
+        return "/";
+    }
+
+    public sealed class CodeInput
+    {
+        public string Code { get; set; } = string.Empty;
+    }
+}

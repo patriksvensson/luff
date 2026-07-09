@@ -1,0 +1,82 @@
+name: luff
+
+services:
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    command: ["caddy", "run", "--config", "/etc/caddy/config.json"]
+    ports:
+      - "80:80"
+      - "443:443"
+      - "127.0.0.1:2019:2019"
+    configs:
+      - source: caddy_config
+        target: /etc/caddy/config.json
+    volumes:
+      - ${LUFF_CADDY_DIR:-caddy_data}:/data
+    networks:
+      - luff
+
+  server:
+    image: ghcr.io/patriksvensson/luff-server:${LUFF_VERSION:-latest}
+    restart: unless-stopped
+    # Loopback-only: the real front door is Caddy on :443
+    ports:
+      - "127.0.0.1:8080:8080"
+    environment:
+      ConnectionStrings__Luff: "Data Source=/data/luff.db"
+      Enrollment__Secret: "${LUFF_ENROLLMENT_SECRET:?set LUFF_ENROLLMENT_SECRET in .env (copy .env.example)}"
+      Auth__InitialAdmin__Username: "${LUFF_ADMIN_USERNAME:-admin}"
+      Auth__InitialAdmin__Password: "${LUFF_ADMIN_PASSWORD:-changeme}"
+      FrontDoor__Domain: "${LUFF_FRONT_DOOR_DOMAIN:-127.0.0.1.sslip.io}"
+      # Caddy reaches the control plane by its compose service name (replaces host.docker.internal)
+      FrontDoor__Upstream: "server:8080"
+    volumes:
+      - ${LUFF_DATA_DIR:-luff_data}:/data
+    networks:
+      - luff
+
+  agent:
+    image: ghcr.io/patriksvensson/luff-agent:${LUFF_VERSION:-latest}
+    restart: unless-stopped
+    environment:
+      Agent__Name: "local"
+      Agent__ServerAddress: "http://server:8081"
+      Agent__CaddyAdminAddress: "http://caddy:2019"
+      Agent__HostsFrontDoor: "true"
+      Agent__EnrollmentSecret: "${LUFF_ENROLLMENT_SECRET:?set LUFF_ENROLLMENT_SECRET in .env (copy .env.example)}"
+    volumes:
+      # The single privileged component: the agent drives Docker on the host (the control plane has no socket)
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      caddy:
+        condition: service_started
+      server:
+        condition: service_healthy
+    networks:
+      - luff
+
+networks:
+  luff:
+    name: luff
+
+volumes:
+  caddy_data:
+  luff_data:
+
+# Caddy's seed config, inlined so the whole install is this one file (no separate caddy/config.json to fetch).
+# Two empty servers, :80 (plain HTTP) and :443 (HTTPS), that the agent fills with routes at runtime
+configs:
+  caddy_config:
+    content: |
+      {
+        "admin": { "listen": "0.0.0.0:2019" },
+        "apps": {
+          "http": {
+            "servers": {
+              "srv0":   { "listen": [":80"],  "routes": [] },
+              "srv443": { "listen": [":443"], "routes": [] }
+            }
+          }
+        }
+      }

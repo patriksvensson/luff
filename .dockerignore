@@ -1,0 +1,15 @@
+# Keep the build context lean and free of stale/host artifacts.
+**/bin/
+**/obj/
+artifacts/
+.git/
+.github/
+.vs/
+.idea/
+**/*.db
+**/*.db-shm
+**/*.db-wal
+src/Luff.Server/keys/
+.env
+eng/
+src/openapi.json

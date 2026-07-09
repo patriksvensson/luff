@@ -1,0 +1,56 @@
+:root {
+    color-scheme: dark;
+
+    /* Backgrounds */
+    --bg: #0a0c0b;
+    --surface: #101312;
+    --surface-hover: #161a18;
+    --surface-strong: #1b201d;
+    --overlay: rgba(0, 0, 0, 0.62);
+
+    /* Borders */
+    --border: rgba(255, 255, 255, 0.07);
+    --border-strong: rgba(255, 255, 255, 0.12);
+
+    /* Text */
+    --text: #e7eae8;
+    --text-muted: #98a09a;
+    --text-dim: #626b64;
+    --text-faint: #464e48;
+
+    /* Accent — mint green (live / primary) */
+    --green: #7ee0a5;
+    --green-bright: #93e8b6;
+    --green-dim: #4b8c6a;
+    --green-soft: rgba(126, 224, 165, 0.12);
+    --green-border: rgba(126, 224, 165, 0.30);
+    --on-green: #06110b;
+
+    /* Amber — in progress / drift / needs attention (still up) */
+    --amber: #e5c07b;
+    --amber-soft: rgba(229, 192, 123, 0.10);
+    --amber-border: rgba(229, 192, 123, 0.28);
+
+    /* Red — failed / disconnected / down */
+    --red: #e37b83;
+    --red-soft: rgba(227, 123, 131, 0.10);
+    --red-border: rgba(227, 123, 131, 0.28);
+
+    /* Neutral — pending / dormant / idle */
+    --neutral: #6b746d;
+
+    /* Typography */
+    --font-sans: "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --font-mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+    /* Radius */
+    --radius-sm: 6px;
+    --radius: 10px;
+    --radius-lg: 14px;
+
+    /* Layout */
+    --sidebar-width: 248px;
+
+    /* Elevation */
+    --shadow-modal: 0 24px 64px rgba(0, 0, 0, 0.55);
+}

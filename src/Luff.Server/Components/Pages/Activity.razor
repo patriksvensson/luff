@@ -1,0 +1,63 @@
+@page "/activity"
+@attribute [Authorize]
+@inject IScopedSender Sender
+
+<PageTitle>Activity · Luff</PageTitle>
+
+<div class="page-head">
+    <h1 class="page-title">Activity</h1>
+    <p class="page-lede">Every deploy across all apps.</p>
+</div>
+
+@if (_rows is null)
+{
+    <div class="eyebrow act-loading">Loading…</div>
+}
+else if (_rows.Count == 0)
+{
+    <div class="cfg-empty">No deployments yet.</div>
+}
+else
+{
+    <div class="act-list">
+        @foreach (var row in _rows)
+        {
+            <div class="act-row">
+                <span class="dot @Dot(row)"></span>
+                <a class="app-link" href="apps/@row.App/activity">@row.App</a>
+                <span class="mono act-tag">@row.Tag</span>
+                <span class="spacer"></span>
+                <span class="mono act-status @StatusClass(row)">@StatusText(row)</span>
+                <span class="act-when">@row.When</span>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private IReadOnlyList<ActivityRow>? _rows;
+
+    protected override async Task OnInitializedAsync() =>
+        _rows = await Sender.Send(new ActivityHandler.Request());
+
+    private static string Dot(ActivityRow row) =>
+        row.Failed ? "dot-red" : row.Succeeded ? "dot-green" : "dot-amber";
+
+    private static string StatusClass(ActivityRow row) =>
+        row.Failed ? "is-failed" : row.Succeeded ? "is-ok" : "is-progress";
+
+    private static string StatusText(ActivityRow row)
+    {
+        if (row.Failed && row.FailureReason is not null)
+        {
+            return $"{row.Status} · {row.FailureReason}";
+        }
+
+        if (row.MachineCount > 0)
+        {
+            return $"{row.Status} · {row.MachineCount} {(row.MachineCount == 1 ? "machine" : "machines")}";
+        }
+
+        return row.Status;
+    }
+}

@@ -1,0 +1,61 @@
+.act-loading {
+    padding: 8px 0;
+}
+
+.act-list {
+    display: flex;
+    flex-direction: column;
+}
+
+.act-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 4px;
+    border-top: 1px solid var(--border);
+}
+
+.act-row:first-child {
+    border-top: none;
+}
+
+.app-link {
+    font-family: var(--font-mono);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    transition: color 120ms ease;
+}
+
+.app-link:hover {
+    color: var(--green);
+}
+
+.act-tag {
+    font-size: 13.5px;
+    color: var(--text-muted);
+}
+
+.act-status {
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+.act-status.is-ok {
+    color: var(--green-dim);
+}
+
+.act-status.is-failed {
+    color: var(--red);
+}
+
+.act-status.is-progress {
+    color: var(--amber);
+}
+
+.act-when {
+    min-width: 72px;
+    text-align: right;
+    font-size: 13px;
+    color: var(--text-dim);
+}

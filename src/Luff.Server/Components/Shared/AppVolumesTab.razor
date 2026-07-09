@@ -1,0 +1,126 @@
+@inject IScopedSender Sender
+
+<div class="vol">
+    @if (!_isAdmin)
+    {
+        <div class="cfg-empty">Volumes are managed by admins — you're signed in as an operator.</div>
+    }
+    else
+    {
+        <p class="cfg-lede">
+            Persistent storage — a <b>bind</b> (absolute host path) or a <b>named</b> volume, optionally read-only.
+            Takes effect on the next deploy. Luff never deletes a volume's data.
+        </p>
+
+        <div class="vol-add">
+            <input class="input mono vol-source" placeholder="/host/path or volume-name" @bind="_source" />
+            <span class="vol-arrow mono">→</span>
+            <input class="input mono vol-target" placeholder="/container/path" @bind="_target" />
+            <label class="vol-ro"><input type="checkbox" @bind="_readOnly" /> read-only</label>
+            <button class="btn btn-primary" @onclick="Add"
+                    disabled="@(_busy || string.IsNullOrWhiteSpace(_source) || string.IsNullOrWhiteSpace(_target))">Add</button>
+        </div>
+
+        @if (_error is not null)
+        {
+            <div class="cfg-error">@_error</div>
+        }
+
+        @if (_volumes is null)
+        {
+            <div class="eyebrow vol-loading">Loading…</div>
+        }
+        else if (_volumes.Count == 0)
+        {
+            <div class="cfg-empty">No volumes mounted.</div>
+        }
+        else
+        {
+            <div class="vol-list">
+                @foreach (var volume in _volumes)
+                {
+                    <div class="card vol-row">
+                        <span class="mono vol-src">@volume.Source</span>
+                        <span class="vol-arrow mono">→</span>
+                        <span class="mono vol-tgt">@volume.Target</span>
+                        @if (volume.ReadOnly)
+                        {
+                            <span class="chip">read-only</span>
+                        }
+                        <span class="spacer"></span>
+                        <button class="vol-remove" @onclick="() => Remove(volume.Target)" disabled="@_busy">Remove</button>
+                    </div>
+                }
+            </div>
+        }
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public string App { get; set; } = string.Empty;
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthState { get; set; }
+
+    private bool _isAdmin;
+    private IReadOnlyList<VolumeResponse>? _volumes;
+    private string _source = string.Empty;
+    private string _target = string.Empty;
+    private bool _readOnly;
+    private bool _busy;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (AuthState is not null)
+        {
+            var state = await AuthState;
+            _isAdmin = state.User.IsInRole("Admin");
+        }
+
+        if (_isAdmin)
+        {
+            await LoadAsync();
+        }
+    }
+
+    private async Task LoadAsync() =>
+        _volumes = await Sender.Send(new ListVolumesHandler.Request(App));
+
+    private async Task Add()
+    {
+        _busy = true;
+        _error = null;
+        try
+        {
+            await Sender.Send(new AddVolumeHandler.Request(App, _source.Trim(), _target.Trim(), _readOnly));
+            _source = string.Empty;
+            _target = string.Empty;
+            _readOnly = false;
+            await LoadAsync();
+        }
+        catch (LuffException exception)
+        {
+            _error = exception.Message;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task Remove(string target)
+    {
+        _busy = true;
+        try
+        {
+            await Sender.Send(new RemoveVolumeHandler.Request(App, target));
+            await LoadAsync();
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

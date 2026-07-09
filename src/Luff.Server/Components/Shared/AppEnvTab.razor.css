@@ -1,0 +1,68 @@
+.env-add {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.env-key {
+    flex: 0 0 220px;
+}
+
+.env-eq {
+    color: var(--text-dim);
+}
+
+.env-val {
+    flex: 1;
+}
+
+.env-add .btn {
+    flex: none;
+    height: 42px;
+}
+
+.env-loading {
+    padding: 8px 0;
+}
+
+.env-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 16px;
+}
+
+.env-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 18px;
+}
+
+.env-name {
+    font-size: 14px;
+    color: var(--text);
+}
+
+.env-masked {
+    font-size: 14px;
+    color: var(--text-dim);
+    letter-spacing: 0.05em;
+}
+
+.env-remove {
+    flex: none;
+    font-size: 13px;
+    color: var(--text-dim);
+    transition: color 120ms ease;
+}
+
+.env-remove:hover:not(:disabled) {
+    color: var(--red);
+}
+
+.env-remove:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+}

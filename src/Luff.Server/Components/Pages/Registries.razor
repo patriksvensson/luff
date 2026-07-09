@@ -1,0 +1,141 @@
+@page "/registries"
+@attribute [Authorize]
+@inject IScopedSender Sender
+
+<PageTitle>Registries · Luff</PageTitle>
+
+<div class="page-head">
+    <h1 class="page-title">Registries</h1>
+    <p class="page-lede">Private-registry credentials, matched to images by host. Public images need none.</p>
+</div>
+
+@if (!_isAdmin)
+{
+    <div class="cfg-empty">Registries are managed by admins — you're signed in as an operator.</div>
+}
+else if (_registries is null)
+{
+    <div class="eyebrow reg-loading">Loading…</div>
+}
+else
+{
+    @if (_registries.Count > 0)
+    {
+        <div class="reg-list">
+            @foreach (var registry in _registries)
+            {
+                <div class="card reg-row">
+                    <div class="reg-ident">
+                        <span class="mono reg-host">@registry.Host</span>
+                        <span class="mono reg-meta">@registry.Username · password ••••••••</span>
+                    </div>
+                    <span class="spacer"></span>
+                    <span class="badge badge-green reg-matches">matches @registry.Host/*</span>
+                    <button class="reg-remove" @onclick="() => Remove(registry.Host)" disabled="@_busy">Remove</button>
+                </div>
+            }
+        </div>
+    }
+
+    <div class="reg-note">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="5" y="11" width="14" height="9" rx="1.6" /><path d="M8 11V8a4 4 0 0 1 8 0v3" />
+        </svg>
+        <span>Passwords are write-only — set once, never shown again.</span>
+    </div>
+
+    @if (_error is not null)
+    {
+        <div class="cfg-error">@_error</div>
+    }
+
+    @if (_adding)
+    {
+        <div class="card reg-add">
+            <input class="input mono" placeholder="host (e.g. ghcr.io)" @bind="_host" />
+            <input class="input mono" placeholder="username" @bind="_username" autocomplete="off" />
+            <input class="input mono" type="password" placeholder="password" @bind="_password" autocomplete="new-password" />
+            <button class="btn btn-primary" @onclick="Add"
+                    disabled="@(_busy || string.IsNullOrWhiteSpace(_host) || string.IsNullOrWhiteSpace(_username))">Add</button>
+            <button class="btn btn-ghost" @onclick="() => _adding = false">Cancel</button>
+        </div>
+    }
+    else
+    {
+        <button class="btn btn-ghost reg-add-btn" @onclick="StartAdd">+ Add registry credentials</button>
+    }
+}
+
+@code {
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthState { get; set; }
+
+    private bool _isAdmin;
+    private IReadOnlyList<RegistryResponse>? _registries;
+    private bool _adding;
+    private string _host = string.Empty;
+    private string _username = string.Empty;
+    private string _password = string.Empty;
+    private bool _busy;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (AuthState is not null)
+        {
+            var state = await AuthState;
+            _isAdmin = state.User.IsInRole("Admin");
+        }
+
+        if (_isAdmin)
+        {
+            await LoadAsync();
+        }
+    }
+
+    private async Task LoadAsync() =>
+        _registries = await Sender.Send(new ListRegistriesHandler.Request());
+
+    private void StartAdd()
+    {
+        _host = string.Empty;
+        _username = string.Empty;
+        _password = string.Empty;
+        _error = null;
+        _adding = true;
+    }
+
+    private async Task Add()
+    {
+        _busy = true;
+        _error = null;
+        try
+        {
+            await Sender.Send(new AddRegistryHandler.Request(_host.Trim(), _username.Trim(), _password));
+            _adding = false;
+            await LoadAsync();
+        }
+        catch (LuffException exception)
+        {
+            _error = exception.Message;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task Remove(string host)
+    {
+        _busy = true;
+        try
+        {
+            await Sender.Send(new RemoveRegistryHandler.Request(host));
+            await LoadAsync();
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

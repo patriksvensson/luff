@@ -1,0 +1,236 @@
+@page "/apps/{Name}"
+@page "/apps/{Name}/{Tab}"
+@attribute [Authorize]
+@inject IScopedSender Sender
+
+<PageTitle>@Name · Luff</PageTitle>
+
+@if (_notFound)
+{
+    <div class="detail-missing">
+        <div class="detail-missing-title">App not found</div>
+        <p class="detail-missing-note">No app named <span class="mono">@Name</span> exists.</p>
+        <a class="btn btn-ghost" href="apps">← Back to apps</a>
+    </div>
+}
+else if (_detail is null)
+{
+    <div class="eyebrow detail-loading">Loading…</div>
+}
+else
+{
+    <nav class="breadcrumb">
+        <a href="apps">Apps</a>
+        <span class="breadcrumb-sep">/</span>
+        <span class="breadcrumb-current">@_detail.Name</span>
+    </nav>
+
+    <div class="detail-title-row">
+        <div class="detail-title-left">
+            <h1 class="detail-title">@_detail.Name</h1>
+            @if (_detail.Internal)
+            {
+                <span class="detail-domain mono">@_detail.InternalHost</span>
+            }
+            else if (_detail.Direct)
+            {
+                <span class="detail-domain mono">direct</span>
+            }
+            else
+            {
+                <a class="link detail-domain" href="@DomainUrl(_detail)" target="_blank" rel="noopener">@_detail.Domain ↗</a>
+            }
+            <StatusBadge State="_detail.State" Detail="@_detail.StateDetail" />
+        </div>
+        <div class="detail-actions">
+            @if (_detail.Stopped)
+            {
+                <button class="btn btn-primary" @onclick="Start" disabled="@_busy">Start</button>
+            }
+            else
+            {
+                <button class="btn btn-ghost" @onclick="Stop" disabled="@_busy">Stop</button>
+                <button class="btn btn-ghost" @onclick='() => OpenModal("rollback")' disabled="@(_detail.PreviousTag is null)">
+                    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M9 5 4 10l5 5" /><path d="M4 10h10a6 6 0 0 1 0 12h-3" />
+                    </svg>
+                    Rollback
+                </button>
+                <button class="btn btn-primary" @onclick='() => OpenModal("deploy")'>Deploy</button>
+            }
+        </div>
+    </div>
+
+    <nav class="tabs">
+        <NavLink class="tab" href="@($"apps/{Name}")" Match="NavLinkMatch.All">Overview</NavLink>
+        <NavLink class="tab" href="@($"apps/{Name}/machines")">Machines</NavLink>
+        <NavLink class="tab" href="@($"apps/{Name}/logs")">Logs</NavLink>
+        <NavLink class="tab" href="@($"apps/{Name}/environment")">Environment</NavLink>
+        <NavLink class="tab" href="@($"apps/{Name}/volumes")">Volumes</NavLink>
+        @if (_detail.Direct)
+        {
+            <NavLink class="tab" href="@($"apps/{Name}/ports")">Ports</NavLink>
+        }
+        <NavLink class="tab" href="@($"apps/{Name}/health")">Health check</NavLink>
+        <NavLink class="tab" href="@($"apps/{Name}/webhooks")">CI / Webhooks</NavLink>
+        <NavLink class="tab" href="@($"apps/{Name}/activity")">Activity</NavLink>
+        <NavLink class="tab" href="@($"apps/{Name}/settings")">Settings</NavLink>
+    </nav>
+
+    <div class="detail-body">
+        @switch (ActiveTab)
+        {
+            case "machines":
+                <AppMachinesTab Detail="_detail" OnChanged="ReloadDetail" OnRedeploy='() => OpenModal("deploy")' />
+                break;
+            case "logs":
+                <AppLogsTab Detail="_detail" />
+                break;
+            case "environment":
+                <AppEnvTab App="@_detail.Name" />
+                break;
+            case "volumes":
+                <AppVolumesTab App="@_detail.Name" />
+                break;
+            case "ports":
+                <AppPortsTab App="@_detail.Name" />
+                break;
+            case "settings":
+                <AppSettingsTab App="@_detail.Name" OnChanged="ReloadDetail" />
+                break;
+            case "health":
+                <AppHealthTab App="@_detail.Name" />
+                break;
+            case "webhooks":
+                <AppWebhooksTab App="@_detail.Name" />
+                break;
+            case "activity":
+                <AppActivityTab Detail="_detail" />
+                break;
+            default:
+                <AppOverviewTab Detail="_detail" />
+                break;
+        }
+    </div>
+
+    @if (_modal is not null)
+    {
+        <DeployPanel Kind="@_modal" App="@_detail.Name" CurrentTag="@_detail.CurrentTag"
+                     PreviousTag="@_detail.PreviousTag"
+                     Machines="_detail.Machines.Select(machine => machine.Agent).ToList()"
+                     AppDomain="@_detail.Domain" Https="_detail.Https" OnClose="CloseModal" />
+    }
+}
+
+@code {
+    [Parameter]
+    public string Name { get; set; } = string.Empty;
+
+    [Parameter]
+    public string? Tab { get; set; }
+
+    [SupplyParameterFromQuery(Name = "deploy")]
+    public bool DeployRequested { get; set; }
+
+    private AppDetail? _detail;
+    private bool _notFound;
+    private string? _loadedName;
+    private bool _deployOpened;
+    private string? _modal;
+    private bool _busy;
+
+    private string ActiveTab => Tab?.ToLowerInvariant() switch
+    {
+        "machines" => "machines",
+        "logs" => "logs",
+        "environment" => "environment",
+        "volumes" => "volumes",
+        "ports" => "ports",
+        "health" => "health",
+        "webhooks" => "webhooks",
+        "settings" => "settings",
+        "activity" => "activity",
+        _ => "overview",
+    };
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_loadedName != Name)
+        {
+            _loadedName = Name;
+            await LoadAsync();
+        }
+
+        if (_detail is not null && DeployRequested && !_deployOpened)
+        {
+            _deployOpened = true;
+            _modal = "deploy";
+        }
+    }
+
+    private async Task Stop()
+    {
+        _busy = true;
+        try
+        {
+            await Sender.Send(new StopAppHandler.Request(Name));
+            await LoadAsync();
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task Start()
+    {
+        _busy = true;
+        try
+        {
+            await Sender.Send(new StartAppHandler.Request(Name));
+            await LoadAsync();
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task LoadAsync()
+    {
+        _detail = null;
+        _notFound = false;
+
+        try
+        {
+            _detail = await Sender.Send(new AppDetailHandler.Request(Name));
+        }
+        catch (AppNotFoundException)
+        {
+            _notFound = true;
+        }
+    }
+
+    private async Task ReloadDetail()
+    {
+        try
+        {
+            _detail = await Sender.Send(new AppDetailHandler.Request(Name));
+        }
+        catch (AppNotFoundException)
+        {
+            _notFound = true;
+        }
+    }
+
+    private void OpenModal(string kind) => _modal = kind;
+
+    private async Task CloseModal()
+    {
+        _modal = null;
+        await LoadAsync();
+    }
+
+    private static string DomainUrl(AppDetail detail) =>
+        (detail.Https ? "https://" : "http://") + detail.Domain;
+}

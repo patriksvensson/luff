@@ -1,0 +1,20 @@
+<Solution>
+  <Configurations>
+    <Platform Name="Any CPU" />
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Folder Name="/Meta/">
+    <File Path=".editorconfig" />
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Packages.props" />
+  </Folder>
+  <Project Path="Luff.Agent/Luff.Agent.csproj" />
+  <Project Path="Luff.Server/Luff.Server.csproj" />
+  <Folder Name="/Tests/">
+    <Project Path="Luff.Agent.Tests/Luff.Agent.Tests.csproj" />
+    <Project Path="Luff.Server.Tests/Luff.Server.Tests.csproj" />
+    <Project Path="Luff.Testing/Luff.Testing.csproj" />
+  </Folder>
+  <Project Path="Luff.Protobuf/Luff.Protobuf.csproj" />
+</Solution>

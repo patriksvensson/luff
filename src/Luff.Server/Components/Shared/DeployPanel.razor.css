@@ -1,0 +1,128 @@
+/* Deploy trigger */
+
+.trigger-head {
+    display: flex;
+    align-items: center;
+    margin-bottom: 22px;
+}
+
+.trigger-title {
+    font-size: 20px;
+    font-weight: 600;
+    margin-right: auto;
+}
+
+.trigger-app {
+    color: var(--green);
+}
+
+.field {
+    display: block;
+    margin-bottom: 20px;
+}
+
+.field-label {
+    display: block;
+    font-size: 12.5px;
+    color: var(--text-muted);
+    margin-bottom: 7px;
+}
+
+.trigger-targets {
+    margin-bottom: 22px;
+}
+
+.trigger-target-list {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    margin-top: 12px;
+}
+
+.trigger-target {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13.5px;
+    color: var(--text-muted);
+}
+
+.trigger-error {
+    color: var(--red);
+    font-size: 13px;
+    margin-bottom: 14px;
+}
+
+.trigger-note {
+    color: var(--text-dim);
+    font-size: 13px;
+    margin-bottom: 14px;
+}
+
+/* Shared actions row */
+
+.confirm-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 8px;
+}
+
+.confirm-actions .btn {
+    flex: 1;
+    height: 46px;
+    font-size: 15px;
+}
+
+/* Rollback confirm */
+
+.confirm-icon {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: var(--green-soft);
+    color: var(--green);
+    margin-bottom: 20px;
+}
+
+.confirm-title {
+    font-size: 21px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    margin-bottom: 18px;
+}
+
+.confirm-tags {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 18px;
+    font-size: 14px;
+}
+
+.confirm-from {
+    padding: 6px 13px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text-dim);
+}
+
+.confirm-arrow {
+    color: var(--text-dim);
+}
+
+.confirm-to {
+    padding: 6px 13px;
+    border-radius: var(--radius-sm);
+    background: var(--green-soft);
+    color: var(--green);
+    font-weight: 600;
+}
+
+.confirm-note {
+    color: var(--text-muted);
+    font-size: 13.5px;
+    line-height: 1.6;
+    margin-bottom: 24px;
+}

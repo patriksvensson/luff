@@ -1,0 +1,128 @@
+@inject IScopedSender Sender
+
+<div class="port">
+    @if (!_isAdmin)
+    {
+        <div class="cfg-empty">Ports are managed by admins — you're signed in as an operator.</div>
+    }
+    else
+    {
+        <p class="cfg-lede">
+            Publish a container port on a <b>loopback</b> host port (<span class="mono">127.0.0.1:host</span>). Reach it
+            over your tailnet or LAN by fronting that port yourself (e.g. <span class="mono">tailscale serve</span>).
+            Takes effect on the next deploy.
+        </p>
+
+        <div class="port-add">
+            <input class="input mono port-host" type="number" min="1024" max="65535"
+                   placeholder="host (e.g. 8001)" @bind="_host" />
+            <span class="port-arrow mono">→</span>
+            <input class="input mono port-container" type="number" min="1" max="65535"
+                   placeholder="container (e.g. 3000)" @bind="_container" />
+            <button class="btn btn-primary" @onclick="Add"
+                    disabled="@(_busy || string.IsNullOrWhiteSpace(_host) || string.IsNullOrWhiteSpace(_container))">Add</button>
+        </div>
+
+        @if (_error is not null)
+        {
+            <div class="cfg-error">@_error</div>
+        }
+
+        @if (_ports is null)
+        {
+            <div class="eyebrow port-loading">Loading…</div>
+        }
+        else if (_ports.Count == 0)
+        {
+            <div class="cfg-empty">No ports published.</div>
+        }
+        else
+        {
+            <div class="port-list">
+                @foreach (var port in _ports)
+                {
+                    <div class="card port-row">
+                        <span class="mono port-src">127.0.0.1:@port.HostPort</span>
+                        <span class="port-arrow mono">→</span>
+                        <span class="mono port-tgt">@port.ContainerPort</span>
+                        <span class="spacer"></span>
+                        <button class="port-remove" @onclick="() => Remove(port.HostPort)" disabled="@_busy">Remove</button>
+                    </div>
+                }
+            </div>
+        }
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public string App { get; set; } = string.Empty;
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthState { get; set; }
+
+    private bool _isAdmin;
+    private IReadOnlyList<PortMappingResponse>? _ports;
+    private string _host = string.Empty;
+    private string _container = string.Empty;
+    private bool _busy;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (AuthState is not null)
+        {
+            var state = await AuthState;
+            _isAdmin = state.User.IsInRole("Admin");
+        }
+
+        if (_isAdmin)
+        {
+            await LoadAsync();
+        }
+    }
+
+    private async Task LoadAsync() =>
+        _ports = await Sender.Send(new ListPortsHandler.Request(App));
+
+    private async Task Add()
+    {
+        if (!int.TryParse(_host, out var host) || !int.TryParse(_container, out var container))
+        {
+            _error = "Host and container ports must be numbers.";
+            return;
+        }
+
+        _busy = true;
+        _error = null;
+        try
+        {
+            await Sender.Send(new AddPortHandler.Request(App, host, container));
+            _host = string.Empty;
+            _container = string.Empty;
+            await LoadAsync();
+        }
+        catch (LuffException exception)
+        {
+            _error = exception.Message;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task Remove(int hostPort)
+    {
+        _busy = true;
+        try
+        {
+            await Sender.Send(new RemovePortHandler.Request(App, hostPort));
+            await LoadAsync();
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

@@ -1,0 +1,94 @@
+.hc-loading {
+    padding: 8px 0;
+}
+
+.hc-options {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.hc-option {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 18px 20px;
+    text-align: left;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    transition: border-color 120ms ease, background 120ms ease;
+}
+
+.hc-option:hover {
+    border-color: var(--border-strong);
+}
+
+.hc-option.is-selected {
+    border-color: var(--green-border);
+    background: var(--green-soft);
+}
+
+.hc-radio {
+    flex: none;
+    width: 18px;
+    height: 18px;
+    margin-top: 1px;
+    border-radius: 50%;
+    border: 2px solid var(--text-dim);
+    transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+
+.hc-option.is-selected .hc-radio {
+    border-color: var(--green);
+    border-width: 5px;
+}
+
+.hc-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 4px;
+}
+
+.hc-desc {
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+.hc-fields {
+    display: flex;
+    gap: 20px;
+    margin-top: 22px;
+}
+
+.field {
+    display: block;
+}
+
+.field-label {
+    display: block;
+    font-size: 12.5px;
+    color: var(--text-muted);
+    margin-bottom: 7px;
+}
+
+.hc-endpoint {
+    flex: 1;
+}
+
+.hc-timeout {
+    flex: 0 0 200px;
+}
+
+.hc-actions {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-top: 24px;
+}
+
+.hc-saved {
+    font-size: 13px;
+    color: var(--green-dim);
+}

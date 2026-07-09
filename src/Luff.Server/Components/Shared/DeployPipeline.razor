@@ -1,0 +1,235 @@
+<div class="pipeline">
+    <div class="pipe-head">
+        <div class="pipe-title">
+            <span>@Verb</span> <span class="pipe-app">@App</span>
+            <span class="pipe-tags mono">
+                @if (FromTag is not null)
+                {
+                    <span class="pipe-from">@FromTag</span>
+                    <span class="pipe-arrow">→</span>
+                }
+                <span class="pipe-to">@ToTag</span>
+            </span>
+        </div>
+        <button class="pipe-close" @onclick="OnClose" aria-label="Close">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+                <path d="m6 6 12 12M18 6 6 18" />
+            </svg>
+        </button>
+    </div>
+
+    @if (QueuedTag is not null)
+    {
+        <div class="pipe-queued">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" />
+            </svg>
+            <span class="mono"><b>@QueuedTag</b> queued · coalesces to latest — no superseded versions run</span>
+        </div>
+    }
+
+    <div class="pipe-legend">
+        <span class="legend-item"><span class="legend-swatch swatch-old"></span> OLD (blue)</span>
+        <span class="legend-item"><span class="legend-swatch swatch-new"></span> NEW (green)</span>
+        <span class="spacer"></span>
+        <span class="pipe-elapsed mono">ROLLING OLDEST-FIRST · @Elapsed</span>
+    </div>
+
+    <div class="lanes">
+        @foreach (var lane in Lanes)
+        {
+            var progress = Progress(lane);
+            <div class="lane">
+                <div class="lane-head">
+                    <span class="mono lane-name">@lane.Agent</span>
+                    <span class="lane-status @StatusClass(lane)">@StatusWord(lane)</span>
+                    <span class="spacer"></span>
+                    <span class="serving mono @(lane.Done && !lane.Failed ? "serving-new" : "serving-old")">
+                        <span class="dot @(lane.Done && !lane.Failed ? "dot-green" : "dot-blue")"></span>
+                        serving @(lane.Done && !lane.Failed ? (lane.ServingTag ?? ToTag) : (lane.OldTag ?? FromTag ?? "—"))
+                    </span>
+                </div>
+                <div class="stepper">
+                    @for (var i = 0; i < Steps.Length; i++)
+                    {
+                        <div class="step step-@StepState(progress, i)">
+                            <span class="step-node"></span>
+                            <span class="step-label">@Steps[i]</span>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+
+    <div class="pipe-foot pipe-foot-@Outcome">
+        @switch (Outcome)
+        {
+            case "succeeded":
+                <span class="foot-mark foot-ok">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-11" /></svg>
+                </span>
+                <div class="foot-text">
+                    <div class="foot-title">It's live — every machine on @ToTag.</div>
+                    @if (AppUrl is not null)
+                    {
+                        <a class="link" href="@AppUrl" target="_blank" rel="noopener">@AppDomain ↗</a>
+                    }
+                </div>
+                <button class="btn btn-primary" @onclick="OnClose">Done</button>
+                break;
+            case "failed":
+                <span class="foot-mark foot-fail">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v5M12 16.5h.01" /><circle cx="12" cy="12" r="9" /></svg>
+                </span>
+                <div class="foot-text">
+                    <div class="foot-title">@FailureText</div>
+                    <div class="foot-note">The old version keeps serving — zero requests dropped.</div>
+                </div>
+                <button class="btn btn-ghost" @onclick="OnClose">Close</button>
+                break;
+            default:
+                <span class="foot-spinner"></span>
+                <div class="foot-text foot-reassure">New version is health-checked <b>before</b> any traffic moves. Zero requests dropped.</div>
+                <button class="btn btn-ghost" @onclick="OnClose">Cancel</button>
+                break;
+        }
+    </div>
+</div>
+
+@code {
+    private static readonly string[] Steps = ["Pull", "Start", "Health", "Swap", "Drain", "Done"];
+
+    [Parameter, EditorRequired]
+    public string App { get; set; } = string.Empty;
+
+    [Parameter]
+    public string Verb { get; set; } = "Deploying";
+
+    [Parameter]
+    public string? FromTag { get; set; }
+
+    [Parameter, EditorRequired]
+    public string ToTag { get; set; } = string.Empty;
+
+    [Parameter]
+    public string? QueuedTag { get; set; }
+
+    [Parameter]
+    public string Elapsed { get; set; } = "0.0s";
+
+    [Parameter, EditorRequired]
+    public IReadOnlyList<DeployLane> Lanes { get; set; } = [];
+
+    [Parameter]
+    public string Outcome { get; set; } = "running";
+
+    [Parameter]
+    public string? AppUrl { get; set; }
+
+    [Parameter]
+    public string? AppDomain { get; set; }
+
+    [Parameter]
+    public string? FailureText { get; set; }
+
+    [Parameter]
+    public EventCallback OnClose { get; set; }
+
+    private static (int Completed, int Active, int FailedStep) Progress(DeployLane lane)
+    {
+        if (lane.Done && !lane.Failed)
+        {
+            return (6, -1, -1);
+        }
+
+        if (lane.Failed)
+        {
+            var step = PhaseStep(lane.Phase);
+            return (step, -1, step);
+        }
+
+        if (!lane.Started)
+        {
+            return (0, -1, -1);
+        }
+
+        return lane.Phase switch
+        {
+            DeployPhase.Pulling => (0, 0, -1),
+            DeployPhase.Starting => (1, 1, -1),
+            DeployPhase.Healthy => (3, 3, -1),
+            DeployPhase.Swapping => (3, 3, -1),
+            DeployPhase.Draining => (4, 4, -1),
+            _ => (0, 0, -1),
+        };
+    }
+
+    private static int PhaseStep(string? phase) => phase switch
+    {
+        DeployPhase.Pulling => 0,
+        DeployPhase.Starting => 1,
+        DeployPhase.Healthy => 2,
+        DeployPhase.Swapping => 3,
+        DeployPhase.Draining => 4,
+        _ => 0,
+    };
+
+    private static string StepState((int Completed, int Active, int FailedStep) progress, int index)
+    {
+        if (index == progress.FailedStep)
+        {
+            return "failed";
+        }
+
+        if (index < progress.Completed)
+        {
+            return "done";
+        }
+
+        return index == progress.Active ? "active" : "pending";
+    }
+
+    private static string StatusWord(DeployLane lane)
+    {
+        if (lane.Failed)
+        {
+            return "Failed";
+        }
+
+        if (lane.Done)
+        {
+            return "Done";
+        }
+
+        if (!lane.Started)
+        {
+            return "Queued";
+        }
+
+        return lane.Phase switch
+        {
+            DeployPhase.Pulling => "Pulling",
+            DeployPhase.Starting => "Starting",
+            DeployPhase.Healthy => "Health-checked",
+            DeployPhase.Swapping => "Swapping",
+            DeployPhase.Draining => "Draining",
+            _ => "Deploying",
+        };
+    }
+
+    private static string StatusClass(DeployLane lane)
+    {
+        if (lane.Failed)
+        {
+            return "status-failed";
+        }
+
+        if (lane.Done)
+        {
+            return "status-done";
+        }
+
+        return lane.Started ? "status-running" : "status-queued";
+    }
+}

@@ -1,0 +1,325 @@
+@page "/"
+@page "/apps"
+@attribute [Authorize]
+@inject IScopedSender Sender
+@inject NavigationManager Navigation
+
+<PageTitle>Apps · Luff</PageTitle>
+
+<div class="page-head">
+    <h1 class="page-title">Apps</h1>
+    @if (_overview is { DeployingCount: > 0 } deploying)
+    {
+        <span class="chip chip-amber">
+            <span class="dot dot-amber"></span>
+            @deploying.DeployingCount deploying
+        </span>
+    }
+    <div class="spacer"></div>
+    <div class="search">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+            <circle cx="11" cy="11" r="7" />
+            <path d="m20 20-3.2-3.2" />
+        </svg>
+        <input class="search-input" placeholder="Search apps" @bind="_query" @bind:event="oninput" />
+    </div>
+    <button class="btn btn-primary" @onclick="StartCreate">+ New app</button>
+</div>
+
+@if (_overview is null)
+{
+    <div class="apps-meta eyebrow">Loading…</div>
+}
+else if (_overview.Apps.Count == 0)
+{
+    <div class="apps-empty">
+        <div class="apps-empty-title">No apps yet</div>
+        <p class="apps-empty-note">Create your first app to point Luff at a container image and a domain.</p>
+        <button class="btn btn-primary" @onclick="StartCreate">+ New app</button>
+    </div>
+}
+else
+{
+    <div class="apps-meta">
+        <span class="eyebrow">@_overview.Apps.Count @Pluralize(_overview.Apps.Count, "app")</span>
+        <span class="eyebrow apps-fleet">
+            @_overview.MachineCount @Pluralize(_overview.MachineCount, "machine")
+            @if (_overview.MachineCount > 0)
+            {
+                <span>·</span>
+                <span class="@(_overview.AllConnected ? "ok" : "warn")">@(_overview.AllConnected ? "all connected" : "check fleet")</span>
+            }
+        </span>
+    </div>
+
+    <div class="app-list">
+        @foreach (var app in Filtered())
+        {
+            var action = Action(app.State);
+            var domainUrl = (app.Https ? "https://" : "http://") + app.Domain;
+            <div class="app-row @(app.State == AppHealthState.Deploying ? "is-deploying" : null)">
+                <div class="app-ident">
+                    <div class="app-ident-top">
+                        <a class="app-name" href="apps/@app.Name">@app.Name</a>
+                        @if (app.Internal)
+                        {
+                            <span class="chip">internal</span>
+                        }
+                        else if (app.Direct)
+                        {
+                            <span class="chip">direct</span>
+                        }
+                        else if (app.AutoDomain)
+                        {
+                            <span class="chip">auto domain</span>
+                        }
+                        else
+                        {
+                            <a class="app-domain link" href="@domainUrl" target="_blank" rel="noopener">@app.Domain ↗</a>
+                        }
+                    </div>
+                    <div class="app-sub mono">
+                        @if (app.Internal)
+                        {
+                            @app.InternalHost
+                        }
+                        else if (app.Direct)
+                        {
+                            @app.Image
+                        }
+                        else if (app.AutoDomain)
+                        {
+                            <a class="link" href="http://@app.Domain" target="_blank" rel="noopener">@app.Domain ↗</a>
+                        }
+                        else
+                        {
+                            @app.Image
+                        }
+                    </div>
+                </div>
+
+                <div class="app-badge">
+                    <StatusBadge State="app.State" Detail="@app.StateDetail" />
+                </div>
+
+                <div class="spacer"></div>
+
+                @if (app.CurrentTag is not null)
+                {
+                    <div class="app-version">
+                        <span class="mono app-tag">@app.CurrentTag</span>
+                        @if (app.MachineCount > 0)
+                        {
+                            <span class="app-machines">@app.MachineCount @Pluralize(app.MachineCount, "machine")</span>
+                        }
+                    </div>
+                }
+
+                <span class="app-lastdeploy">@app.LastDeploy</span>
+
+                <a class="btn @(action.Primary ? "btn-primary" : "btn-ghost") btn-sm" href="@ActionHref(app)">@action.Label</a>
+            </div>
+        }
+    </div>
+}
+
+@if (_creating)
+{
+    <Modal Width="md" OnClose="CloseCreate">
+        <div class="new-app">
+            <div class="new-app-head">
+                <h2 class="new-app-title">New app</h2>
+                <button class="pipe-close" @onclick="CloseCreate" aria-label="Close">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="m6 6 12 12M18 6 6 18" /></svg>
+                </button>
+            </div>
+
+            <p class="new-app-lede">Point Luff at a container image. It runs nowhere until you attach it to a machine.</p>
+
+            <label class="field">
+                <span class="field-label">Name</span>
+                <input class="input mono" @bind="_name" @bind:event="oninput" placeholder="@(_direct ? "e.g. grafana" : _internal ? "e.g. postgres" : "e.g. web")" />
+            </label>
+
+            <label class="field">
+                <span class="field-label">Type</span>
+                <select class="input" @bind="_kind">
+                    <option value="Web">Web app — public, fronted by Caddy with a domain</option>
+                    <option value="Internal">Internal service — private, reachable only by sibling apps</option>
+                    <option value="Direct">Direct — private, reached on published host ports (tailnet / LAN)</option>
+                </select>
+            </label>
+
+            <label class="field">
+                <span class="field-label">Image</span>
+                <input class="input mono" @bind="_image" @bind:event="oninput" placeholder="@(_direct ? "grafana/grafana" : _internal ? "postgres" : "ghcr.io/acme/web")" />
+            </label>
+
+            @if (!_frontless)
+            {
+                <label class="field">
+                    <span class="field-label">Domain</span>
+                    <input class="input mono" @bind="_domain" @bind:event="oninput" placeholder="web.example.com" />
+                </label>
+
+                <div class="field-row">
+                    <label class="field field-port">
+                        <span class="field-label">Internal port</span>
+                        <input class="input mono" type="number" min="1" max="65535" @bind="_port" @bind:event="oninput" />
+                    </label>
+                    <label class="field field-tls">
+                        <span class="field-label">TLS</span>
+                        <select class="input mono" @bind="_tlsMode">
+                            <option value="Managed">Managed (Let's Encrypt)</option>
+                            <option value="External">External terminator</option>
+                        </select>
+                    </label>
+                </div>
+            }
+            else
+            {
+                <label class="field field-port">
+                    <span class="field-label">@(_direct ? "Container port" : "Service port")</span>
+                    <input class="input mono" type="number" min="1" max="65535" @bind="_port" @bind:event="oninput" placeholder="e.g. @(_direct ? "3000" : "5432")" />
+                </label>
+
+                @if (_direct)
+                {
+                    <p class="new-app-hint">
+                        Reached on published host ports, which you add on its <b>Ports</b> tab after creating.
+                        Front those ports over your tailnet or LAN yourself (e.g. <span class="mono">tailscale serve</span>).
+                        Deploys recreate it in place (brief downtime).
+                    </p>
+                }
+                else
+                {
+                    <p class="new-app-hint">
+                        Sibling apps on the same machine reach it as
+                        <span class="mono">@(_name.Length == 0 ? "name" : _name):@(_port.Length == 0 ? "port" : _port)</span>.
+                        Add a volume on its Volumes tab to persist data. Deploys recreate it in place (brief downtime).
+                    </p>
+                }
+            }
+
+            @if (_error is not null)
+            {
+                <div class="cfg-error">@_error</div>
+            }
+
+            <div class="confirm-actions">
+                <button class="btn btn-ghost" @onclick="CloseCreate">Cancel</button>
+                <button class="btn btn-primary" @onclick="Create" disabled="@(_busy || !CanCreate)">Create app</button>
+            </div>
+        </div>
+    </Modal>
+}
+
+@code {
+    private AppsOverview? _overview;
+    private string _query = string.Empty;
+
+    private bool _creating;
+    private string _name = string.Empty;
+    private string _kind = "Web";
+    private string _image = string.Empty;
+    private string _domain = string.Empty;
+    private string _port = "8080";
+    private string _tlsMode = "Managed";
+    private bool _busy;
+    private string? _error;
+
+    private bool _internal => _kind == "Internal";
+    private bool _direct => _kind == "Direct";
+    private bool _frontless => _kind != "Web";
+
+    private bool CanCreate =>
+        !string.IsNullOrWhiteSpace(_name)
+        && !string.IsNullOrWhiteSpace(_image)
+        && (_frontless || !string.IsNullOrWhiteSpace(_domain))
+        && int.TryParse(_port, out var port) && port is >= 1 and <= 65535;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _overview = await Sender.Send(new AppsOverviewHandler.Request());
+    }
+
+    private IEnumerable<AppOverviewRow> Filtered()
+    {
+        if (_overview is null)
+        {
+            return [];
+        }
+
+        if (string.IsNullOrWhiteSpace(_query))
+        {
+            return _overview.Apps;
+        }
+
+        var query = _query.Trim();
+        return _overview.Apps.Where(app =>
+            app.Name.Contains(query, StringComparison.OrdinalIgnoreCase)
+            || app.Image.Contains(query, StringComparison.OrdinalIgnoreCase)
+            || (app.Domain?.Contains(query, StringComparison.OrdinalIgnoreCase) ?? false));
+    }
+
+    private static (string Label, bool Primary) Action(AppHealthState state) => state switch
+    {
+        AppHealthState.Dormant => ("Attach to a machine", true),
+        AppHealthState.Deploying => ("Watch", false),
+        AppHealthState.Stopped => ("Start", true),
+        AppHealthState.Unhealthy => ("View", false),
+        _ => ("Deploy", false),
+    };
+
+    private static string ActionHref(AppOverviewRow app) => app.State switch
+    {
+        AppHealthState.Deploying or AppHealthState.Dormant
+            or AppHealthState.Stopped or AppHealthState.Unhealthy => $"apps/{app.Name}",
+        _ => $"apps/{app.Name}?deploy=true",
+    };
+
+    private static string Pluralize(int count, string noun) =>
+        count == 1 ? noun : noun + "s";
+
+    private void StartCreate()
+    {
+        _name = string.Empty;
+        _kind = "Web";
+        _image = string.Empty;
+        _domain = string.Empty;
+        _port = "8080";
+        _tlsMode = "Managed";
+        _error = null;
+        _creating = true;
+    }
+
+    private void CloseCreate() => _creating = false;
+
+    private async Task Create()
+    {
+        if (!CanCreate)
+        {
+            return;
+        }
+
+        _busy = true;
+        _error = null;
+        try
+        {
+            var created = await Sender.Send(new CreateAppHandler.Request(
+                _name.Trim(), _image.Trim(), int.Parse(_port),
+                kind: _kind,
+                domain: _frontless ? null : _domain.Trim(),
+                tlsMode: _frontless ? null : _tlsMode));
+            Navigation.NavigateTo($"apps/{created.Name}");
+        }
+        catch (LuffException exception)
+        {
+            _error = exception.Message;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

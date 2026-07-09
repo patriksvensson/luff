@@ -1,0 +1,175 @@
+syntax = "proto3";
+
+option csharp_namespace = "Luff.Protobuf";
+
+package luff.link.v1;
+
+service Link {
+  rpc Connect(stream AgentMessage) returns (stream ControlMessage);
+}
+
+message AgentMessage {
+  oneof payload {
+    Hello hello = 1;
+    Pong pong = 2;
+    DeployProgress deploy_progress = 3;
+    DeployResult deploy_result = 4;
+    LogChunk log_chunk = 5;
+    HealthReport health_report = 6;
+  }
+}
+
+message ControlMessage {
+  oneof payload {
+    Welcome welcome = 1;
+    Ping ping = 2;
+    Deploy deploy = 3;
+    Remove remove = 4;
+    Reroute reroute = 5;
+    ConfigureFrontDoor configure_front_door = 6;
+    StartLogStream start_log_stream = 7;
+    StopLogStream stop_log_stream = 8;
+    AssertRoute assert_route = 9;
+    StopApp stop_app = 10;
+    StartApp start_app = 11;
+  }
+}
+
+message StopApp {
+  string app = 1;
+}
+
+message StartApp {
+  string app = 1;
+}
+
+// Periodic per-app runtime health, pushed by the agent while connected.
+message HealthReport {
+  repeated ContainerHealth apps = 1;
+}
+
+message ContainerHealth {
+  string app = 1;
+  RuntimeHealth status = 2;
+  string detail = 3;
+}
+
+enum RuntimeHealth {
+  RUNTIME_HEALTH_UNKNOWN = 0;
+  RUNTIME_HEALTH_STARTING = 1;
+  RUNTIME_HEALTH_HEALTHY = 2;
+  RUNTIME_HEALTH_UNHEALTHY = 3;
+  RUNTIME_HEALTH_STOPPED = 4;
+}
+
+message AssertRoute {
+  string app = 1;
+  string domain = 2;
+  string upstream = 3;
+  TlsRoute route = 4;
+}
+
+message ConfigureFrontDoor {
+  string domain = 1;
+  string upstream = 2;
+}
+
+message Remove {
+  string app = 1;
+  string domain = 2;
+}
+
+message Reroute {
+  string app = 1;
+  string old_domain = 2;
+  string new_domain = 3;
+  TlsRoute route = 4;
+}
+
+enum TlsRoute {
+  TLS_ROUTE_HTTP = 0;
+  TLS_ROUTE_MANAGED = 1;
+  TLS_ROUTE_EXTERNAL = 2;
+}
+
+message Hello {
+  string agent_name = 1;
+  string enrollment_secret = 2;
+  string version = 3;
+  bool hosts_front_door = 4;
+}
+
+message Welcome {
+  string server_version = 1;
+}
+
+message Ping {
+  int64 sequence = 1;
+}
+
+message Pong {
+  int64 sequence = 1;
+}
+
+message Deploy {
+  string deployment_id = 1;
+  string app = 2;
+  string tag = 3;
+  string compose = 4;
+  string domain = 5;
+  int32 internal_port = 6;
+  string upstream = 7;
+  string project = 8;
+  map<string, string> env = 9;
+  RegistryCredentials registry = 10;
+  HealthCheckKind health_kind = 11;
+  int32 health_timeout_seconds = 12;
+  TlsRoute tls_route = 13;
+}
+
+message RegistryCredentials {
+  string host = 1;
+  string username = 2;
+  string password = 3;
+}
+
+enum HealthCheckKind {
+  HEALTH_CHECK_KIND_DOCKER = 0;
+  HEALTH_CHECK_KIND_HTTP = 1;
+  HEALTH_CHECK_KIND_NONE = 2;
+  HEALTH_CHECK_KIND_TCP = 3;
+}
+
+message DeployProgress {
+  string deployment_id = 1;
+  string phase = 2;
+}
+
+message DeployResult {
+  string deployment_id = 1;
+  bool healthy = 2;
+  string running_tag = 3;
+  string failure_reason = 4;
+}
+
+message StartLogStream {
+  string stream_id = 1;
+  string app = 2;
+  int32 tail = 3;
+}
+
+message StopLogStream {
+  string stream_id = 1;
+}
+
+message LogChunk {
+  string stream_id = 1;
+  LogStreamKind stream = 2;
+  string line = 3;
+  string timestamp = 4;
+}
+
+enum LogStreamKind {
+  LOG_STREAM_KIND_STDOUT = 0;
+  LOG_STREAM_KIND_STDERR = 1;
+}

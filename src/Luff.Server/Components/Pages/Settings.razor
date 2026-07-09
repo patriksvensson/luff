@@ -1,0 +1,566 @@
+@page "/settings"
+@attribute [Authorize]
+@inject IScopedSender Sender
+@inject IJSRuntime JS
+
+<PageTitle>Settings · Luff</PageTitle>
+
+<div class="page-head">
+    <h1 class="page-title">Settings</h1>
+</div>
+
+<div class="card set-section">
+    <div class="eyebrow">Your account</div>
+    <div class="set-sub">Signed in as <span class="mono">@_username</span> · <span class="mono set-role">@_role</span></div>
+    <div class="set-form">
+        <label class="field">
+            <span class="field-label">Current password</span>
+            <input class="input" type="password" @bind="_currentPassword" autocomplete="current-password" />
+        </label>
+        <label class="field">
+            <span class="field-label">New password</span>
+            <input class="input" type="password" @bind="_newPassword" autocomplete="new-password" />
+        </label>
+    </div>
+    @if (_pwError is not null)
+    {
+        <div class="cfg-error">@_pwError</div>
+    }
+    <div class="set-actions">
+        <button class="btn btn-primary" @onclick="ChangePassword"
+                disabled="@(_busy || string.IsNullOrEmpty(_currentPassword) || string.IsNullOrEmpty(_newPassword))">Change password</button>
+        @if (_pwSaved)
+        {
+            <span class="set-saved">Password changed</span>
+        }
+    </div>
+</div>
+
+<div class="card set-section">
+    <div class="eyebrow">Two-factor authentication</div>
+    <div class="set-sub">Require a one-time code from an authenticator app in addition to your password.</div>
+
+    @if (_recoveryCodes is not null)
+    {
+        <div class="twofa-codes-intro">Save these backup codes somewhere safe. Each works once if you lose your authenticator.</div>
+        <div class="recovery-codes">
+            @foreach (var recoveryCode in _recoveryCodes)
+            {
+                <span class="recovery-code mono">@recoveryCode</span>
+            }
+        </div>
+        <div class="set-actions">
+            <button class="btn btn-ghost" @onclick="CopyRecoveryCodes">@(_codesCopied ? "Copied" : "Copy codes")</button>
+            <button class="btn btn-primary" @onclick="DismissRecoveryCodes">Done</button>
+        </div>
+    }
+    else if (_enrolling)
+    {
+        <div class="twofa-enroll">
+            <div class="twofa-qr">@((MarkupString)_enrollQr)</div>
+            <div class="twofa-enroll-body">
+                <div class="set-sub">Scan the QR with your authenticator app, or enter this secret manually:</div>
+                <div class="twofa-secret mono">@_enrollSecret</div>
+                <label class="field">
+                    <span class="field-label">Enter the 6-digit code to confirm</span>
+                    <input class="input mono" @bind="_enrollCode" autocomplete="one-time-code" inputmode="numeric" />
+                </label>
+                @if (_twoFactorError is not null)
+                {
+                    <div class="cfg-error">@_twoFactorError</div>
+                }
+                <div class="set-actions">
+                    <button class="btn btn-primary" @onclick="ConfirmEnroll"
+                            disabled="@(_busy || string.IsNullOrWhiteSpace(_enrollCode))">Confirm</button>
+                    <button class="btn btn-ghost" @onclick="CancelEnroll" disabled="@_busy">Cancel</button>
+                </div>
+            </div>
+        </div>
+    }
+    else if (_twoFactorEnabled)
+    {
+        <div class="twofa-status">
+            <span class="badge badge-green">Enabled</span>
+            <span class="twofa-remaining">@_recoveryRemaining backup code@(_recoveryRemaining == 1 ? "" : "s") remaining</span>
+        </div>
+        @if (_twoFactorError is not null)
+        {
+            <div class="cfg-error">@_twoFactorError</div>
+        }
+        <div class="set-actions">
+            <button class="btn btn-ghost" @onclick="RegenerateCodes" disabled="@_busy">Regenerate backup codes</button>
+        </div>
+        <label class="field twofa-disable-field">
+            <span class="field-label">Enter a current code to turn off two-factor</span>
+            <input class="input mono" @bind="_disableCode" autocomplete="one-time-code" inputmode="numeric" />
+        </label>
+        <div class="set-actions">
+            <button class="btn btn-ghost twofa-danger" @onclick="Disable"
+                    disabled="@(_busy || string.IsNullOrWhiteSpace(_disableCode))">Disable two-factor</button>
+        </div>
+    }
+    else
+    {
+        @if (_twoFactorError is not null)
+        {
+            <div class="cfg-error">@_twoFactorError</div>
+        }
+        <div class="set-actions">
+            <button class="btn btn-primary" @onclick="BeginEnroll" disabled="@_busy">Enable two-factor</button>
+        </div>
+    }
+</div>
+
+@if (_isAdmin)
+{
+    <div class="card set-section">
+        <div class="eyebrow">Server</div>
+        <div class="set-sub">The dashboard's own front-door domain and its certificate.</div>
+        <label class="field set-domain-field">
+            <span class="field-label">Front-door domain</span>
+            <input class="input mono" @bind="_domain" />
+        </label>
+        <div class="set-tls">
+            <span class="set-tls-label">TLS</span>
+            <span class="mono @(_autoDomain ? "set-tls-warn" : "set-tls-ok")">@(_autoDomain ? "Self-signed" : "Publicly trusted")</span>
+            <span class="set-tls-note">
+                @(_autoDomain
+                    ? "Encrypted; browsers show a one-time warning. Set a real domain for a trusted certificate."
+                    : "Trusted, automatic HTTPS.")
+            </span>
+        </div>
+        @if (_domainError is not null)
+        {
+            <div class="cfg-error">@_domainError</div>
+        }
+        <div class="set-actions">
+            <button class="btn btn-primary" @onclick="SaveDomain" disabled="@(_busy || string.IsNullOrWhiteSpace(_domain))">Save domain</button>
+            @if (_domainSaved)
+            {
+                <span class="set-saved">Saved · re-points live</span>
+            }
+        </div>
+    </div>
+
+    <div class="card set-section">
+        <div class="eyebrow">Users &amp; roles</div>
+        @if (_users is not null)
+        {
+            <div class="user-list">
+                @foreach (var user in _users)
+                {
+                    <div class="user-row">
+                        <span class="mono user-name">@user.Username</span>
+                        <span class="badge @(user.Role == "Admin" ? "badge-green" : "badge-neutral")">@user.Role</span>
+                        @if (user.TwoFactorEnabled)
+                        {
+                            <span class="badge badge-neutral">2FA</span>
+                            <span class="spacer"></span>
+                            <button class="btn btn-ghost btn-sm" @onclick="() => ResetUserTwoFactor(user.Username)" disabled="@_busy">Reset 2FA</button>
+                        }
+                    </div>
+                }
+            </div>
+        }
+        <div class="set-form user-add">
+            <input class="input mono" placeholder="username" @bind="_newUser" autocomplete="off" />
+            <input class="input" type="password" placeholder="password" @bind="_newUserPassword" autocomplete="new-password" />
+            <select class="input mono user-role" @bind="_newUserRole">
+                <option value="Operator">Operator</option>
+                <option value="Admin">Admin</option>
+            </select>
+            <button class="btn btn-primary" @onclick="CreateUser"
+                    disabled="@(_busy || string.IsNullOrWhiteSpace(_newUser) || string.IsNullOrWhiteSpace(_newUserPassword))">Create user</button>
+        </div>
+        @if (_userError is not null)
+        {
+            <div class="cfg-error">@_userError</div>
+        }
+    </div>
+
+    <div class="card set-section">
+        <div class="eyebrow">Notifications</div>
+        <div class="set-sub">Get pinged when a deploy fails, an agent drops, or an app goes unhealthy.</div>
+        @if (_channels is { Count: > 0 })
+        {
+            <div class="chan-list">
+                @foreach (var channel in _channels)
+                {
+                    <div class="chan-row">
+                        <span class="mono chan-name">@channel.Name</span>
+                        <span class="badge badge-neutral">@channel.Type</span>
+                        <span class="spacer"></span>
+                        <button class="btn btn-ghost btn-sm" @onclick="() => TestChannel(channel.Id)" disabled="@_busy">Send test</button>
+                        <button class="chan-remove" @onclick="() => RemoveChannel(channel.Id)" disabled="@_busy">Remove</button>
+                    </div>
+                }
+            </div>
+        }
+        <div class="set-form chan-add">
+            <input class="input mono" placeholder="name, e.g. team-discord" @bind="_chanName" autocomplete="off" />
+            <select class="input mono chan-type" @bind="_chanType">
+                <option value="Discord">Discord</option>
+                <option value="Generic">Generic</option>
+            </select>
+            <input class="input mono chan-url" placeholder="webhook URL" @bind="_chanUrl" autocomplete="off" />
+            <button class="btn btn-primary" @onclick="AddChannel"
+                    disabled="@(_busy || string.IsNullOrWhiteSpace(_chanName) || string.IsNullOrWhiteSpace(_chanUrl))">Add</button>
+        </div>
+        @if (_chanNote is not null)
+        {
+            <div class="set-saved">@_chanNote</div>
+        }
+        @if (_chanError is not null)
+        {
+            <div class="cfg-error">@_chanError</div>
+        }
+    </div>
+}
+
+@code {
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthState { get; set; }
+
+    private string _username = string.Empty;
+    private string _role = "Operator";
+    private bool _isAdmin;
+
+    private string _currentPassword = string.Empty;
+    private string _newPassword = string.Empty;
+    private bool _pwSaved;
+    private string? _pwError;
+
+    private bool _twoFactorEnabled;
+    private int _recoveryRemaining;
+    private bool _enrolling;
+    private string _enrollSecret = string.Empty;
+    private string _enrollQr = string.Empty;
+    private string _enrollCode = string.Empty;
+    private string _disableCode = string.Empty;
+    private IReadOnlyList<string>? _recoveryCodes;
+    private bool _codesCopied;
+    private string? _twoFactorError;
+
+    private string _domain = string.Empty;
+    private bool _autoDomain;
+    private bool _domainSaved;
+    private string? _domainError;
+
+    private IReadOnlyList<UserResponse>? _users;
+    private string _newUser = string.Empty;
+    private string _newUserPassword = string.Empty;
+    private string _newUserRole = "Operator";
+    private string? _userError;
+
+    private IReadOnlyList<NotificationChannelResponse>? _channels;
+    private string _chanName = string.Empty;
+    private string _chanType = "Discord";
+    private string _chanUrl = string.Empty;
+    private string? _chanError;
+    private string? _chanNote;
+
+    private bool _busy;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (AuthState is not null)
+        {
+            var state = await AuthState;
+            _username = state.User.Identity?.Name ?? "";
+            _role = state.User.FindFirst(ClaimTypes.Role)?.Value ?? "Operator";
+            _isAdmin = state.User.IsInRole("Admin");
+        }
+
+        if (!string.IsNullOrEmpty(_username))
+        {
+            var status = await Sender.Send(new GetTwoFactorStatusHandler.Request(_username));
+            _twoFactorEnabled = status.Enabled;
+            _recoveryRemaining = status.RemainingRecoveryCodes;
+        }
+
+        if (_isAdmin)
+        {
+            var server = await Sender.Send(new GetServerHandler.Request());
+            _domain = server.FrontDoorDomain;
+            _autoDomain = AppHealth.IsAutoDomain(_domain);
+            await LoadUsers();
+            await LoadChannels();
+        }
+    }
+
+    private async Task LoadUsers() =>
+        _users = await Sender.Send(new ListUsersHandler.Request());
+
+    private async Task LoadChannels() =>
+        _channels = await Sender.Send(new ListNotificationChannelsHandler.Request());
+
+    private async Task AddChannel()
+    {
+        _busy = true;
+        _chanError = null;
+        _chanNote = null;
+        try
+        {
+            await Sender.Send(new AddNotificationChannelHandler.Request(_chanName.Trim(), _chanType, _chanUrl.Trim()));
+            _chanName = string.Empty;
+            _chanUrl = string.Empty;
+            await LoadChannels();
+        }
+        catch (LuffException exception)
+        {
+            _chanError = exception.Message;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task RemoveChannel(Guid id)
+    {
+        _busy = true;
+        _chanError = null;
+        _chanNote = null;
+        try
+        {
+            await Sender.Send(new RemoveNotificationChannelHandler.Request(id));
+            await LoadChannels();
+        }
+        catch (LuffException exception)
+        {
+            _chanError = exception.Message;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task TestChannel(Guid id)
+    {
+        _busy = true;
+        _chanError = null;
+        _chanNote = null;
+        try
+        {
+            await Sender.Send(new TestNotificationChannelHandler.Request(id));
+            _chanNote = "Test sent — check the channel.";
+        }
+        catch (LuffException exception)
+        {
+            _chanError = exception.Message;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task ChangePassword()
+    {
+        _busy = true;
+        _pwError = null;
+        _pwSaved = false;
+        try
+        {
+            await Sender.Send(new ChangePasswordHandler.Request(_username, _currentPassword, _newPassword));
+            _currentPassword = string.Empty;
+            _newPassword = string.Empty;
+            _pwSaved = true;
+        }
+        catch (LuffException exception)
+        {
+            _pwError = exception.Message;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task BeginEnroll()
+    {
+        _busy = true;
+        _twoFactorError = null;
+        try
+        {
+            var enrollment = await Sender.Send(new BeginTwoFactorEnrollmentHandler.Request(_username));
+            _enrollSecret = enrollment.Secret;
+            _enrollQr = enrollment.QrSvg;
+            _enrollCode = string.Empty;
+            _enrolling = true;
+        }
+        catch (LuffException exception)
+        {
+            _twoFactorError = exception.Message;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private void CancelEnroll()
+    {
+        _enrolling = false;
+        _enrollSecret = string.Empty;
+        _enrollQr = string.Empty;
+        _enrollCode = string.Empty;
+        _twoFactorError = null;
+    }
+
+    private async Task ConfirmEnroll()
+    {
+        _busy = true;
+        _twoFactorError = null;
+        try
+        {
+            var response = await Sender.Send(
+                new ConfirmTwoFactorEnrollmentHandler.Request(_username, _enrollCode.Trim()));
+            _recoveryCodes = response.Codes;
+            _codesCopied = false;
+            _recoveryRemaining = response.Codes.Count;
+            _twoFactorEnabled = true;
+            _enrolling = false;
+            _enrollSecret = string.Empty;
+            _enrollQr = string.Empty;
+            _enrollCode = string.Empty;
+        }
+        catch (LuffException exception)
+        {
+            _twoFactorError = exception.Message;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task RegenerateCodes()
+    {
+        _busy = true;
+        _twoFactorError = null;
+        try
+        {
+            var response = await Sender.Send(new RegenerateRecoveryCodesHandler.Request(_username));
+            _recoveryCodes = response.Codes;
+            _codesCopied = false;
+            _recoveryRemaining = response.Codes.Count;
+        }
+        catch (LuffException exception)
+        {
+            _twoFactorError = exception.Message;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task Disable()
+    {
+        _busy = true;
+        _twoFactorError = null;
+        try
+        {
+            await Sender.Send(new DisableTwoFactorHandler.Request(_username, _disableCode.Trim()));
+            _twoFactorEnabled = false;
+            _recoveryRemaining = 0;
+            _recoveryCodes = null;
+            _disableCode = string.Empty;
+        }
+        catch (LuffException exception)
+        {
+            _twoFactorError = exception.Message;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private void DismissRecoveryCodes()
+    {
+        _recoveryCodes = null;
+    }
+
+    private async Task CopyRecoveryCodes()
+    {
+        if (_recoveryCodes is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await JS.InvokeVoidAsync("navigator.clipboard.writeText", string.Join("\n", _recoveryCodes));
+            _codesCopied = true;
+        }
+        catch (JSException)
+        {
+            // Clipboard access can be blocked (e.g. an insecure context); the codes stay on screen to copy by hand.
+        }
+    }
+
+    private async Task ResetUserTwoFactor(string username)
+    {
+        _busy = true;
+        _userError = null;
+        try
+        {
+            await Sender.Send(new ResetUserTwoFactorHandler.Request(username));
+            await LoadUsers();
+        }
+        catch (LuffException exception)
+        {
+            _userError = exception.Message;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task SaveDomain()
+    {
+        _busy = true;
+        _domainError = null;
+        _domainSaved = false;
+        try
+        {
+            await Sender.Send(new SetFrontDoorDomainHandler.Request(_domain.Trim()));
+            _autoDomain = AppHealth.IsAutoDomain(_domain.Trim());
+            _domainSaved = true;
+        }
+        catch (LuffException exception)
+        {
+            _domainError = exception.Message;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task CreateUser()
+    {
+        _busy = true;
+        _userError = null;
+        try
+        {
+            await Sender.Send(new CreateUserHandler.Request(_newUser.Trim(), _newUserPassword, _newUserRole));
+            _newUser = string.Empty;
+            _newUserPassword = string.Empty;
+            _newUserRole = "Operator";
+            await LoadUsers();
+        }
+        catch (LuffException exception)
+        {
+            _userError = exception.Message;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

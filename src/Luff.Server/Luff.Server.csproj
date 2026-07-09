@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>Luff.Server</RootNamespace>
+  </PropertyGroup>
+
+  <PropertyGroup Label="OpenAPI document emission">
+    <OpenApiGenerateDocumentsOnBuild>true</OpenApiGenerateDocumentsOnBuild>
+    <OpenApiDocumentsDirectory>$(MSBuildProjectDirectory)/../</OpenApiDocumentsDirectory>
+    <OpenApiGenerateDocumentsOptions>--openapi-version OpenApi3_0 --file-name openapi</OpenApiGenerateDocumentsOptions>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
+    <PackageReference Include="QRCoder" />
+    <PackageReference Include="Microsoft.Extensions.ApiDescription.Server" PrivateAssets="all" />
+    <PackageReference Include="Grpc.AspNetCore" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Luff.Protobuf/Luff.Protobuf.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="luff.db" />
+    <None Remove="keys\**" />
+    <Compile Remove="keys\**" />
+    <EmbeddedResource Remove="keys\**" />
+    <Content Remove="keys\**" />
+  </ItemGroup>
+
+</Project>

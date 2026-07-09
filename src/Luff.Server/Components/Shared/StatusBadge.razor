@@ -1,0 +1,44 @@
+<span class="badge @_class">
+    @if (_icon == "warn")
+    {
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 3.6 2.4 20.2h19.2z" />
+            <path d="M12 10v4.2" />
+            <path d="M12 17.4h.01" />
+        </svg>
+    }
+    else
+    {
+        <span class="dot @_icon"></span>
+    }
+    <span>@_text</span>
+</span>
+
+@code {
+    [Parameter, EditorRequired]
+    public AppHealthState State { get; set; }
+
+    [Parameter]
+    public string? Detail { get; set; }
+
+    private string _class = string.Empty;
+    private string _icon = string.Empty;
+    private string _text = string.Empty;
+
+    protected override void OnParametersSet()
+    {
+        (_class, _icon, _text) = State switch
+        {
+            AppHealthState.Live => ("badge-green", "dot-green", "live"),
+            AppHealthState.Deploying => ("badge-amber", "dot-amber", Compose("deploying")),
+            AppHealthState.Drift => ("badge-amber", "warn", Compose("drift")),
+            AppHealthState.Failed => ("badge-red", "dot-red", "deploy failed"),
+            AppHealthState.Unhealthy => ("badge-red", "warn", Compose("unhealthy")),
+            AppHealthState.Stopped => ("badge-neutral", "dot-neutral", "stopped"),
+            _ => ("badge-neutral", "dot-neutral", Compose("dormant")),
+        };
+    }
+
+    private string Compose(string label) =>
+        string.IsNullOrEmpty(Detail) ? label : $"{label} · {Detail}";
+}
