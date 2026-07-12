@@ -6,4 +6,5 @@ public sealed class ServerSettings
 
     public string Id { get; init; } = SingletonId;
     public required string FrontDoorDomain { get; set; }
+    public string? AgentLinkAddress { get; set; }
 }

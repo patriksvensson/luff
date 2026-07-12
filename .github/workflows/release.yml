@@ -95,6 +95,7 @@ jobs:
         run: >
           gh release create ${{ github.ref_name }}
           artifacts/*.tar.gz
-          eng/install.sh
+          eng/server/install.sh
+          eng/agent/agent-install.sh
           --generate-notes
           ${{ contains(github.ref_name, '-') && '--prerelease' || '' }}

@@ -4,6 +4,8 @@
 @inject IScopedSender Sender
 @inject IFleetEvents Fleet
 @inject NavigationManager Navigation
+@inject IJSRuntime JS
+@inject Microsoft.Extensions.Options.IOptions<InstallerOptions> Installer
 
 <PageTitle>Machines · Luff</PageTitle>
 
@@ -89,13 +91,17 @@ else
             else
             {
                 <p class="enroll-lede">
-                    Start the Luff agent on <span class="mono">@_minted.Name</span> with the config below. The token
-                    is shown <b>once</b>.
+                    Run this on <span class="mono">@_minted.Name</span> to install the agent — the token is shown <b>once</b>.
                 </p>
+                <div class="enroll-oneliner">
+                    <pre class="enroll-cmd"><code>@_joinCommand</code></pre>
+                    <button class="btn btn-ghost btn-sm enroll-copy" @onclick="CopyJoinCommand">@(_copied ? "Copied" : "Copy")</button>
+                </div>
+                <p class="enroll-hint">Linux; drop <span class="mono">sudo</span> on macOS. Prefer to run the container yourself? Set these:</p>
                 <pre class="enroll-cmd"><code>Agent__Name=@_minted.Name
 Agent__EnrollmentSecret=@_minted.Token
-Agent__ServerAddress=http://@(_serverHost):8081</code></pre>
-                <p class="enroll-hint">A packaged one-line installer is on the way; for now the agent reads this from its environment.</p>
+Agent__ServerAddress=@_agentLinkAddress
+Agent__ServerPin=@_agentLinkPin</code></pre>
 
                 <div class="enroll-wait">
                     @if (_connected)
@@ -127,12 +133,16 @@ Agent__ServerAddress=http://@(_serverHost):8081</code></pre>
     private bool _busy;
     private IDisposable? _subscription;
     private string _serverHost = "your-control-plane";
+    private string _agentLinkAddress = string.Empty;
+    private string _agentLinkPin = string.Empty;
 
     private bool _enrolling;
     private string _enrollName = string.Empty;
     private EnrollAgentResponse? _minted;
     private bool _connected;
     private string? _enrollError;
+    private string _joinCommand = string.Empty;
+    private bool _copied;
 
     protected override async Task OnInitializedAsync()
     {
@@ -143,6 +153,13 @@ Agent__ServerAddress=http://@(_serverHost):8081</code></pre>
         }
 
         _serverHost = new Uri(Navigation.BaseUri).Host;
+
+        var server = await Sender.Send(new GetServerHandler.Request());
+        _agentLinkAddress = string.IsNullOrWhiteSpace(server.AgentLinkAddress)
+            ? $"https://{_serverHost}:8443"
+            : server.AgentLinkAddress;
+        _agentLinkPin = server.AgentLinkPin;
+
         _subscription = Fleet.Subscribe(OnFleetEvent);
         await Reload();
     }
@@ -170,6 +187,8 @@ Agent__ServerAddress=http://@(_serverHost):8081</code></pre>
         _minted = null;
         _connected = false;
         _enrollError = null;
+        _joinCommand = string.Empty;
+        _copied = false;
         _enrolling = true;
     }
 
@@ -182,6 +201,8 @@ Agent__ServerAddress=http://@(_serverHost):8081</code></pre>
         try
         {
             _minted = await Sender.Send(new EnrollAgentHandler.Request(_enrollName.Trim()));
+            _joinCommand = AgentJoin.BuildCommand(
+                Installer.Value.Repo, _minted.Name, _agentLinkAddress, _agentLinkPin, _minted.Token);
             await Reload();
         }
         catch (LuffException exception)
@@ -191,6 +212,18 @@ Agent__ServerAddress=http://@(_serverHost):8081</code></pre>
         finally
         {
             _busy = false;
+        }
+    }
+
+    private async Task CopyJoinCommand()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("navigator.clipboard.writeText", _joinCommand);
+            _copied = true;
+        }
+        catch (JSException)
+        {
         }
     }
 

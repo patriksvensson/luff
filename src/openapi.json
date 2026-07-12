@@ -1674,6 +1674,46 @@
         }
       }
     },
+    "/api/v1/server/agent-link": {
+      "put": {
+        "tags": [
+          "Server"
+        ],
+        "operationId": "Server_SetAgentLink",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetAgentLinkRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/auth/login": {
       "post": {
         "tags": [
@@ -2690,11 +2730,31 @@
       },
       "ServerResponse": {
         "required": [
-          "frontDoorDomain"
+          "frontDoorDomain",
+          "agentLinkAddress",
+          "agentLinkPin"
         ],
         "type": "object",
         "properties": {
           "frontDoorDomain": {
+            "type": "string"
+          },
+          "agentLinkAddress": {
+            "type": "string",
+            "nullable": true
+          },
+          "agentLinkPin": {
+            "type": "string"
+          }
+        }
+      },
+      "SetAgentLinkRequest": {
+        "required": [
+          "address"
+        ],
+        "type": "object",
+        "properties": {
+          "address": {
             "type": "string"
           }
         }

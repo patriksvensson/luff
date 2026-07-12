@@ -1,0 +1,13 @@
+# Dev override, auto-merged by `docker compose` when run from this directory (`cd eng/server && docker compose
+# up -d --build`). It adds `build:` so the images are built from source instead of pulled; the build context
+# is the repo root (`../..`). A downloaded install has only compose.yaml (no override), so there `docker
+# compose up -d` pulls the published images.
+services:
+  server:
+    build:
+      context: ../..
+      dockerfile: src/Luff.Server/Dockerfile
+  agent:
+    build:
+      context: ../..
+      dockerfile: src/Luff.Agent/Dockerfile

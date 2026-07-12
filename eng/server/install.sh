@@ -19,7 +19,7 @@ os="$(uname -s)"
 repo="${LUFF_REPO:-patriksvensson/luff}"
 version="${LUFF_VERSION:-latest}"
 domain="${LUFF_FRONT_DOOR_DOMAIN:-}"
-asset="luff-server-linux-docker.tar.gz"
+asset="luff-server-docker.tar.gz"
 
 case "$os" in
     Darwin) home="${LUFF_HOME:-$HOME/Library/Application Support/Luff}" ;;

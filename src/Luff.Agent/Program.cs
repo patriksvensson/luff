@@ -4,10 +4,16 @@ public static class Program
 {
     public static void Main(string[] args)
     {
-        AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport", true);
-
         var builder = Host.CreateApplicationBuilder(args);
         builder.Services.Configure<AgentOptions>(builder.Configuration.GetSection(AgentOptions.SectionName));
+
+        var serverAddress =
+            builder.Configuration.GetSection(AgentOptions.SectionName)[nameof(AgentOptions.ServerAddress)];
+        if (serverAddress?.StartsWith("http://", StringComparison.OrdinalIgnoreCase) != false)
+        {
+            AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport", true);
+        }
+
         builder.Services.AddSingleton(TimeProvider.System);
         builder.Services.AddSingleton<IDockerComposeRunner, DockerComposeRunner>();
         builder.Services.AddSingleton<ICaddyClient, CaddyClient>();

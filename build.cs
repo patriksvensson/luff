@@ -138,16 +138,16 @@ Task("Package")
         version = "latest";
     }
 
-    var dockerTarball = "./artifacts/luff-server-linux-docker.tar.gz";
-    var dotenv = System.IO.File.ReadAllText("./eng/.env.example")
+    var dockerTarball = "./artifacts/luff-server-docker.tar.gz";
+    var dotenv = System.IO.File.ReadAllText("./eng/server/.env.example")
         .Replace("LUFF_VERSION=latest", $"LUFF_VERSION={version}");
 
     using (var stream = System.IO.File.Create(dockerTarball))
     using (var gzip = new System.IO.Compression.GZipStream(stream, System.IO.Compression.CompressionLevel.Optimal))
     using (var writer = new System.Formats.Tar.TarWriter(gzip, System.Formats.Tar.TarEntryFormat.Pax))
     {
-        writer.WriteEntry(System.IO.Path.GetFullPath("./eng/compose.yaml"), "compose.yaml");
-        writer.WriteEntry(System.IO.Path.GetFullPath("./eng/uninstall.sh"), "uninstall.sh");
+        writer.WriteEntry(System.IO.Path.GetFullPath("./eng/server/compose.yaml"), "compose.yaml");
+        writer.WriteEntry(System.IO.Path.GetFullPath("./eng/server/uninstall.sh"), "uninstall.sh");
 
         writer.WriteEntry(new System.Formats.Tar.PaxTarEntry(System.Formats.Tar.TarEntryType.RegularFile, ".env")
         {
@@ -158,6 +158,26 @@ Task("Package")
     }
 
     ctx.Information($"Created {dockerTarball}");
+
+    var agentTarball = "./artifacts/luff-agent-docker.tar.gz";
+    var agentDotenv = System.IO.File.ReadAllText("./eng/agent/.env.example")
+        .Replace("LUFF_VERSION=latest", $"LUFF_VERSION={version}");
+
+    using (var stream = System.IO.File.Create(agentTarball))
+    using (var gzip = new System.IO.Compression.GZipStream(stream, System.IO.Compression.CompressionLevel.Optimal))
+    using (var writer = new System.Formats.Tar.TarWriter(gzip, System.Formats.Tar.TarEntryFormat.Pax))
+    {
+        writer.WriteEntry(System.IO.Path.GetFullPath("./eng/agent/compose.yaml"), "compose.yaml");
+
+        writer.WriteEntry(new System.Formats.Tar.PaxTarEntry(System.Formats.Tar.TarEntryType.RegularFile, ".env")
+        {
+            DataStream = new System.IO.MemoryStream(System.Text.Encoding.UTF8.GetBytes(agentDotenv)),
+            Mode = System.IO.UnixFileMode.UserRead | System.IO.UnixFileMode.UserWrite
+                | System.IO.UnixFileMode.GroupRead | System.IO.UnixFileMode.OtherRead,
+        });
+    }
+
+    ctx.Information($"Created {agentTarball}");
 });
 
 Task("Publish")

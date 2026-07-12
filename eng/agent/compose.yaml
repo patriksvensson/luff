@@ -1,0 +1,14 @@
+name: luff-agent
+services:
+  agent:
+    image: ghcr.io/patriksvensson/luff-agent:${LUFF_VERSION:-latest}
+    restart: unless-stopped
+    environment:
+      Agent__Name: "${LUFF_AGENT_NAME:?set LUFF_AGENT_NAME in .env}"
+      Agent__ServerAddress: "${LUFF_SERVER_ADDRESS:?set LUFF_SERVER_ADDRESS in .env}"
+      Agent__ServerPin: "${LUFF_SERVER_PIN:?set LUFF_SERVER_PIN in .env}"
+      Agent__EnrollmentSecret: "${LUFF_ENROLLMENT_SECRET:?set LUFF_ENROLLMENT_SECRET in .env}"
+      Agent__HostsFrontDoor: "false"
+    volumes:
+      # The single privileged mount: the agent drives Docker on this host via the socket.
+      - /var/run/docker.sock:/var/run/docker.sock

@@ -4,6 +4,7 @@ public sealed class SetFrontDoorDomainHandler : IRequestHandler<SetFrontDoorDoma
 {
     private readonly LuffDbContext _database;
     private readonly FrontDoorConfigurator _frontDoor;
+    private readonly AgentLinkCertificate _certificate;
 
     public sealed class Request : IRequest<ServerResponse>
     {
@@ -15,10 +16,12 @@ public sealed class SetFrontDoorDomainHandler : IRequestHandler<SetFrontDoorDoma
         }
     }
 
-    public SetFrontDoorDomainHandler(LuffDbContext database, FrontDoorConfigurator frontDoor)
+    public SetFrontDoorDomainHandler(
+        LuffDbContext database, FrontDoorConfigurator frontDoor, AgentLinkCertificate certificate)
     {
         _database = database ?? throw new ArgumentNullException(nameof(database));
         _frontDoor = frontDoor ?? throw new ArgumentNullException(nameof(frontDoor));
+        _certificate = certificate ?? throw new ArgumentNullException(nameof(certificate));
     }
 
     public async Task<ServerResponse> Handle(Request request, CancellationToken cancellationToken)
@@ -44,7 +47,7 @@ public sealed class SetFrontDoorDomainHandler : IRequestHandler<SetFrontDoorDoma
 
         _frontDoor.ConfigureConnected(domain);
 
-        return new ServerResponse(domain);
+        return new ServerResponse(settings.FrontDoorDomain, settings.AgentLinkAddress, _certificate.Pin);
     }
 }
 

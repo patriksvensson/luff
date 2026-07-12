@@ -167,7 +167,7 @@ dotnet tool restore                       # dotnet-ef, verify.tool
 dotnet run build.cs                        # Cake pipeline (add `--target <name>`, `--lint`)
 dotnet build src/Luff.slnx -c Release      # builds + emits src/openapi.json
 dotnet test src/Luff.slnx                  # the hermetic suite
-cd eng && docker compose up -d --build     # run the real stack locally (CP + agent + Caddy)
+cd eng/server && docker compose up -d --build     # run the real stack locally (CP + agent + Caddy)
 ```
 
 ## Layout
@@ -179,6 +179,8 @@ cd eng && docker compose up -d --build     # run the real stack locally (CP + ag
 - `src/Luff.Protobuf` — gRPC `link.proto` + shared deploy-phase contracts.
 - `src/Luff.Server.Tests`, `src/Luff.Agent.Tests`, `src/Luff.Testing` — hermetic tests + shared fakes.
 - `src/openapi.json` — the committed REST contract.
-- `eng/` — the local compose stack (`compose.yaml` + `compose.override.yaml` + `.env.example`) and a
-  `teardown.sh` helper.
+- `eng/server` — the control-plane compose stack (`compose.yaml` + dev `compose.override.yaml` +
+  `.env.example`), `install.sh`/`uninstall.sh`/`teardown.sh`; `eng/agent` — the agent stack (`compose.yaml` +
+  `.env.example`) and `agent-install.sh`. Releases ship these as `luff-server-docker.tar.gz` and
+  `luff-agent-docker.tar.gz`.
 - `build.cs` — the single Cake build/CI/release pipeline.

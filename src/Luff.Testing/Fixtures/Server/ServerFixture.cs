@@ -1,6 +1,7 @@
 using System.Threading.Channels;
 using Luff.Protobuf;
 using Luff.Server.Features;
+using Luff.Server.Infrastructure;
 using Luff.Server.Persistence;
 using Luff.Server.Tests.Fakes;
 using Microsoft.Data.Sqlite;
@@ -18,6 +19,9 @@ public sealed class ServerFixture : IDisposable
         Domain = "127.0.0.1.sslip.io",
         Upstream = "host.docker.internal:8080",
     };
+
+    private readonly DirectoryInfo _keys = Directory.CreateTempSubdirectory("luff-server-fixture");
+    private readonly AgentLinkCertificate _certificate;
 
     public FakeAgentConnections Agents { get; }
     public AgentRegistry Registry { get; } = new();
@@ -39,6 +43,8 @@ public sealed class ServerFixture : IDisposable
             Upstream = "host.docker.internal:8080",
         }));
 
+        _certificate = AgentLinkCertificate.Resolve(_keys.FullName);
+
         using var context = CreateContext();
         context.Database.EnsureCreated();
     }
@@ -51,14 +57,20 @@ public sealed class ServerFixture : IDisposable
 
     public async Task<ServerResponse> GetServer()
     {
-        var handler = new GetServerHandler(CreateContext(), Options.Create(_frontDoorOptions));
+        var handler = new GetServerHandler(CreateContext(), Options.Create(_frontDoorOptions), _certificate);
         return await handler.Handle(new GetServerHandler.Request(), CancellationToken.None);
     }
 
     public async Task<ServerResponse> SetDomain(string domain)
     {
-        var handler = new SetFrontDoorDomainHandler(CreateContext(), FrontDoor);
+        var handler = new SetFrontDoorDomainHandler(CreateContext(), FrontDoor, _certificate);
         return await handler.Handle(new SetFrontDoorDomainHandler.Request(domain), CancellationToken.None);
+    }
+
+    public async Task<ServerResponse> SetAgentLink(string address)
+    {
+        var handler = new SetAgentLinkAddressHandler(CreateContext(), Options.Create(_frontDoorOptions), _certificate);
+        return await handler.Handle(new SetAgentLinkAddressHandler.Request(address), CancellationToken.None);
     }
 
     public async Task<ServerSettings?> GetSettingsFromDatabase()
@@ -69,7 +81,9 @@ public sealed class ServerFixture : IDisposable
 
     public void Dispose()
     {
+        _certificate.Certificate.Dispose();
         _connection.Dispose();
+        _keys.Delete(recursive: true);
     }
 
     private LuffDbContext CreateContext()

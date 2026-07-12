@@ -31,4 +31,17 @@ public sealed class GetServerHandlerTests
         // Then
         result.FrontDoorDomain.ShouldBe("luff.example.com");
     }
+
+    [Fact]
+    public async Task Should_Return_The_Agent_Link_Pin()
+    {
+        // Given
+        using var fixture = new ServerFixture();
+
+        // When
+        var result = await fixture.GetServer();
+
+        // Then
+        result.AgentLinkPin.ShouldNotBeNullOrWhiteSpace();
+    }
 }

@@ -23,22 +23,30 @@ public static class Program
 
         builder.WebHost.UseStaticWebAssets();
 
+        var connectionString = builder.Configuration.GetConnectionString("Luff") ?? "Data Source=luff.db";
+        var keysDirectory = ResolveKeysDirectory(connectionString);
+        Directory.CreateDirectory(keysDirectory);
+        var agentLinkCertificate = AgentLinkCertificate.Resolve(keysDirectory);
+
         builder.WebHost.ConfigureKestrel(options =>
         {
             options.ListenAnyIP(8080, listen => listen.Protocols = HttpProtocols.Http1);
             options.ListenAnyIP(8081, listen => listen.Protocols = HttpProtocols.Http2);
+            options.ListenAnyIP(8443, listen =>
+            {
+                listen.Protocols = HttpProtocols.Http2;
+                listen.UseHttps(agentLinkCertificate.Certificate);
+            });
         });
 
         builder.Services.AddOpenApi("v1", options => options.OpenApiVersion = OpenApiSpecVersion.OpenApi3_0);
 
-        var connectionString = builder.Configuration.GetConnectionString("Luff") ?? "Data Source=luff.db";
         builder.Services.AddDbContext<LuffDbContext>(options => options.UseSqlite(connectionString));
 
-        var keysDirectory = ResolveKeysDirectory(connectionString);
-        Directory.CreateDirectory(keysDirectory);
         builder.Services.AddDataProtection()
             .PersistKeysToFileSystem(new DirectoryInfo(keysDirectory))
             .SetApplicationName("Luff");
+        builder.Services.AddSingleton(agentLinkCertificate);
         builder.Services.AddSingleton<ISecretProtector, SecretProtector>();
 
         var signingKey = new SymmetricSecurityKey(ResolveSigningKey(keysDirectory));
@@ -118,6 +126,7 @@ public static class Program
 
         builder.Services.Configure<AgentEnrollmentOptions>(builder.Configuration.GetSection(AgentEnrollmentOptions.SectionName));
         builder.Services.Configure<FrontDoorOptions>(builder.Configuration.GetSection(FrontDoorOptions.SectionName));
+        builder.Services.Configure<InstallerOptions>(builder.Configuration.GetSection(InstallerOptions.SectionName));
         builder.Services.AddSingleton<AgentEnrollmentValidator>();
         builder.Services.AddSingleton<AgentRegistry>();
         builder.Services.AddSingleton<IAgentConnections, AgentConnections>();
@@ -146,6 +155,10 @@ public static class Program
     private static WebApplication Build(WebApplicationBuilder builder)
     {
         var app = builder.Build();
+
+        app.Logger.LogInformation(
+            "Agent link TLS endpoint on :8443, key pin sha256/{Pin}",
+            app.Services.GetRequiredService<AgentLinkCertificate>().Pin);
 
         app.UseExceptionHandler();
 

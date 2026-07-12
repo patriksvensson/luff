@@ -1,5 +1,7 @@
 using System.Collections.Concurrent;
+using System.Net.Security;
 using System.Reflection;
+using System.Security.Cryptography.X509Certificates;
 using System.Threading.Channels;
 using Grpc.Core;
 using Grpc.Net.Client;
@@ -69,7 +71,7 @@ public sealed class AgentLinkWorker : BackgroundService
 
     private async Task ConnectAndServe(CancellationToken stoppingToken)
     {
-        using var channel = GrpcChannel.ForAddress(_options.ServerAddress);
+        using var channel = CreateChannel();
         var client = new Link.LinkClient(channel);
 
         using var call = client.Connect(cancellationToken: stoppingToken);
@@ -170,6 +172,30 @@ public sealed class AgentLinkWorker : BackgroundService
             await drainTask;
             await healthTask;
         }
+    }
+
+    private GrpcChannel CreateChannel()
+    {
+        if (!string.IsNullOrEmpty(_options.ServerPin))
+        {
+            var pin = _options.ServerPin;
+            var handler = new SocketsHttpHandler
+            {
+                SslOptions = new SslClientAuthenticationOptions
+                {
+                    RemoteCertificateValidationCallback = (_, certificate, _, _) =>
+                        certificate is X509Certificate2 server && ServerCertificatePin.Matches(server, pin),
+                },
+            };
+
+            return GrpcChannel.ForAddress(_options.ServerAddress, new GrpcChannelOptions
+            {
+                HttpHandler = handler,
+                DisposeHttpClient = true,
+            });
+        }
+
+        return GrpcChannel.ForAddress(_options.ServerAddress);
     }
 
     private async Task HealthReportLoop(ChannelWriter<AgentMessage> outbound, CancellationToken cancellationToken)

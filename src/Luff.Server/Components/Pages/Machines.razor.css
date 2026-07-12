@@ -106,6 +106,26 @@
     white-space: pre;
 }
 
+.enroll-oneliner {
+    position: relative;
+}
+
+.enroll-oneliner .enroll-cmd {
+    padding-right: 68px;
+}
+
+.enroll-oneliner .enroll-cmd code {
+    white-space: pre-wrap;
+    word-break: break-all;
+}
+
+.enroll-copy {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    font-size: 12px;
+}
+
 .enroll-hint {
     margin-top: 10px;
     font-size: 12px;

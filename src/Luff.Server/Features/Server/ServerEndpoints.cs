@@ -15,6 +15,11 @@ public static class ServerEndpoints
             .RequireAuthorization(JwtAuth.AdminPolicy)
             .ProducesProblem(StatusCodes.Status400BadRequest);
 
+        server.MapPut("/agent-link", SetAgentLink)
+            .WithName("Server_SetAgentLink")
+            .RequireAuthorization(JwtAuth.AdminPolicy)
+            .ProducesProblem(StatusCodes.Status400BadRequest);
+
         return group;
     }
 
@@ -28,6 +33,13 @@ public static class ServerEndpoints
         SetDomainRequest request, ISender sender, CancellationToken cancellationToken)
     {
         var response = await sender.SetFrontDoorDomain(request.Domain, cancellationToken);
+        return TypedResults.Ok(response);
+    }
+
+    private static async Task<Ok<ServerResponse>> SetAgentLink(
+        SetAgentLinkRequest request, ISender sender, CancellationToken cancellationToken)
+    {
+        var response = await sender.SetAgentLinkAddress(request.Address, cancellationToken);
         return TypedResults.Ok(response);
     }
 }
