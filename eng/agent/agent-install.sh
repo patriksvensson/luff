@@ -3,13 +3,14 @@
 # over the pinned TLS link and holds one connection open. The agent is stateless -- all state and secrets
 # live on the control plane -- so this just downloads the compose asset and keeps the container up.
 #
-# For a host running Direct or Internal apps (no Caddy front door). Get --server, --pin and a per-agent
-# --token from the control plane's "Add machine" screen.
+# By default the host runs Direct or Internal apps (no Caddy). Pass --front-door to also bring up Caddy and
+# host the front door, so the host can serve Web apps. Get --server, --pin and a per-agent --token from the
+# control plane's "Add machine" screen.
 #
 # Re-running upgrades in place: any value you omit is reused from the existing .env, so `--version TAG`
 # alone bumps the image.
 #
-# Usage:   agent-install.sh --name NAME --server https://HOST:8443 --pin PIN --token TOKEN [--dir DIR] [--version TAG]
+# Usage:   agent-install.sh --name NAME --server https://HOST:8443 --pin PIN --token TOKEN [--front-door] [--dir DIR] [--version TAG]
 # Env:     LUFF_HOME  LUFF_VERSION  LUFF_REPO
 set -eu
 
@@ -20,6 +21,7 @@ server="${LUFF_SERVER_ADDRESS:-}"
 pin="${LUFF_SERVER_PIN:-}"
 token="${LUFF_ENROLLMENT_SECRET:-}"
 asset="luff-agent-docker.tar.gz"
+frontdoor=false
 os="$(uname -s)"
 
 case "$os" in
@@ -35,7 +37,8 @@ while [ $# -gt 0 ]; do
         --token) token="$2"; shift 2 ;;
         --dir) home="$2"; shift 2 ;;
         --version) version="$2"; shift 2 ;;
-        -h|--help) echo "Usage: agent-install.sh --name NAME --server https://HOST:8443 --pin PIN --token TOKEN [--dir DIR] [--version TAG]"; exit 0 ;;
+        --front-door) frontdoor=true; shift ;;
+        -h|--help) echo "Usage: agent-install.sh --name NAME --server https://HOST:8443 --pin PIN --token TOKEN [--front-door] [--dir DIR] [--version TAG]"; exit 0 ;;
         *) echo "agent-install.sh: unknown option '$1'" >&2; exit 2 ;;
     esac
 done
@@ -89,6 +92,11 @@ tar -xzf "$tmp/$asset" -C "$tmp"
 
 mkdir -p "$home"
 cp "$tmp/compose.yaml" "$home/compose.yaml"
+if [ -f "$tmp/compose.frontdoor.yaml" ]; then
+    cp "$tmp/compose.frontdoor.yaml" "$home/compose.frontdoor.yaml"
+elif $frontdoor; then
+    fail "the archive has no compose.frontdoor.yaml (need a newer release for --front-door)"
+fi
 
 # set_kv KEY VALUE FILE -- replace KEY's line if present, otherwise append it.
 set_kv() {
@@ -112,8 +120,13 @@ set_kv LUFF_ENROLLMENT_SECRET "$token" "$env_file"
 chmod 600 "$env_file"
 
 cd "$home"
-docker compose pull
-docker compose up -d
+if $frontdoor; then
+    set -- -f compose.yaml -f compose.frontdoor.yaml
+else
+    set -- -f compose.yaml
+fi
+docker compose "$@" pull
+docker compose "$@" up -d
 
 cat <<EOF
 

@@ -10,5 +10,10 @@ services:
       Agent__EnrollmentSecret: "${LUFF_ENROLLMENT_SECRET:?set LUFF_ENROLLMENT_SECRET in .env}"
       Agent__HostsFrontDoor: "false"
     volumes:
-      # The single privileged mount: the agent drives Docker on this host via the socket.
       - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - luff
+
+networks:
+  luff:
+    name: luff

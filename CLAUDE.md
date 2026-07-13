@@ -180,7 +180,7 @@ cd eng/server && docker compose up -d --build     # run the real stack locally (
 - `src/Luff.Server.Tests`, `src/Luff.Agent.Tests`, `src/Luff.Testing` — hermetic tests + shared fakes.
 - `src/openapi.json` — the committed REST contract.
 - `eng/server` — the control-plane compose stack (`compose.yaml` + dev `compose.override.yaml` +
-  `.env.example`), `install.sh`/`uninstall.sh`/`teardown.sh`; `eng/agent` — the agent stack (`compose.yaml` +
-  `.env.example`) and `agent-install.sh`. Releases ship these as `luff-server-docker.tar.gz` and
+  `.env.example`), `install.sh`/`uninstall.sh`/`teardown.sh`; `eng/agent` — the agent stack (`compose.yaml`, `compose.frontdoor.yaml`,
+  `.env.example`) and `agent-install.sh` (`--front-door` co-locates Caddy). Releases ship these as `luff-server-docker.tar.gz` and
   `luff-agent-docker.tar.gz`.
 - `build.cs` — the single Cake build/CI/release pipeline.

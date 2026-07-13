@@ -168,6 +168,7 @@ Task("Package")
     using (var writer = new System.Formats.Tar.TarWriter(gzip, System.Formats.Tar.TarEntryFormat.Pax))
     {
         writer.WriteEntry(System.IO.Path.GetFullPath("./eng/agent/compose.yaml"), "compose.yaml");
+        writer.WriteEntry(System.IO.Path.GetFullPath("./eng/agent/compose.frontdoor.yaml"), "compose.frontdoor.yaml");
 
         writer.WriteEntry(new System.Formats.Tar.PaxTarEntry(System.Formats.Tar.TarEntryType.RegularFile, ".env")
         {
