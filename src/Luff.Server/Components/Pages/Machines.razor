@@ -7,11 +7,11 @@
 @inject IJSRuntime JS
 @inject Microsoft.Extensions.Options.IOptions<InstallerOptions> Installer
 
-<PageTitle>Machines · Luff</PageTitle>
+<PageTitle>Machines - Luff</PageTitle>
 
 <div class="page-head">
     <h1 class="page-title">Machines</h1>
-    <p class="page-lede">The hosts Luff deploys to — each dials out and holds one link open.</p>
+    <p class="page-lede">The hosts Luff deploys to.</p>
     @if (_isAdmin)
     {
         <span class="spacer"></span>
@@ -47,11 +47,11 @@ else
                 <span class="spacer"></span>
                 @if (machine.Apps.Count > 0)
                 {
-                    <span class="fleet-apps mono">@string.Join(" · ", machine.Apps)</span>
+                    <span class="fleet-apps mono">@string.Join(" | ", machine.Apps)</span>
                 }
                 @if (machine.Version is not null)
                 {
-                    <span class="mono fleet-version">v@machine.Version</span>
+                    <span class="mono fleet-version">v@(machine.Version)</span>
                 }
                 @if (_isAdmin)
                 {
@@ -91,7 +91,7 @@ else
             else
             {
                 <p class="enroll-lede">
-                    Run this on <span class="mono">@_minted.Name</span> to install the agent — the token is shown <b>once</b>.
+                    Run this on <span class="mono">@_minted.Name</span> to install the agent. The token is shown <b>once</b>.
                 </p>
                 <div class="enroll-oneliner">
                     <pre class="enroll-cmd"><code>@_joinCommand</code></pre>
@@ -250,9 +250,9 @@ Agent__ServerPin=@_agentLinkPin</code></pre>
 
     private static string StatusLine(FleetAgent machine) => machine.Status switch
     {
-        "connected" => "connected",
-        "pending" => "pending · waiting to connect",
-        _ => machine.LastSeen is null ? "disconnected" : $"disconnected · last seen {machine.LastSeen}",
+        "connected" => "Connected",
+        "pending" => "Pending | Waiting to connect",
+        _ => machine.LastSeen is null ? "disconnected" : $"Disconnected. Last seen {machine.LastSeen}",
     };
 
     public void Dispose() => _subscription?.Dispose();

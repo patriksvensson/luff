@@ -57,7 +57,7 @@ input {
     outline-offset: 2px;
 }
 
-/* Headings are focused programmatically on navigation (a11y) — no visible ring. */
+/* Headings are focused programmatically on navigation (a11y). No visible ring. */
 h1:focus {
     outline: none;
 }

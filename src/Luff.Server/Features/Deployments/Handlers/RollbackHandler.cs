@@ -29,6 +29,8 @@ public sealed class RollbackHandler : IRequestHandler<RollbackHandler.Request, D
         var tag = app.PreviousImageTag
             ?? throw new NoPreviousDeploymentException(request.Name);
 
+        app.Stopped = false;
+
         var queued = await _engine.QueueDeploymentAsync(app, tag, cancellationToken);
 
         return queued.ToResponse();

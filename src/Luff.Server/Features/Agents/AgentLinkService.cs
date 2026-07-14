@@ -4,10 +4,7 @@ namespace Luff.Server.Features;
 
 public sealed class AgentLinkService : Link.LinkBase
 {
-    private static readonly string _serverVersion =
-        typeof(AgentLinkService).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()
-            ?.InformationalVersion
-        ?? "0.0.0";
+    private static readonly string _serverVersion = ServerVersion.Current;
 
     private static readonly TimeSpan _pingInterval = TimeSpan.FromSeconds(15);
 

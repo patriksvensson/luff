@@ -3,7 +3,7 @@
 @inject IScopedSender Sender
 @inject IJSRuntime JS
 
-<PageTitle>Settings · Luff</PageTitle>
+<PageTitle>Settings - Luff</PageTitle>
 
 <div class="page-head">
     <h1 class="page-title">Settings</h1>
@@ -11,7 +11,7 @@
 
 <div class="card set-section">
     <div class="eyebrow">Your account</div>
-    <div class="set-sub">Signed in as <span class="mono">@_username</span> · <span class="mono set-role">@_role</span></div>
+    <div class="set-sub">Signed in as <span class="mono">@_username</span> | <span class="mono set-role">@_role</span></div>
     <div class="set-form">
         <label class="field">
             <span class="field-label">Current password</span>
@@ -137,7 +137,7 @@
             <button class="btn btn-primary" @onclick="SaveDomain" disabled="@(_busy || string.IsNullOrWhiteSpace(_domain))">Save domain</button>
             @if (_domainSaved)
             {
-                <span class="set-saved">Saved · re-points live</span>
+                <span class="set-saved">Saved (re-points live)</span>
             }
         </div>
 
@@ -372,7 +372,7 @@
         try
         {
             await Sender.Send(new TestNotificationChannelHandler.Request(id));
-            _chanNote = "Test sent — check the channel.";
+            _chanNote = "Test sent. Check the channel.";
         }
         catch (LuffException exception)
         {

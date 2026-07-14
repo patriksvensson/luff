@@ -78,7 +78,7 @@ public sealed class WebhooksFixture : IDisposable
         await context.SaveChangesAsync();
     }
 
-    public async Task HasApp(string name)
+    public async Task HasApp(string name, bool stopped = false)
     {
         await using var context = CreateContext();
 
@@ -88,6 +88,7 @@ public sealed class WebhooksFixture : IDisposable
             Image = "nginx",
             Domain = $"{name}.example.com",
             InternalPort = 80,
+            Stopped = stopped,
         });
 
         await context.SaveChangesAsync();

@@ -24,14 +24,21 @@
     [Parameter, EditorRequired]
     public AppDetail Detail { get; set; } = null!;
 
-    private static string DeployDot(AppDeploymentLine deployment) =>
-        deployment.Failed ? "dot-red" : deployment.Succeeded ? "dot-green" : "dot-amber";
+    private static string DeployDot(AppDeploymentLine deployment)
+    {
+        return deployment.Failed ? "dot-red" : deployment.Succeeded ? "dot-green" : "dot-amber";
+    }
 
-    private static string StatusClass(AppDeploymentLine deployment) =>
-        deployment.Failed ? "is-failed" : deployment.Succeeded ? "is-ok" : "is-progress";
+    private static string StatusClass(AppDeploymentLine deployment)
+    {
+        return deployment.Failed ? "is-failed" : deployment.Succeeded ? "is-ok" : "is-progress";
+    }
 
-    private static string StatusText(AppDeploymentLine deployment) =>
-        deployment.Failed && deployment.FailureReason is not null
-            ? $"{deployment.Status} · {deployment.FailureReason}"
+    private static string StatusText(AppDeploymentLine deployment)
+    {
+        return deployment.Failed && deployment.FailureReason is not null
+            ? $"{deployment.Status}: {deployment.FailureReason}"
             : deployment.Status;
+    }
+
 }

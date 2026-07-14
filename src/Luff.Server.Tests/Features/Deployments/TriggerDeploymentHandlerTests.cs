@@ -26,6 +26,22 @@ public sealed class TriggerDeploymentHandlerTests
     }
 
     [Fact]
+    public async Task Should_Clear_The_Stopped_State_When_Manually_Deploying()
+    {
+        // Given
+        using var fixture = new DeploymentsFixture();
+        await fixture.HasApp("web", stopped: true);
+        await fixture.HasAttachment("web", "agent-1");
+
+        // When
+        var result = await fixture.TriggerDeployment("web", "v1");
+
+        // Then
+        result.Status.ShouldBe("InProgress");
+        (await fixture.FindApp("web")).ShouldNotBeNull().Stopped.ShouldBeFalse();
+    }
+
+    [Fact]
     public async Task Should_Fail_The_Deployment_When_No_Agent_Is_Attached()
     {
         // Given

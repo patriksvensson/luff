@@ -5,7 +5,7 @@
 <div class="wh">
     <p class="cfg-lede">
         Let CI trigger a deploy by calling this webhook after it pushes an image. The token is part of the URL and
-        is shown <b>once</b> — copy it when you create it.
+        is shown <b>once</b>. Make sure you copy it.
     </p>
 
     @if (_created is not null)
@@ -15,7 +15,7 @@
                 <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                     <rect x="5" y="11" width="14" height="9" rx="1.6" /><path d="M8 11V8a4 4 0 0 1 8 0v3" />
                 </svg>
-                <span class="wh-reveal-name">@_created.Name</span> · shown once — copy it now
+                <span class="wh-reveal-name">@_created.Name</span> | Shown once, copy it now
             </span>
             <div class="mono wh-url">@WebhookUrl(_created.Token)</div>
         </div>
@@ -49,8 +49,8 @@
                         <span class="wh-name">@(string.IsNullOrEmpty(token.Name) ? "unnamed" : token.Name)</span>
                         <span class="wh-meta">
                             <span class="mono wh-id">@token.Id.ToString()[..8]</span>
-                            · created @Rel(token.CreatedAt)
-                            @(token.LastUsedAt is null ? "· never used" : $"· last used {Rel(token.LastUsedAt.Value)}")
+                            | Created @Rel(token.CreatedAt)
+                            @(token.LastUsedAt is null ? "| Never used" : $"| Last used {Rel(token.LastUsedAt.Value)}")
                         </span>
                     </div>
                     <span class="spacer"></span>

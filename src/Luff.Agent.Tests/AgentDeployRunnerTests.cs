@@ -164,7 +164,7 @@ public sealed class AgentDeployRunnerTests
             Running: false, Restarting: false, RestartCount: 0, ExitCode: 1, Health: null);
         fixture.DockerCompose.TailedLogs = "You must specify POSTGRES_PASSWORD";
 
-        // When — a long timeout that we never advance; a fail-fast gate must not need it.
+        // When
         var result = await fixture.RunAsync(
             new Deploy
             {

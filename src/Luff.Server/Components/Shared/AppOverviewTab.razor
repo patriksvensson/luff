@@ -15,7 +15,7 @@
             }
             else
             {
-                <div class="ov-version"><span class="mono ov-tag ov-none">—</span></div>
+                <div class="ov-version"><span class="mono ov-tag ov-none">-</span></div>
                 <div class="ov-note">Not deployed yet</div>
             }
         </div>
@@ -75,7 +75,7 @@
 
     <div class="card ov-machines">
         <div class="ov-machines-head">
-            <div class="eyebrow">Machines · @Detail.Machines.Count</div>
+            <div class="eyebrow">Machines: @Detail.Machines.Count</div>
             @if (Detail.Machines.Count > 0)
             {
                 <a class="link" href="apps/@Detail.Name/machines">View all →</a>
@@ -95,16 +95,16 @@
                     <span class="mono ov-machine-name">@machine.Agent</span>
                     @if (machine.FrontDoor)
                     {
-                        <span class="chip">front door</span>
+                        <span class="chip">Front door</span>
                     }
                     <span class="spacer"></span>
                     @if (machine.Behind)
                     {
-                        <span class="mono ov-behind">behind · @machine.RunningTag</span>
+                        <span class="mono ov-behind">Behind | @machine.RunningTag</span>
                     }
                     else
                     {
-                        <span class="mono ov-machine-tag">@(machine.RunningTag ?? "—")</span>
+                        <span class="mono ov-machine-tag">@(machine.RunningTag ?? "-")</span>
                     }
                 </div>
             }
@@ -120,7 +120,7 @@
     {
         AppHealthState.Live => "dot-green",
         AppHealthState.Deploying or AppHealthState.Drift => "dot-amber",
-        AppHealthState.Failed => "dot-red",
+        AppHealthState.Failed or AppHealthState.Unhealthy => "dot-red",
         _ => "dot-neutral",
     };
 
@@ -130,6 +130,8 @@
         AppHealthState.Deploying => "Deploying",
         AppHealthState.Drift => "Up, with drift",
         AppHealthState.Failed => "Last deploy failed",
+        AppHealthState.Unhealthy => "Unhealthy",
+        AppHealthState.Stopped => "Stopped",
         _ => "Dormant",
     };
 
@@ -138,8 +140,10 @@
         AppHealthState.Live => "Running the intended version across the fleet.",
         AppHealthState.Deploying => "A rollout is in progress.",
         AppHealthState.Drift =>
-            $"Serving fine — {Detail.BehindCount} {(Detail.BehindCount == 1 ? "machine is" : "machines are")} a version behind after a partial rollout.",
+            $"Serving fine. {Detail.BehindCount} {(Detail.BehindCount == 1 ? "Machine is" : "Machines are")} a version behind after a partial rollout.",
         AppHealthState.Failed => "The last deploy failed; the previous version keeps serving.",
+        AppHealthState.Unhealthy => "Deployed, but a container is reporting unhealthy.",
+        AppHealthState.Stopped => "Manually stopped. Containers are kept; Start to bring it back.",
         _ => Detail.Machines.Count == 0 ? "Not attached to a machine yet." : "Attached, waiting for its first deploy.",
     };
 }

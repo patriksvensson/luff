@@ -24,7 +24,7 @@
             <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" />
             </svg>
-            <span class="mono"><b>@QueuedTag</b> queued · coalesces to latest — no superseded versions run</span>
+            <span class="mono"><b>@QueuedTag</b> Queued | Coalesces to latest (no superseded versions run)</span>
         </div>
     }
 
@@ -32,7 +32,7 @@
         <span class="legend-item"><span class="legend-swatch swatch-old"></span> OLD (blue)</span>
         <span class="legend-item"><span class="legend-swatch swatch-new"></span> NEW (green)</span>
         <span class="spacer"></span>
-        <span class="pipe-elapsed mono">ROLLING OLDEST-FIRST · @Elapsed</span>
+        <span class="pipe-elapsed mono">ROLLING OLDEST-FIRST | @Elapsed</span>
     </div>
 
     <div class="lanes">
@@ -44,9 +44,9 @@
                     <span class="mono lane-name">@lane.Agent</span>
                     <span class="lane-status @StatusClass(lane)">@StatusWord(lane)</span>
                     <span class="spacer"></span>
-                    <span class="serving mono @(lane.Done && !lane.Failed ? "serving-new" : "serving-old")">
-                        <span class="dot @(lane.Done && !lane.Failed ? "dot-green" : "dot-blue")"></span>
-                        serving @(lane.Done && !lane.Failed ? (lane.ServingTag ?? ToTag) : (lane.OldTag ?? FromTag ?? "—"))
+                    <span class="serving mono @(lane is { Done: true, Failed: false } ? "serving-new" : "serving-old")">
+                        <span class="dot @(lane is { Done: true, Failed: false } ? "dot-green" : "dot-blue")"></span>
+                        serving @(lane is { Done: true, Failed: false } ? (lane.ServingTag ?? ToTag) : (lane.OldTag ?? FromTag ?? "-"))
                     </span>
                 </div>
                 <div class="stepper">
@@ -70,7 +70,7 @@
                     <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-11" /></svg>
                 </span>
                 <div class="foot-text">
-                    <div class="foot-title">It's live — every machine on @ToTag.</div>
+                    <div class="foot-title">It's live. Every machine is on @ToTag.</div>
                     @if (AppUrl is not null)
                     {
                         <a class="link" href="@AppUrl" target="_blank" rel="noopener">@AppDomain ↗</a>
@@ -84,7 +84,7 @@
                 </span>
                 <div class="foot-text">
                     <div class="foot-title">@FailureText</div>
-                    <div class="foot-note">The old version keeps serving — zero requests dropped.</div>
+                    <div class="foot-note">The old version keeps serving.</div>
                 </div>
                 <button class="btn btn-ghost" @onclick="OnClose">Close</button>
                 break;

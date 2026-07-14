@@ -31,6 +31,8 @@ public sealed class TriggerDeploymentHandler : IRequestHandler<TriggerDeployment
         var tag = request.Tag ?? app.CurrentImageTag
             ?? throw new DeploymentTagRequiredException(request.Name);
 
+        app.Stopped = false;
+
         var queued = await _engine.QueueDeploymentAsync(app, tag, cancellationToken);
 
         return queued.ToResponse();

@@ -53,7 +53,7 @@ public sealed class ReportAgentHealthHandlerTests
         await fixture.HasAttachment("web", "agent-1");
         await fixture.ReportHealth("agent-1", [new AgentHealthEntry("web", AppRuntimeHealth.Unhealthy, "boom")]);
 
-        // When — a second unhealthy report is not a transition
+        // When
         await fixture.ReportHealth("agent-1", [new AgentHealthEntry("web", AppRuntimeHealth.Unhealthy, "boom")]);
 
         // Then

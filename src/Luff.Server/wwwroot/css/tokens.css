@@ -18,7 +18,7 @@
     --text-dim: #626b64;
     --text-faint: #464e48;
 
-    /* Accent — mint green (live / primary) */
+    /* Accent: mint green (live / primary) */
     --green: #7ee0a5;
     --green-bright: #93e8b6;
     --green-dim: #4b8c6a;
@@ -26,17 +26,17 @@
     --green-border: rgba(126, 224, 165, 0.30);
     --on-green: #06110b;
 
-    /* Amber — in progress / drift / needs attention (still up) */
+    /* Amber: in progress / drift / needs attention (still up) */
     --amber: #e5c07b;
     --amber-soft: rgba(229, 192, 123, 0.10);
     --amber-border: rgba(229, 192, 123, 0.28);
 
-    /* Red — failed / disconnected / down */
+    /* Red: failed / disconnected / down */
     --red: #e37b83;
     --red-soft: rgba(227, 123, 131, 0.10);
     --red-border: rgba(227, 123, 131, 0.28);
 
-    /* Neutral — pending / dormant / idle */
+    /* Neutral: pending / dormant / idle */
     --neutral: #6b746d;
 
     /* Typography */

@@ -29,6 +29,24 @@ public sealed class TriggerWebhookHandlerTests
     }
 
     [Fact]
+    public async Task Should_Refuse_To_Deploy_A_Stopped_App()
+    {
+        // Given
+        using var fixture = new WebhooksFixture();
+        await fixture.HasApp("web", stopped: true);
+        await fixture.HasAttachment("web", "agent-1");
+        var token = WebhookToken.Generate();
+        await fixture.HasToken("web", token);
+
+        // When
+        var exception = await Record.ExceptionAsync(() =>
+            fixture.TriggerWebhook(new TriggerWebhookHandler.Request(token, "v1")));
+
+        // Then
+        exception.ShouldBeOfType<AppStoppedException>();
+    }
+
+    [Fact]
     public async Task Should_Record_When_The_Token_Was_Last_Used()
     {
         // Given

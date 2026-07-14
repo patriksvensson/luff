@@ -2745,6 +2745,10 @@
           },
           "agentLinkPin": {
             "type": "string"
+          },
+          "version": {
+            "type": "string",
+            "nullable": true
           }
         }
       },

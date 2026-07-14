@@ -3,12 +3,12 @@
 <div class="vol">
     @if (!_isAdmin)
     {
-        <div class="cfg-empty">Volumes are managed by admins — you're signed in as an operator.</div>
+        <div class="cfg-empty">Volumes are managed by admins. You're signed in as an operator.</div>
     }
     else
     {
         <p class="cfg-lede">
-            Persistent storage — a <b>bind</b> (absolute host path) or a <b>named</b> volume, optionally read-only.
+            Persistent storage. A <b>bind</b> (absolute host path) or a <b>named</b> volume, optionally read-only.
             Takes effect on the next deploy. Luff never deletes a volume's data.
         </p>
 

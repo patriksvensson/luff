@@ -75,7 +75,8 @@ While connected, each agent also **pushes periodic per-app runtime health** (fro
 link; the control plane stores it on the AppAgent so the dashboard reflects a container that crashes *after* a
 deploy. Apps can be **stopped/started** manually (Operator): the control plane sets the desired run-state and
 pushes `StopApp`/`StartApp` down the link (the agent does `docker stop`/`start`, keeping containers + volumes);
-a stopped app refuses deploys and is not restarted on reconnect.
+a stopped app refuses **automatic** deploys (CI webhook) and is not restarted on reconnect, but a **manual**
+deploy or rollback clears the stopped state and rolls out, bringing it back up on the chosen version.
 
 Concurrent deploys **queue per app and coalesce to the latest tag**. Rollback redeploys the previous tag
 through this exact pipeline. Blue/green renders each release as its own compose project

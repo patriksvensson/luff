@@ -2,7 +2,7 @@
 @attribute [Authorize]
 @inject IScopedSender Sender
 
-<PageTitle>Activity · Luff</PageTitle>
+<PageTitle>Activity - Luff</PageTitle>
 
 <div class="page-head">
     <h1 class="page-title">Activity</h1>
@@ -37,27 +37,34 @@ else
 @code {
     private IReadOnlyList<ActivityRow>? _rows;
 
-    protected override async Task OnInitializedAsync() =>
+    protected override async Task OnInitializedAsync()
+    {
         _rows = await Sender.Send(new ActivityHandler.Request());
+    }
 
-    private static string Dot(ActivityRow row) =>
-        row.Failed ? "dot-red" : row.Succeeded ? "dot-green" : "dot-amber";
+    private static string Dot(ActivityRow row)
+    {
+        return row.Failed ? "dot-red" : row.Succeeded ? "dot-green" : "dot-amber";
+    }
 
-    private static string StatusClass(ActivityRow row) =>
-        row.Failed ? "is-failed" : row.Succeeded ? "is-ok" : "is-progress";
+    private static string StatusClass(ActivityRow row)
+    {
+        return row.Failed ? "is-failed" : row.Succeeded ? "is-ok" : "is-progress";
+    }
 
     private static string StatusText(ActivityRow row)
     {
-        if (row.Failed && row.FailureReason is not null)
+        if (row is { Failed: true, FailureReason: not null })
         {
-            return $"{row.Status} · {row.FailureReason}";
+            return $"{row.Status} | {row.FailureReason}";
         }
 
         if (row.MachineCount > 0)
         {
-            return $"{row.Status} · {row.MachineCount} {(row.MachineCount == 1 ? "machine" : "machines")}";
+            return $"{row.Status} | {row.MachineCount} {(row.MachineCount == 1 ? "machine" : "machines")}";
         }
 
         return row.Status;
     }
+
 }

@@ -4,7 +4,7 @@
 @inject IScopedSender Sender
 @inject NavigationManager Navigation
 
-<PageTitle>Apps · Luff</PageTitle>
+<PageTitle>Apps - Luff</PageTitle>
 
 <div class="page-head">
     <h1 class="page-title">Apps</h1>
@@ -16,13 +16,6 @@
         </span>
     }
     <div class="spacer"></div>
-    <div class="search">
-        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
-            <circle cx="11" cy="11" r="7" />
-            <path d="m20 20-3.2-3.2" />
-        </svg>
-        <input class="search-input" placeholder="Search apps" @bind="_query" @bind:event="oninput" />
-    </div>
     <button class="btn btn-primary" @onclick="StartCreate">+ New app</button>
 </div>
 
@@ -46,7 +39,7 @@ else
             @_overview.MachineCount @Pluralize(_overview.MachineCount, "machine")
             @if (_overview.MachineCount > 0)
             {
-                <span>·</span>
+                <span>|</span>
                 <span class="@(_overview.AllConnected ? "ok" : "warn")">@(_overview.AllConnected ? "all connected" : "check fleet")</span>
             }
         </span>
@@ -138,24 +131,24 @@ else
 
             <label class="field">
                 <span class="field-label">Name</span>
-                <input class="input mono" @bind="_name" @bind:event="oninput" placeholder="@(_direct ? "e.g. grafana" : _internal ? "e.g. postgres" : "e.g. web")" />
+                <input class="input mono" @bind="_name" @bind:event="oninput" placeholder="@(Direct ? "e.g. grafana" : Internal ? "e.g. postgres" : "e.g. web")" />
             </label>
 
             <label class="field">
                 <span class="field-label">Type</span>
                 <select class="input" @bind="_kind">
-                    <option value="Web">Web app — public, fronted by Caddy with a domain</option>
-                    <option value="Internal">Internal service — private, reachable only by sibling apps</option>
-                    <option value="Direct">Direct — private, reached on published host ports (tailnet / LAN)</option>
+                    <option value="Web">Web app: public, fronted by Caddy with a domain</option>
+                    <option value="Internal">Internal service: private, reachable only by sibling apps</option>
+                    <option value="Direct">Direct: private, reached on published host ports (tailnet / LAN)</option>
                 </select>
             </label>
 
             <label class="field">
                 <span class="field-label">Image</span>
-                <input class="input mono" @bind="_image" @bind:event="oninput" placeholder="@(_direct ? "grafana/grafana" : _internal ? "postgres" : "ghcr.io/acme/web")" />
+                <input class="input mono" @bind="_image" @bind:event="oninput" placeholder="@(Direct ? "grafana/grafana" : Internal ? "postgres" : "ghcr.io/acme/web")" />
             </label>
 
-            @if (!_frontless)
+            @if (!Frontless)
             {
                 <label class="field">
                     <span class="field-label">Domain</span>
@@ -179,11 +172,11 @@ else
             else
             {
                 <label class="field field-port">
-                    <span class="field-label">@(_direct ? "Container port" : "Service port")</span>
-                    <input class="input mono" type="number" min="1" max="65535" @bind="_port" @bind:event="oninput" placeholder="e.g. @(_direct ? "3000" : "5432")" />
+                    <span class="field-label">@(Direct ? "Container port" : "Service port")</span>
+                    <input class="input mono" type="number" min="1" max="65535" @bind="_port" @bind:event="oninput" placeholder="e.g. @(Direct ? "3000" : "5432")" />
                 </label>
 
-                @if (_direct)
+                @if (Direct)
                 {
                     <p class="new-app-hint">
                         Reached on published host ports, which you add on its <b>Ports</b> tab after creating.
@@ -216,7 +209,6 @@ else
 
 @code {
     private AppsOverview? _overview;
-    private string _query = string.Empty;
 
     private bool _creating;
     private string _name = string.Empty;
@@ -228,14 +220,14 @@ else
     private bool _busy;
     private string? _error;
 
-    private bool _internal => _kind == "Internal";
-    private bool _direct => _kind == "Direct";
-    private bool _frontless => _kind != "Web";
+    private bool Internal => _kind == "Internal";
+    private bool Direct => _kind == "Direct";
+    private bool Frontless => _kind != "Web";
 
     private bool CanCreate =>
         !string.IsNullOrWhiteSpace(_name)
         && !string.IsNullOrWhiteSpace(_image)
-        && (_frontless || !string.IsNullOrWhiteSpace(_domain))
+        && (Frontless || !string.IsNullOrWhiteSpace(_domain))
         && int.TryParse(_port, out var port) && port is >= 1 and <= 65535;
 
     protected override async Task OnInitializedAsync()
@@ -245,21 +237,7 @@ else
 
     private IEnumerable<AppOverviewRow> Filtered()
     {
-        if (_overview is null)
-        {
-            return [];
-        }
-
-        if (string.IsNullOrWhiteSpace(_query))
-        {
-            return _overview.Apps;
-        }
-
-        var query = _query.Trim();
-        return _overview.Apps.Where(app =>
-            app.Name.Contains(query, StringComparison.OrdinalIgnoreCase)
-            || app.Image.Contains(query, StringComparison.OrdinalIgnoreCase)
-            || (app.Domain?.Contains(query, StringComparison.OrdinalIgnoreCase) ?? false));
+        return _overview is null ? [] : _overview.Apps;
     }
 
     private static (string Label, bool Primary) Action(AppHealthState state) => state switch
@@ -278,8 +256,10 @@ else
         _ => $"apps/{app.Name}?deploy=true",
     };
 
-    private static string Pluralize(int count, string noun) =>
-        count == 1 ? noun : noun + "s";
+    private static string Pluralize(int count, string noun)
+    {
+        return count == 1 ? noun : noun + "s";
+    }
 
     private void StartCreate()
     {
@@ -293,7 +273,10 @@ else
         _creating = true;
     }
 
-    private void CloseCreate() => _creating = false;
+    private void CloseCreate()
+    {
+        _creating = false;
+    }
 
     private async Task Create()
     {
@@ -309,8 +292,8 @@ else
             var created = await Sender.Send(new CreateAppHandler.Request(
                 _name.Trim(), _image.Trim(), int.Parse(_port),
                 kind: _kind,
-                domain: _frontless ? null : _domain.Trim(),
-                tlsMode: _frontless ? null : _tlsMode));
+                domain: Frontless ? null : _domain.Trim(),
+                tlsMode: Frontless ? null : _tlsMode));
             Navigation.NavigateTo($"apps/{created.Name}");
         }
         catch (LuffException exception)

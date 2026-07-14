@@ -45,7 +45,7 @@
             <button class="btn btn-primary" @onclick="Save" disabled="@_busy">Save</button>
             @if (_saved)
             {
-                <span class="hc-saved">Saved · applies on the next deploy</span>
+                <span class="hc-saved">Saved. Applies on the next deploy</span>
             }
         </div>
     }
@@ -70,7 +70,7 @@
     private static readonly Option Http =
         new("http", "Poll an endpoint until it responds. Needs a tool like wget/curl in the image.");
     private static readonly Option Tcp =
-        new("tcp", "The agent connects to the port until it accepts. Good for databases — no in-container tooling.");
+        new("tcp", "The agent connects to the port until it accepts.");
     private static readonly Option None =
         new("none", "Don't gate on readiness. A crash-looping container is still caught.");
 

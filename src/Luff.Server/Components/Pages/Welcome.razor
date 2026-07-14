@@ -4,7 +4,7 @@
 @inject IScopedSender Sender
 @inject NavigationManager Navigation
 
-<PageTitle>Welcome · Luff</PageTitle>
+<PageTitle>Welcome - Luff</PageTitle>
 
 <div class="welcome">
     <div class="welcome-card">
@@ -46,11 +46,6 @@
                 disabled="@(_busy || string.IsNullOrEmpty(_current) || string.IsNullOrEmpty(_new) || _new != _confirm)">Set password</button>
 
         <a class="welcome-skip" href="apps">Skip for now</a>
-
-        <p class="welcome-note">
-            <span class="dot dot-amber"></span>
-            <span>Connection is encrypted with a self-signed certificate.</span>
-        </p>
     </div>
 </div>
 

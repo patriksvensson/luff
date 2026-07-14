@@ -4,7 +4,7 @@
 <div class="logs">
     @if (_machines.Count == 0)
     {
-        <div class="cfg-empty">This app runs nowhere yet — attach a machine to see its logs.</div>
+        <div class="cfg-empty">This app runs nowhere yet. Attach a machine to see its logs.</div>
     }
     else
     {
@@ -61,7 +61,7 @@
             }
         </div>
 
-        <p class="logs-foot eyebrow">Live tail · last @MaxLines lines · not persisted</p>
+        <p class="logs-foot eyebrow">Live tail | Last @MaxLines lines | Mot persisted</p>
     }
 </div>
 

@@ -7,7 +7,9 @@ services:
     build:
       context: ../..
       dockerfile: src/Luff.Server/Dockerfile
+    pull_policy: build
   agent:
     build:
       context: ../..
       dockerfile: src/Luff.Agent/Dockerfile
+    pull_policy: build

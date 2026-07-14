@@ -6,31 +6,9 @@
         <p class="machines-lede">Where <span class="machines-app">@Detail.Name</span> is running. A deploy fans across these oldest-first.</p>
         @if (_isAdmin)
         {
-            @if (_attaching)
-            {
-                <div class="attach-form">
-                    <select class="input mono attach-select" @bind="_attachAgent">
-                        <option value="">Choose a machine…</option>
-                        @foreach (var name in Available())
-                        {
-                            <option value="@name">@name</option>
-                        }
-                    </select>
-                    <button class="btn btn-primary btn-sm" @onclick="Attach" disabled="@(_busy || string.IsNullOrEmpty(_attachAgent))">Attach</button>
-                    <button class="btn btn-ghost btn-sm" @onclick="() => _attaching = false">Cancel</button>
-                </div>
-            }
-            else
-            {
-                <button class="btn btn-ghost btn-sm" @onclick="StartAttach">+ Attach machine</button>
-            }
+            <button class="btn btn-ghost btn-sm" @onclick="StartAttach">+ Attach machine</button>
         }
     </div>
-
-    @if (_error is not null)
-    {
-        <div class="cfg-error">@_error</div>
-    }
 
     @if (Detail.Machines.Count == 0)
     {
@@ -62,14 +40,14 @@
                             <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M12 3.6 2.4 20.2h19.2z" /><path d="M12 10v4.2" /><path d="M12 17.4h.01" />
                             </svg>
-                            <span class="badge-tag">@machine.RunningTag</span> · 1 behind
+                            <span class="badge-tag">@machine.RunningTag</span> | 1 behind
                         </span>
                     }
                     else
                     {
                         <div class="machine-version">
-                            <span class="mono machine-tag">@(machine.RunningTag ?? "—")</span>
-                            <span class="machine-on">on intended</span>
+                            <span class="mono machine-tag">@(machine.RunningTag ?? "-")</span>
+                            <span class="machine-on">On intended</span>
                         </div>
                     }
 
@@ -90,6 +68,39 @@
         }
     }
 </div>
+
+@if (_attaching)
+{
+    <Modal Width="md" OnClose="() => _attaching = false">
+        <div class="attach-modal">
+            <div class="attach-head">
+                <h2 class="attach-title">Attach a machine</h2>
+                <button class="pipe-close" @onclick="() => _attaching = false" aria-label="Close">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="m6 6 12 12M18 6 6 18" /></svg>
+                </button>
+            </div>
+            <p class="attach-lede">Attach <span class="mono">@Detail.Name</span> to a machine. Deploys fan out to it oldest-first.</p>
+            <label class="field">
+                <span class="field-label">Machine</span>
+                <select class="input mono" @bind="_attachAgent">
+                    <option value="">Choose a machine…</option>
+                    @foreach (var name in Available())
+                    {
+                        <option value="@name">@name</option>
+                    }
+                </select>
+            </label>
+            @if (_error is not null)
+            {
+                <div class="cfg-error">@_error</div>
+            }
+            <div class="confirm-actions">
+                <button class="btn btn-ghost" @onclick="() => _attaching = false" disabled="@_busy">Cancel</button>
+                <button class="btn btn-primary" @onclick="Attach" disabled="@(_busy || string.IsNullOrEmpty(_attachAgent))">Attach</button>
+            </div>
+        </div>
+    </Modal>
+}
 
 @code {
     [Parameter, EditorRequired]
@@ -128,6 +139,7 @@
     private void StartAttach()
     {
         _attachAgent = string.Empty;
+        _error = null;
         _attaching = true;
     }
 

@@ -4,6 +4,7 @@
 # Pin the build stage to amd64: grpc.tools' linux_arm64 protoc segfaults (exit 139). A framework-dependent
 # publish is portable IL + all-RID native assets, so the output still runs on the native final image below.
 FROM --platform=linux/amd64 mcr.microsoft.com/dotnet/sdk:10.0 AS build
+ARG VERSION=0.0.0-dev
 WORKDIR /src
 COPY global.json NuGet.Config ./
 COPY src/ ./src/
@@ -12,14 +13,16 @@ COPY src/ ./src/
 RUN dotnet publish src/Luff.Server/Luff.Server.csproj \
       -c Release -o /app/publish \
       -p:UseBuildTimeTools=false \
-      -p:OpenApiGenerateDocumentsOnBuild=false
+      -p:OpenApiGenerateDocumentsOnBuild=false \
+      -p:Version=$VERSION
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 RUN apt-get update \
     && apt-get install -y --no-install-recommends curl \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
-# luff.db + keys/ (Data-Protection ring + jwt.key) live under /data — mount a volume there to persist state.
+
+# luff.db + keys/ (Data-Protection ring + jwt.key) live under /data. Mount a volume there to persist state.
 ENV ASPNETCORE_ENVIRONMENT=Production \
     ConnectionStrings__Luff="Data Source=/data/luff.db"
 COPY --from=build /app/publish ./

@@ -25,6 +25,22 @@ public sealed class RollbackHandlerTests
     }
 
     [Fact]
+    public async Task Should_Clear_The_Stopped_State_When_Rolling_Back()
+    {
+        // Given
+        using var fixture = new DeploymentsFixture();
+        await fixture.HasApp("web", currentImageTag: "v2", previousImageTag: "v1", stopped: true);
+        await fixture.HasAttachment("web", "agent-1");
+
+        // When
+        var result = await fixture.Rollback("web");
+
+        // Then
+        result.Tag.ShouldBe("v1");
+        (await fixture.FindApp("web")).ShouldNotBeNull().Stopped.ShouldBeFalse();
+    }
+
+    [Fact]
     public async Task Should_Coalesce_With_A_Pending_Deployment()
     {
         // Given

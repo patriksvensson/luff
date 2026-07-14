@@ -5,6 +5,7 @@ public sealed class ServerResponse
     public string FrontDoorDomain { get; }
     public string? AgentLinkAddress { get; }
     public string AgentLinkPin { get; }
+    public string Version => ServerVersion.Current;
 
     public ServerResponse(string frontDoorDomain, string? agentLinkAddress, string agentLinkPin)
     {

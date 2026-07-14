@@ -3,7 +3,7 @@
 @attribute [Authorize]
 @inject IScopedSender Sender
 
-<PageTitle>@Name · Luff</PageTitle>
+<PageTitle>@Name - Luff</PageTitle>
 
 @if (_notFound)
 {
@@ -47,17 +47,17 @@ else
             {
                 <button class="btn btn-primary" @onclick="Start" disabled="@_busy">Start</button>
             }
-            else
+            else if (_detail.State != AppHealthState.Dormant)
             {
                 <button class="btn btn-ghost" @onclick="Stop" disabled="@_busy">Stop</button>
-                <button class="btn btn-ghost" @onclick='() => OpenModal("rollback")' disabled="@(_detail.PreviousTag is null)">
-                    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M9 5 4 10l5 5" /><path d="M4 10h10a6 6 0 0 1 0 12h-3" />
-                    </svg>
-                    Rollback
-                </button>
-                <button class="btn btn-primary" @onclick='() => OpenModal("deploy")'>Deploy</button>
             }
+            <button class="btn btn-ghost" @onclick='() => OpenModal("rollback")' disabled="@(_detail.PreviousTag is null)">
+                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M9 5 4 10l5 5" /><path d="M4 10h10a6 6 0 0 1 0 12h-3" />
+                </svg>
+                Rollback
+            </button>
+            <button class="btn @(_detail.Stopped ? "btn-ghost" : "btn-primary")" @onclick='() => OpenModal("deploy")'>Deploy</button>
         </div>
     </div>
 

@@ -79,7 +79,7 @@ public sealed class AgentDeployRunner
         }
 
         // Health gate. Whatever the kind, a crash-looping container fails fast with its logs rather than
-        // spinning until the timeout — `docker compose up --wait` only proves "running", and a restart policy
+        // spinning until the timeout. `docker compose up --wait` only proves "running", and a restart policy
         // masks a crash loop, which is what let a broken deploy report healthy.
         var reason = composeWaits
             ? await StabilizeReasonAsync(deploy.App, cancellationToken)

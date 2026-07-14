@@ -59,7 +59,7 @@
                 }
                 else
                 {
-                    <text>Domain and TLS changes take effect <b>immediately</b> — traffic re-points live. Image and port apply on the next deploy.</text>
+                    <text>Domain and TLS changes take effect <b>immediately</b>. Traffic re-points live. Image and port apply on the next deploy.</text>
                 }
             </p>
             @if (_error is not null)
@@ -118,10 +118,10 @@
     private string PortLabel => _frontless ? (_direct ? "Container port" : "Service port") : "Internal port";
 
     private string ServedScheme => _tlsMode == "External"
-        ? "Serves HTTP on :80 — TLS is terminated by your load balancer."
+        ? "Serves HTTP on :80. TLS is terminated by your load balancer."
         : AppHealth.IsAutoDomain(_domain)
-            ? "Serves HTTP on :80 — sslip.io default domains are plain HTTP."
-            : "Serves HTTPS on :443 — a Let's Encrypt certificate is obtained automatically.";
+            ? "Serves HTTP on :80. sslip.io default domains are plain HTTP."
+            : "Serves HTTPS on :443. A Let's Encrypt certificate is obtained automatically.";
 
     protected override async Task OnInitializedAsync()
     {

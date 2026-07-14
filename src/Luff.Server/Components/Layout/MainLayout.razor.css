@@ -57,6 +57,12 @@
     gap: 10px;
 }
 
+.sidebar-version {
+    padding: 0 4px;
+    font-size: 11.5px;
+    color: var(--text-dim);
+}
+
 /* Front-door TLS chip */
 
 .tls-chip {
