@@ -24,6 +24,22 @@ public sealed class RemoveAgentHandlerTests
     }
 
     [Fact]
+    public async Task Should_Forget_The_Removed_Agent_In_The_Registry()
+    {
+        // Given
+        using var fixture = new AgentsFixture();
+        await fixture.HasAgent("host1", lastSeenAt: fixture.Time.GetUtcNow());
+        fixture.KnowsAgent("host1");
+
+        // When
+        await fixture.RemoveAgent("host1");
+
+        // Then
+        fixture.Registry.Knows("host1").ShouldBeFalse();
+        (await fixture.Overview()).MachineCount.ShouldBe(0);
+    }
+
+    [Fact]
     public async Task Should_Reject_Removing_An_Unknown_Agent()
     {
         // Given

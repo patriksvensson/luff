@@ -4,6 +4,7 @@ public sealed class RemoveAgentHandler : IRequestHandler<RemoveAgentHandler.Requ
 {
     private readonly LuffDbContext _database;
     private readonly IAgentConnections _connections;
+    private readonly AgentRegistry _registry;
 
     public sealed class Request : IRequest<Unit>
     {
@@ -15,10 +16,11 @@ public sealed class RemoveAgentHandler : IRequestHandler<RemoveAgentHandler.Requ
         }
     }
 
-    public RemoveAgentHandler(LuffDbContext database, IAgentConnections connections)
+    public RemoveAgentHandler(LuffDbContext database, IAgentConnections connections, AgentRegistry registry)
     {
         _database = database ?? throw new ArgumentNullException(nameof(database));
         _connections = connections ?? throw new ArgumentNullException(nameof(connections));
+        _registry = registry ?? throw new ArgumentNullException(nameof(registry));
     }
 
     public async Task<Unit> Handle(Request request, CancellationToken cancellationToken)
@@ -49,6 +51,8 @@ public sealed class RemoveAgentHandler : IRequestHandler<RemoveAgentHandler.Requ
         _database.AppAgents.RemoveRange(attachments);
         _database.Agents.Remove(agent);
         await _database.SaveChangesAsync(cancellationToken);
+
+        _registry.Remove(request.Name);
 
         return Unit.Value;
     }

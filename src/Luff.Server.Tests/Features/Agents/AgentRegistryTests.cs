@@ -66,4 +66,19 @@ public sealed class AgentRegistryTests
         registry.List().ShouldHaveSingleItem()
             .Status.ShouldBe(AgentConnectionStatus.Disconnected);
     }
+
+    [Fact]
+    public void Should_Forget_A_Removed_Agent()
+    {
+        // Given
+        var registry = new AgentRegistry();
+        registry.MarkConnected("local", "1.2.3");
+
+        // When
+        registry.Remove("local");
+
+        // Then
+        registry.List().ShouldBeEmpty();
+        registry.Knows("local").ShouldBeFalse();
+    }
 }

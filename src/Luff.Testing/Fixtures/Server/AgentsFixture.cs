@@ -98,7 +98,7 @@ public sealed class AgentsFixture : IDisposable
 
     public async Task RemoveAgent(string name)
     {
-        var handler = new RemoveAgentHandler(CreateContext(), Agents);
+        var handler = new RemoveAgentHandler(CreateContext(), Agents, Registry);
         await handler.Handle(new RemoveAgentHandler.Request(name), CancellationToken.None);
     }
 

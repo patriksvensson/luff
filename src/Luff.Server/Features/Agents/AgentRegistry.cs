@@ -32,4 +32,9 @@ public sealed class AgentRegistry
                 existing.Name, AgentConnectionStatus.Disconnected, existing.Version, existing.HostsFrontDoor);
         }
     }
+
+    public void Remove(string name)
+    {
+        _agents.TryRemove(name, out _);
+    }
 }
