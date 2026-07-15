@@ -93,7 +93,7 @@
             CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(identity));
         await HttpContext.SignOutAsync(JwtAuth.TwoFactorPendingScheme);
 
-        Navigation.NavigateTo(user.MustChangePassword ? "/welcome" : SafeReturnUrl(), forceLoad: true);
+        Navigation.NavigateTo(SafeReturnUrl(), forceLoad: true);
     }
 
     private string SafeReturnUrl()

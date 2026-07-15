@@ -36,7 +36,6 @@ public sealed class ChangePasswordHandler : IRequestHandler<ChangePasswordHandle
         }
 
         user.PasswordHash = PasswordHasher.Hash(request.NewPassword);
-        user.MustChangePassword = false;
         await _database.SaveChangesAsync(cancellationToken);
 
         await _refreshTokens.RevokeAllAsync(user.Username, cancellationToken);

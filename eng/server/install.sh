@@ -131,5 +131,5 @@ Luff is up.
   Config      $env_file
   Uninstall   $home/uninstall.sh   (--purge also wipes data)
 
-First login uses the seeded admin account (admin / changeme) and forces a password change.
+Open the dashboard in your browser; the setup wizard will walk you through creating your admin account.
 EOF

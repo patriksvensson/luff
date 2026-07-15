@@ -1,0 +1,128 @@
+@page "/setup"
+@layout EmptyLayout
+@attribute [AllowAnonymous]
+@attribute [ExcludeFromInteractiveRouting]
+@using Microsoft.EntityFrameworkCore
+@inject IScopedSender Sender
+@inject LuffDbContext Database
+@inject NavigationManager Navigation
+
+<PageTitle>Set up Luff</PageTitle>
+
+<div class="setup">
+    <div class="setup-card">
+        <div class="setup-brand">
+            <svg viewBox="0 0 24 24" width="26" height="26" fill="none" aria-hidden="true">
+                <path d="M12.8 3.2 4.6 15.6c-.4.6 0 1.4.8 1.4h7.4V3.6c0-.8-1-.9-1.4-.4z" fill="var(--green)" />
+                <path d="M15 17h4.2c.8 0 1.2.9.7 1.5l-1.5 1.9c-.2.2-.4.3-.7.3H10"
+                      stroke="var(--green)" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+            <span>Luff</span>
+        </div>
+
+        <h1 class="setup-title">Welcome to Luff</h1>
+        <p class="setup-sub">Create your admin account to finish setup.</p>
+
+        <EditForm Model="Input" method="post" OnValidSubmit="Create" FormName="setup">
+            <label class="field">
+                <span class="field-label">Username</span>
+                <InputText class="input mono" @bind-Value="Input!.Username" autocomplete="username" autofocus />
+            </label>
+
+            <label class="field">
+                <span class="field-label">Email</span>
+                <InputText type="email" class="input mono" @bind-Value="Input!.Email" autocomplete="email" />
+            </label>
+
+            <div class="setup-row">
+                <label class="field">
+                    <span class="field-label">First name <span class="setup-optional">(optional)</span></span>
+                    <InputText class="input" @bind-Value="Input!.FirstName" autocomplete="given-name" />
+                </label>
+                <label class="field">
+                    <span class="field-label">Last name <span class="setup-optional">(optional)</span></span>
+                    <InputText class="input" @bind-Value="Input!.LastName" autocomplete="family-name" />
+                </label>
+            </div>
+
+            <label class="field">
+                <span class="field-label">Password</span>
+                <InputText type="password" class="input" @bind-Value="Input!.Password" autocomplete="new-password" />
+            </label>
+
+            <label class="field">
+                <span class="field-label">Confirm password</span>
+                <InputText type="password" class="input" @bind-Value="Input!.Confirm" autocomplete="new-password" />
+            </label>
+
+            @if (_error is not null)
+            {
+                <div class="setup-error">@_error</div>
+            }
+
+            <button class="btn btn-primary setup-submit" type="submit">Create account</button>
+        </EditForm>
+    </div>
+</div>
+
+@code {
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = null!;
+
+    [SupplyParameterFromForm]
+    private SetupInput? Input { get; set; }
+
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // First-run only: once any account exists, setup is closed and hands off to login.
+        if (await Database.Users.AnyAsync(HttpContext.RequestAborted))
+        {
+            Navigation.NavigateTo("/login", forceLoad: true);
+            return;
+        }
+
+        Input ??= new();
+    }
+
+    private async Task Create()
+    {
+        if (string.IsNullOrWhiteSpace(Input!.Username)
+            || string.IsNullOrWhiteSpace(Input.Email)
+            || string.IsNullOrEmpty(Input.Password))
+        {
+            _error = "Username, email, and password are required.";
+            return;
+        }
+
+        if (Input.Password != Input.Confirm)
+        {
+            _error = "Passwords don't match.";
+            return;
+        }
+
+        try
+        {
+            await Sender.Send(new SetupHandler.Request(
+                Input.Username.Trim(), Input.Password, Input.Email.Trim(),
+                Input.FirstName, Input.LastName));
+
+            Navigation.NavigateTo("/login", forceLoad: true);
+        }
+        catch (LuffException exception)
+        {
+            _error = exception.Message;
+        }
+    }
+
+    public sealed class SetupInput
+    {
+        public string Username { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string FirstName { get; set; } = string.Empty;
+        public string LastName { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
+        public string Confirm { get; set; } = string.Empty;
+    }
+}

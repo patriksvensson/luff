@@ -4,10 +4,7 @@
 <div class="machines">
     <div class="machines-head">
         <p class="machines-lede">Where <span class="machines-app">@Detail.Name</span> is running. A deploy fans across these oldest-first.</p>
-        @if (_isAdmin)
-        {
-            <button class="btn btn-ghost btn-sm desktop-only" @onclick="StartAttach">+ Attach machine</button>
-        }
+        <button class="btn btn-ghost btn-sm desktop-only" @onclick="StartAttach">+ Attach machine</button>
     </div>
 
     @if (Detail.Machines.Count == 0)
@@ -48,10 +45,7 @@
                     <div class="machine-sub">
                         <span class="mono machine-status">@status</span>
                         <span class="spacer"></span>
-                        @if (_isAdmin)
-                        {
-                            <button class="machine-detach" @onclick="() => Detach(machine.Agent)" disabled="@_busy">Detach</button>
-                        }
+                        <button class="machine-detach" @onclick="() => Detach(machine.Agent)" disabled="@_busy">Detach</button>
                     </div>
                 </div>
             }
@@ -66,10 +60,7 @@
         }
     }
 
-    @if (_isAdmin)
-    {
-        <button class="btn btn-ghost machines-attach-bottom mobile-only" @onclick="StartAttach">+ Attach machine</button>
-    }
+    <button class="btn btn-ghost machines-attach-bottom mobile-only" @onclick="StartAttach">+ Attach machine</button>
 </div>
 
 @if (_attaching)
@@ -115,23 +106,10 @@
     [Parameter]
     public EventCallback OnRedeploy { get; set; }
 
-    [CascadingParameter]
-    private Task<AuthenticationState>? AuthState { get; set; }
-
-    private bool _isAdmin;
     private bool _attaching;
     private string _attachAgent = string.Empty;
     private bool _busy;
     private string? _error;
-
-    protected override async Task OnInitializedAsync()
-    {
-        if (AuthState is not null)
-        {
-            var state = await AuthState;
-            _isAdmin = state.User.IsInRole("Admin");
-        }
-    }
 
     private IEnumerable<string> Available() =>
         Registry.List()

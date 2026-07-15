@@ -20,11 +20,17 @@ public static class AgentEndpoints
             .WithName("Agents_Remove")
             .ProducesProblem(StatusCodes.Status404NotFound);
 
-        agents.MapPut("/{name}/apps/{appName}", Attach)
+        // Attaching/detaching an app to a machine is app placement, part of the app lifecycle, so it is open to
+        // any authenticated user (Operator or Admin) rather than the Admin-only agent management above.
+        var attachments = group
+            .MapGroup("/agents")
+            .WithTags("Agents");
+
+        attachments.MapPut("/{name}/apps/{appName}", Attach)
             .WithName("Agents_Attach")
             .ProducesProblem(StatusCodes.Status404NotFound);
 
-        agents.MapDelete("/{name}/apps/{appName}", Detach)
+        attachments.MapDelete("/{name}/apps/{appName}", Detach)
             .WithName("Agents_Detach")
             .ProducesProblem(StatusCodes.Status404NotFound);
 

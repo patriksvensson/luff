@@ -4,7 +4,9 @@
 @attribute [ExcludeFromInteractiveRouting]
 @using Microsoft.AspNetCore.Authentication
 @using Microsoft.AspNetCore.Authentication.Cookies
+@using Microsoft.EntityFrameworkCore
 @inject CredentialVerifier Verifier
+@inject LuffDbContext Database
 @inject NavigationManager Navigation
 
 <PageTitle>Sign in - Luff</PageTitle>
@@ -56,7 +58,17 @@
 
     private bool _failed;
 
-    protected override void OnInitialized() => Input ??= new();
+    protected override async Task OnInitializedAsync()
+    {
+        // No accounts yet? First run: hand off to the setup wizard instead of a login nobody can pass.
+        if (!await Database.Users.AnyAsync(HttpContext.RequestAborted))
+        {
+            Navigation.NavigateTo("/setup", forceLoad: true);
+            return;
+        }
+
+        Input ??= new();
+    }
 
     private async Task Authenticate()
     {
@@ -86,7 +98,7 @@
             await HttpContext.SignInAsync(
                 CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(identity));
 
-            Navigation.NavigateTo(user.MustChangePassword ? "/welcome" : SafeReturnUrl(), forceLoad: true);
+            Navigation.NavigateTo(SafeReturnUrl(), forceLoad: true);
         }
         catch (InvalidCredentialsException)
         {

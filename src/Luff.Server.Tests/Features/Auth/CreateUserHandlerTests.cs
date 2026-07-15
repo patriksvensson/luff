@@ -15,12 +15,15 @@ public sealed class CreateUserHandlerTests
 
         // When
         var result = await fixture.CreateUser(
-            new CreateUserHandler.Request("alice", "secret", "Operator"));
+            new CreateUserHandler.Request("alice", "secret", "Operator", "alice@example.com", "Ada", "Lovelace"));
 
         // Then
         result.ShouldSatisfyAllConditions(
             response => response.Username.ShouldBe("alice"),
-            response => response.Role.ShouldBe("Operator"));
+            response => response.Role.ShouldBe("Operator"),
+            response => response.Email.ShouldBe("alice@example.com"),
+            response => response.FirstName.ShouldBe("Ada"),
+            response => response.LastName.ShouldBe("Lovelace"));
     }
 
     [Fact]
@@ -31,12 +34,26 @@ public sealed class CreateUserHandlerTests
 
         // When
         await fixture.CreateUser(
-            new CreateUserHandler.Request("alice", "secret", "Admin"));
+            new CreateUserHandler.Request("alice", "secret", "Admin", "alice@example.com"));
 
         // Then
         var user = await fixture.FindUser("alice");
         user.ShouldNotBeNull().PasswordHash.ShouldNotBe("secret");
         PasswordHasher.Verify("secret", user.PasswordHash).ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task Should_Normalize_The_Email()
+    {
+        // Given
+        using var fixture = new AuthFixture();
+
+        // When
+        await fixture.CreateUser(
+            new CreateUserHandler.Request("alice", "secret", "Operator", "  Alice@Example.COM  "));
+
+        // Then
+        (await fixture.FindUser("alice"))!.Email.ShouldBe("alice@example.com");
     }
 
     [Fact]
@@ -49,10 +66,41 @@ public sealed class CreateUserHandlerTests
         // When
         var exception = await Record.ExceptionAsync(() =>
             fixture.CreateUser(
-                new CreateUserHandler.Request("alice", "other", "Admin")));
+                new CreateUserHandler.Request("alice", "other", "Admin", "other@example.com")));
 
         // Then
         exception.ShouldBeOfType<UserAlreadyExistsException>();
+    }
+
+    [Fact]
+    public async Task Should_Throw_When_The_Email_Is_Already_Used()
+    {
+        // Given
+        using var fixture = new AuthFixture();
+        await fixture.HasUser("alice", "secret", UserRole.Operator, "shared@example.com");
+
+        // When
+        var exception = await Record.ExceptionAsync(() =>
+            fixture.CreateUser(
+                new CreateUserHandler.Request("bob", "secret", "Operator", "SHARED@example.com")));
+
+        // Then
+        exception.ShouldBeOfType<EmailAlreadyExistsException>();
+    }
+
+    [Fact]
+    public async Task Should_Throw_On_An_Invalid_Email()
+    {
+        // Given
+        using var fixture = new AuthFixture();
+
+        // When
+        var exception = await Record.ExceptionAsync(() =>
+            fixture.CreateUser(
+                new CreateUserHandler.Request("alice", "secret", "Operator", "not-an-email")));
+
+        // Then
+        exception.ShouldBeOfType<InvalidEmailException>();
     }
 
     [Fact]
@@ -64,7 +112,7 @@ public sealed class CreateUserHandlerTests
         // When
         var exception = await Record.ExceptionAsync(() =>
             fixture.CreateUser(
-                new CreateUserHandler.Request("alice", "secret", "Superuser")));
+                new CreateUserHandler.Request("alice", "secret", "Superuser", "alice@example.com")));
 
         // Then
         exception.ShouldBeOfType<InvalidUserRoleException>();

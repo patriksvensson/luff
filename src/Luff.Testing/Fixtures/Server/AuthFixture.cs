@@ -106,13 +106,31 @@ public sealed class AuthFixture : IDisposable
         return await handler.Handle(request, CancellationToken.None);
     }
 
+    public async Task Setup(SetupHandler.Request request)
+    {
+        var handler = new SetupHandler(CreateContext());
+        await handler.Handle(request, CancellationToken.None);
+    }
+
+    public async Task<UserResponse> UpdateUser(UpdateUserHandler.Request request)
+    {
+        var handler = new UpdateUserHandler(CreateContext(), CreateRefreshTokenService());
+        return await handler.Handle(request, CancellationToken.None);
+    }
+
+    public async Task DeleteUser(DeleteUserHandler.Request request)
+    {
+        var handler = new DeleteUserHandler(CreateContext());
+        await handler.Handle(request, CancellationToken.None);
+    }
+
     public async Task<IReadOnlyList<UserResponse>> ListUsers()
     {
         var handler = new ListUsersHandler(CreateContext());
         return await handler.Handle(new ListUsersHandler.Request(), CancellationToken.None);
     }
 
-    public async Task HasUser(string username, string password, UserRole role, bool mustChangePassword = false)
+    public async Task HasUser(string username, string password, UserRole role, string? email = null)
     {
         await using var context = CreateContext();
 
@@ -121,7 +139,7 @@ public sealed class AuthFixture : IDisposable
             Username = username,
             PasswordHash = PasswordHasher.Hash(password),
             Role = role,
-            MustChangePassword = mustChangePassword,
+            Email = email ?? $"{username}@example.com",
         });
 
         await context.SaveChangesAsync();
@@ -136,6 +154,7 @@ public sealed class AuthFixture : IDisposable
             Username = username,
             PasswordHash = PasswordHasher.Hash(password),
             Role = role,
+            Email = $"{username}@example.com",
             TwoFactorEnabled = true,
             TwoFactorSecret = _protector.Protect(base32Secret),
         });

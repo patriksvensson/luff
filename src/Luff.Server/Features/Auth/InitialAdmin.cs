@@ -18,6 +18,13 @@ public static class InitialAdmin
             return;
         }
 
+        if (!EmailAddress.TryNormalize(options.Email, out var email))
+        {
+            throw new InvalidOperationException(
+                "Auth:InitialAdmin sets a username and password but no valid email. " +
+                "Set Auth:InitialAdmin:Email (LUFF_ADMIN_EMAIL), or clear the username/password to use the setup wizard.");
+        }
+
         var database = scope.ServiceProvider.GetRequiredService<LuffDbContext>();
         if (await database.Users.AnyAsync(cancellationToken))
         {
@@ -29,7 +36,9 @@ public static class InitialAdmin
             Username = options.Username,
             PasswordHash = PasswordHasher.Hash(options.Password),
             Role = UserRole.Admin,
-            MustChangePassword = true,
+            Email = email,
+            FirstName = string.IsNullOrWhiteSpace(options.FirstName) ? null : options.FirstName.Trim(),
+            LastName = string.IsNullOrWhiteSpace(options.LastName) ? null : options.LastName.Trim(),
         });
 
         await database.SaveChangesAsync(cancellationToken);

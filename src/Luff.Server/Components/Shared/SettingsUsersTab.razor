@@ -13,14 +13,26 @@
                 @foreach (var user in _users)
                 {
                     <div class="user-row">
-                        <span class="mono user-name">@user.Username</span>
-                        <span class="badge @(user.Role == "Admin" ? "badge-green" : "badge-neutral")">@user.Role</span>
-                        @if (user.TwoFactorEnabled)
-                        {
-                            <span class="badge badge-neutral">2FA</span>
-                            <span class="spacer"></span>
-                            <button class="btn btn-ghost btn-sm" @onclick="() => ResetUserTwoFactor(user.Username)" disabled="@_busy">Reset 2FA</button>
-                        }
+                        <div class="user-ident">
+                            <div class="user-head">
+                                <span class="mono user-name">@user.Username</span>
+                                <span class="badge @(user.Role == "Admin" ? "badge-green" : "badge-neutral")">@user.Role</span>
+                                @if (user.TwoFactorEnabled)
+                                {
+                                    <span class="badge badge-neutral">2FA</span>
+                                }
+                            </div>
+                            @if (FullName(user) is { Length: > 0 } fullName)
+                            {
+                                <span class="user-fullname">@fullName</span>
+                            }
+                            <span class="user-email">@user.Email</span>
+                        </div>
+                        <span class="spacer"></span>
+                        <button class="btn btn-ghost btn-sm" @onclick="() => StartEdit(user)" disabled="@_busy">Edit</button>
+                        <button class="user-remove" @onclick="() => StartRemove(user.Username)"
+                                disabled="@(_busy || user.Username == _currentUsername)"
+                                title="@(user.Username == _currentUsername ? "You can't remove the account you're signed in as" : null)">Remove</button>
                     </div>
                 }
             </div>
@@ -47,6 +59,20 @@
                 <input class="input mono" placeholder="username" @bind="_newUser" autocomplete="off" />
             </label>
             <label class="field">
+                <span class="field-label">Email</span>
+                <input class="input mono" type="email" placeholder="user@example.com" @bind="_newUserEmail" autocomplete="off" />
+            </label>
+            <div class="user-name-fields">
+                <label class="field">
+                    <span class="field-label">First name <span class="field-optional">(optional)</span></span>
+                    <input class="input" placeholder="Ada" @bind="_newUserFirstName" autocomplete="off" />
+                </label>
+                <label class="field">
+                    <span class="field-label">Last name <span class="field-optional">(optional)</span></span>
+                    <input class="input" placeholder="Lovelace" @bind="_newUserLastName" autocomplete="off" />
+                </label>
+            </div>
+            <label class="field">
                 <span class="field-label">Password</span>
                 <input class="input" type="password" placeholder="password" @bind="_newUserPassword" autocomplete="new-password" />
             </label>
@@ -64,30 +90,127 @@
             <div class="confirm-actions">
                 <button class="btn btn-ghost" @onclick="CloseCreateUser" disabled="@_busy">Cancel</button>
                 <button class="btn btn-primary" @onclick="CreateUser"
-                        disabled="@(_busy || string.IsNullOrWhiteSpace(_newUser) || string.IsNullOrWhiteSpace(_newUserPassword))">Create user</button>
+                        disabled="@(_busy || string.IsNullOrWhiteSpace(_newUser) || string.IsNullOrWhiteSpace(_newUserEmail) || string.IsNullOrWhiteSpace(_newUserPassword))">Create user</button>
             </div>
         </div>
     </Modal>
 }
 
+@if (_editing is not null)
+{
+    <Modal Width="md" OnClose="CloseEdit">
+        <div class="set-modal">
+            <div class="set-modal-head">
+                <h2 class="set-modal-title">Edit <span class="mono">@_editing</span></h2>
+                <button class="pipe-close" @onclick="CloseEdit" aria-label="Close">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="m6 6 12 12M18 6 6 18" /></svg>
+                </button>
+            </div>
+            <label class="field">
+                <span class="field-label">Email</span>
+                <input class="input mono" type="email" @bind="_editEmail" autocomplete="off" />
+            </label>
+            <div class="user-name-fields">
+                <label class="field">
+                    <span class="field-label">First name <span class="field-optional">(optional)</span></span>
+                    <input class="input" @bind="_editFirstName" autocomplete="off" />
+                </label>
+                <label class="field">
+                    <span class="field-label">Last name <span class="field-optional">(optional)</span></span>
+                    <input class="input" @bind="_editLastName" autocomplete="off" />
+                </label>
+            </div>
+            <label class="field">
+                <span class="field-label">Role</span>
+                <select class="input mono" @bind="_editRole">
+                    <option value="Operator">Operator</option>
+                    <option value="Admin">Admin</option>
+                </select>
+            </label>
+            <label class="field">
+                <span class="field-label">New password <span class="field-optional">(leave blank to keep)</span></span>
+                <input class="input" type="password" @bind="_editPassword" autocomplete="new-password" />
+            </label>
+            @if (_editTwoFactor)
+            {
+                <div class="user-2fa-row">
+                    <span class="user-2fa-label">Two-factor is <b>enabled</b> for this user.</span>
+                    <button class="btn btn-ghost btn-sm user-2fa-reset" @onclick="ResetEditTwoFactor" disabled="@_busy">Reset two-factor</button>
+                </div>
+            }
+            @if (_userError is not null)
+            {
+                <div class="cfg-error">@_userError</div>
+            }
+            <div class="confirm-actions">
+                <button class="btn btn-ghost" @onclick="CloseEdit" disabled="@_busy">Cancel</button>
+                <button class="btn btn-primary" @onclick="SaveEdit"
+                        disabled="@(_busy || string.IsNullOrWhiteSpace(_editEmail))">Save</button>
+            </div>
+        </div>
+    </Modal>
+}
+
+@if (_removing is not null)
+{
+    <ConfirmDelete Name="@_removing" Verb="Remove" Busy="_busy" Error="@_removeError"
+                   OnConfirm="ConfirmRemove" OnClose="CancelRemove">
+        Removes <span class="mono">@_removing</span> and revokes their sessions. This can't be undone.
+    </ConfirmDelete>
+}
+
 @code {
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthState { get; set; }
+
     private IReadOnlyList<UserResponse>? _users;
+    private string? _currentUsername;
+
     private string _newUser = string.Empty;
+    private string _newUserEmail = string.Empty;
+    private string _newUserFirstName = string.Empty;
+    private string _newUserLastName = string.Empty;
     private string _newUserPassword = string.Empty;
     private string _newUserRole = "Operator";
-    private string? _userError;
     private bool _creatingUser;
 
+    private string? _editing;
+    private string _editEmail = string.Empty;
+    private string _editFirstName = string.Empty;
+    private string _editLastName = string.Empty;
+    private string _editRole = "Operator";
+    private string _editPassword = string.Empty;
+    private bool _editTwoFactor;
+
+    private string? _removing;
+    private string? _removeError;
+
+    private string? _userError;
     private bool _busy;
 
-    protected override Task OnInitializedAsync() => LoadUsers();
+    protected override async Task OnInitializedAsync()
+    {
+        if (AuthState is not null)
+        {
+            var state = await AuthState;
+            _currentUsername = state.User.Identity?.Name;
+        }
+
+        await LoadUsers();
+    }
 
     private async Task LoadUsers() =>
         _users = await Sender.Send(new ListUsersHandler.Request());
 
+    private static string FullName(UserResponse user) =>
+        $"{user.FirstName} {user.LastName}".Trim();
+
     private void StartCreateUser()
     {
         _newUser = string.Empty;
+        _newUserEmail = string.Empty;
+        _newUserFirstName = string.Empty;
+        _newUserLastName = string.Empty;
         _newUserPassword = string.Empty;
         _newUserRole = "Operator";
         _userError = null;
@@ -106,10 +229,9 @@
         _userError = null;
         try
         {
-            await Sender.Send(new CreateUserHandler.Request(_newUser.Trim(), _newUserPassword, _newUserRole));
-            _newUser = string.Empty;
-            _newUserPassword = string.Empty;
-            _newUserRole = "Operator";
+            await Sender.Send(new CreateUserHandler.Request(
+                _newUser.Trim(), _newUserPassword, _newUserRole, _newUserEmail.Trim(),
+                _newUserFirstName, _newUserLastName));
             _creatingUser = false;
             await LoadUsers();
         }
@@ -123,18 +245,107 @@
         }
     }
 
-    private async Task ResetUserTwoFactor(string username)
+    private void StartEdit(UserResponse user)
     {
+        _editing = user.Username;
+        _editEmail = user.Email;
+        _editFirstName = user.FirstName ?? string.Empty;
+        _editLastName = user.LastName ?? string.Empty;
+        _editRole = user.Role;
+        _editPassword = string.Empty;
+        _editTwoFactor = user.TwoFactorEnabled;
+        _userError = null;
+    }
+
+    private void CloseEdit()
+    {
+        _editing = null;
+        _userError = null;
+    }
+
+    private async Task SaveEdit()
+    {
+        if (_editing is null)
+        {
+            return;
+        }
+
         _busy = true;
         _userError = null;
         try
         {
-            await Sender.Send(new ResetUserTwoFactorHandler.Request(username));
+            await Sender.Send(new UpdateUserHandler.Request(
+                _editing, _editRole, _editEmail.Trim(),
+                _editFirstName, _editLastName,
+                string.IsNullOrEmpty(_editPassword) ? null : _editPassword));
+            _editing = null;
             await LoadUsers();
         }
         catch (LuffException exception)
         {
             _userError = exception.Message;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task ResetEditTwoFactor()
+    {
+        if (_editing is null)
+        {
+            return;
+        }
+
+        _busy = true;
+        _userError = null;
+        try
+        {
+            await Sender.Send(new ResetUserTwoFactorHandler.Request(_editing));
+            _editTwoFactor = false;
+            await LoadUsers();
+        }
+        catch (LuffException exception)
+        {
+            _userError = exception.Message;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private void StartRemove(string username)
+    {
+        _removing = username;
+        _removeError = null;
+    }
+
+    private void CancelRemove()
+    {
+        _removing = null;
+        _removeError = null;
+    }
+
+    private async Task ConfirmRemove()
+    {
+        if (_removing is null)
+        {
+            return;
+        }
+
+        _busy = true;
+        _removeError = null;
+        try
+        {
+            await Sender.Send(new DeleteUserHandler.Request(_removing));
+            _removing = null;
+            await LoadUsers();
+        }
+        catch (LuffException exception)
+        {
+            _removeError = exception.Message;
         }
         finally
         {

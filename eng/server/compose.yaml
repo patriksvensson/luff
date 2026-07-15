@@ -26,8 +26,9 @@ services:
     environment:
       ConnectionStrings__Luff: "Data Source=/data/luff.db"
       Enrollment__Secret: "${LUFF_ENROLLMENT_SECRET:?set LUFF_ENROLLMENT_SECRET in .env (copy .env.example)}"
-      Auth__InitialAdmin__Username: "${LUFF_ADMIN_USERNAME:-admin}"
-      Auth__InitialAdmin__Password: "${LUFF_ADMIN_PASSWORD:-changeme}"
+      Auth__InitialAdmin__Username: "${LUFF_ADMIN_USERNAME:-}"
+      Auth__InitialAdmin__Password: "${LUFF_ADMIN_PASSWORD:-}"
+      Auth__InitialAdmin__Email: "${LUFF_ADMIN_EMAIL:-}"
       FrontDoor__Domain: "${LUFF_FRONT_DOOR_DOMAIN:-127.0.0.1.sslip.io}"
       FrontDoor__Upstream: "server:8080"
     volumes:

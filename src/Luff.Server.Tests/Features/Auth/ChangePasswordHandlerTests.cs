@@ -24,21 +24,6 @@ public sealed class ChangePasswordHandlerTests
     }
 
     [Fact]
-    public async Task Should_Clear_The_Must_Change_Password_Flag()
-    {
-        // Given
-        using var fixture = new AuthFixture();
-        await fixture.HasUser("admin", "old", UserRole.Admin, mustChangePassword: true);
-
-        // When
-        await fixture.ChangePassword(
-            new ChangePasswordHandler.Request("admin", "old", "new"));
-
-        // Then
-        (await fixture.FindUser("admin"))!.MustChangePassword.ShouldBeFalse();
-    }
-
-    [Fact]
     public async Task Should_Revoke_All_Sessions()
     {
         // Given

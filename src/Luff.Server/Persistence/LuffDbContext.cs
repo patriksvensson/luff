@@ -68,6 +68,7 @@ public sealed class LuffDbContext : DbContext
         {
             user.HasKey(entity => entity.Username);
             user.Property(entity => entity.Role).HasConversion<string>();
+            user.HasIndex(entity => entity.Email).IsUnique();
         });
 
         modelBuilder.Entity<RefreshToken>(token =>

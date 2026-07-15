@@ -193,6 +193,7 @@ public static class Program
             .MapAgentEndpoints()
             .MapServerEndpoints()
             .MapAuthEndpoints()
+            .MapSetupEndpoints()
             .MapUserEndpoints();
 
         app.MapWebhookEndpoints();

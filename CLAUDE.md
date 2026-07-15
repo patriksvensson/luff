@@ -103,9 +103,9 @@ same-host only (no overlay network), so an app and its datastore must attach to 
   the last agent-reported runtime health (healthy | unhealthy | starting | stopped | unknown). No per-agent
   config overrides.
 - **Deployment** — one rollout of a tag; ordered state pipeline; records failing agent on failure.
-- **WebhookToken / Registry / User (Admin | Operator; optional TOTP 2FA — `twoFactorEnabled` + encrypted
-  `twoFactorSecret`) / RecoveryCode (hashed, single-use 2FA backup codes) / ServerSettings** (front-door
-  domain singleton).
+- **WebhookToken / Registry / User (username PK; Admin | Operator; required unique `email`, optional
+  `firstName`/`lastName`; optional TOTP 2FA — `twoFactorEnabled` + encrypted `twoFactorSecret`) / RecoveryCode
+  (hashed, single-use 2FA backup codes) / ServerSettings** (front-door domain singleton).
 - **NotificationChannel** — an Admin-managed alert target (`Discord` | `Generic`; webhook URL stored encrypted,
   never returned). An event — deploy failed, deploy succeeded, agent connected, agent disconnected, app went
   unhealthy (on the transition into unhealthy only), app manually started, app manually stopped — is formatted
@@ -120,13 +120,19 @@ same-host only (no overlay network), so an app and its datastore must attach to 
   authenticate with a hashed enrollment token.
 - Passwords PBKDF2-SHA256 (per-user salt, constant-time, enumeration-safe login). Short-lived JWT access +
   rotating single-use hashed refresh tokens. Webhook/enrollment tokens CSPRNG, stored hashed only.
+- **First-run setup wizard** — with no accounts yet, the login page and an `[AllowAnonymous]` `/setup` page hand
+  off to a one-time wizard where the operator picks the first admin's username/password/email (`POST
+  /api/v1/setup`, gated to an empty user table inside a transaction; closes once any account exists). The
+  config seed (`Auth:InitialAdmin`) is the opt-in headless alternative — username + password + a valid
+  **required** email, or it fails fast at startup; blank by default so a fresh install lands on the wizard.
+  No default `admin`/`changeme`.
 - **Optional TOTP two-factor** (RFC 6238, hand-rolled over the BCL; QR via QRCoder). Per-user opt-in from
   Settings; the shared secret is encrypted at rest, backup codes are stored hash-only (single-use), an Admin
   can reset a locked-out user. Login is two-step on both surfaces — the API returns a short-lived signed
   challenge token, the dashboard hands off via a separate short-lived `TwoFactorPending` cookie scheme.
-- **Roles:** Operator = app lifecycle (create/deploy/rollback/env/logs/status). Admin = host- or
-  credential-bearing ops (volumes, registries, agents + attach, users, set-domain). Gate any new host-reaching
-  or credential-bearing endpoint behind Admin.
+- **Roles:** Operator = app lifecycle (create/deploy/rollback/env/logs/status, attach/detach apps to machines).
+  Admin = host- or credential-bearing ops (volumes, registries, agent enroll/remove, users, set-domain). Gate any
+  new host-reaching or credential-bearing endpoint behind Admin.
 - Secrets (env values, registry passwords, JWT key) encrypted / kept in `keys/` beside the DB. **Back up the
   DB + the keys.** The API never returns plaintext.
 - Front door serves **self-signed HTTPS by default** (Caddy `tls internal`); real domains get Let's Encrypt.
