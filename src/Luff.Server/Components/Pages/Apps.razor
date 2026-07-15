@@ -7,110 +7,117 @@
 <PageTitle>Apps - Luff</PageTitle>
 
 <div class="page-head">
+    <BrandMark class="mobile-only" />
     <h1 class="page-title">Apps</h1>
-    @if (_overview is { DeployingCount: > 0 } deploying)
-    {
-        <span class="chip chip-amber">
-            <span class="dot dot-amber"></span>
-            @deploying.DeployingCount deploying
-        </span>
-    }
     <div class="spacer"></div>
-    <button class="btn btn-primary" @onclick="StartCreate">+ New app</button>
+    <button class="btn btn-primary btn-add" @onclick="StartCreate" aria-label="Add app">
+        <svg class="mobile-only" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+        <span class="desktop-only">Add app</span>
+    </button>
+    <AvatarMenu />
 </div>
 
 @if (_overview is null)
 {
-    <div class="apps-meta eyebrow">Loading…</div>
+    <div class="apps-meta eyebrow">Loading...</div>
 }
 else if (_overview.Apps.Count == 0)
 {
     <div class="apps-empty">
         <div class="apps-empty-title">No apps yet</div>
         <p class="apps-empty-note">Create your first app to point Luff at a container image and a domain.</p>
-        <button class="btn btn-primary" @onclick="StartCreate">+ New app</button>
+        <button class="btn btn-primary" @onclick="StartCreate">Add app</button>
     </div>
 }
 else
 {
     <div class="apps-meta">
-        <span class="eyebrow">@_overview.Apps.Count @Pluralize(_overview.Apps.Count, "app")</span>
-        <span class="eyebrow apps-fleet">
-            @_overview.MachineCount @Pluralize(_overview.MachineCount, "machine")
+        <span class="eyebrow apps-summary">
+            <span>@_overview.Apps.Count @Pluralize(_overview.Apps.Count, "app")</span>
+            <span class="sep">|</span>
+            <span>@_overview.MachineCount @Pluralize(_overview.MachineCount, "machine")</span>
             @if (_overview.MachineCount > 0)
             {
-                <span>|</span>
+                <span class="sep">|</span>
                 <span class="@(_overview.AllConnected ? "ok" : "warn")">@(_overview.AllConnected ? "all connected" : "check fleet")</span>
             }
         </span>
+        @if (_overview.DeployingCount > 0)
+        {
+            <span class="chip chip-amber">
+                <span class="dot dot-amber"></span>
+                @_overview.DeployingCount deploying
+            </span>
+        }
     </div>
 
     <div class="app-list">
-        @foreach (var app in Filtered())
+        @foreach (var app in _overview.Apps)
         {
             var action = Action(app.State);
             var domainUrl = (app.Https ? "https://" : "http://") + app.Domain;
-            <div class="app-row @(app.State == AppHealthState.Deploying ? "is-deploying" : null)">
-                <div class="app-ident">
-                    <div class="app-ident-top">
-                        <a class="app-name" href="apps/@app.Name">@app.Name</a>
-                        @if (app.Internal)
-                        {
-                            <span class="chip">internal</span>
-                        }
-                        else if (app.Direct)
-                        {
-                            <span class="chip">direct</span>
-                        }
-                        else if (app.AutoDomain)
-                        {
-                            <span class="chip">auto domain</span>
-                        }
-                        else
-                        {
-                            <a class="app-domain link" href="@domainUrl" target="_blank" rel="noopener">@app.Domain ↗</a>
-                        }
+            <div class="app-card @CardStateClass(app.State)">
+                <div class="app-card-head">
+                    <div class="app-ident">
+                        <div class="app-ident-top">
+                            <a class="app-name" href="apps/@app.Name">@app.Name</a>
+                            @if (app.Internal)
+                            {
+                                <span class="chip">internal</span>
+                            }
+                            else if (app.Direct)
+                            {
+                                <span class="chip">direct</span>
+                            }
+                            else if (app.AutoDomain)
+                            {
+                                <span class="chip">auto domain</span>
+                            }
+                            else
+                            {
+                                <a class="app-domain link" href="@domainUrl" target="_blank" rel="noopener">@app.Domain ↗</a>
+                            }
+                        </div>
+                        <div class="app-sub mono">
+                            @if (app.Internal)
+                            {
+                                @app.InternalHost
+                            }
+                            else if (app.Direct)
+                            {
+                                @app.Image
+                            }
+                            else if (app.AutoDomain)
+                            {
+                                <a class="link" href="http://@app.Domain" target="_blank" rel="noopener">@app.Domain ↗</a>
+                            }
+                            else
+                            {
+                                @app.Image
+                            }
+                        </div>
                     </div>
-                    <div class="app-sub mono">
-                        @if (app.Internal)
+
+                    <div class="app-meta-right">
+                        @if (app.CurrentTag is not null)
                         {
-                            @app.InternalHost
-                        }
-                        else if (app.Direct)
-                        {
-                            @app.Image
-                        }
-                        else if (app.AutoDomain)
-                        {
-                            <a class="link" href="http://@app.Domain" target="_blank" rel="noopener">@app.Domain ↗</a>
+                            <span class="app-tag mono">@app.CurrentTag</span>
+                            @if (app.MachineCount > 0)
+                            {
+                                <span class="app-submeta">@app.MachineCount @Pluralize(app.MachineCount, "machine") | @app.LastDeploy</span>
+                            }
                         }
                         else
                         {
-                            @app.Image
+                            <span class="app-neverdeployed">never deployed</span>
                         }
                     </div>
                 </div>
 
-                <div class="app-badge">
+                <div class="app-card-foot">
                     <StatusBadge State="app.State" Detail="@app.StateDetail" />
+                    <a class="btn @(action.Primary ? "btn-primary" : "btn-ghost") btn-sm app-action" href="@ActionHref(app)">@action.Label</a>
                 </div>
-
-                <div class="spacer"></div>
-
-                @if (app.CurrentTag is not null)
-                {
-                    <div class="app-version">
-                        <span class="mono app-tag">@app.CurrentTag</span>
-                        @if (app.MachineCount > 0)
-                        {
-                            <span class="app-machines">@app.MachineCount @Pluralize(app.MachineCount, "machine")</span>
-                        }
-                    </div>
-                }
-
-                <span class="app-lastdeploy">@app.LastDeploy</span>
-
-                <a class="btn @(action.Primary ? "btn-primary" : "btn-ghost") btn-sm" href="@ActionHref(app)">@action.Label</a>
             </div>
         }
     </div>
@@ -235,10 +242,12 @@ else
         _overview = await Sender.Send(new AppsOverviewHandler.Request());
     }
 
-    private IEnumerable<AppOverviewRow> Filtered()
+    private static string? CardStateClass(AppHealthState state) => state switch
     {
-        return _overview is null ? [] : _overview.Apps;
-    }
+        AppHealthState.Deploying => "is-deploying",
+        AppHealthState.Dormant => "is-dormant",
+        _ => null,
+    };
 
     private static (string Label, bool Primary) Action(AppHealthState state) => state switch
     {

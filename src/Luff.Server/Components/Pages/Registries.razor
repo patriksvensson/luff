@@ -5,8 +5,17 @@
 <PageTitle>Registries - Luff</PageTitle>
 
 <div class="page-head">
+    <BrandMark class="mobile-only" />
     <h1 class="page-title">Registries</h1>
-    <p class="page-lede">Private-registry credentials, matched to images by host. Public images need none.</p>
+    <span class="spacer"></span>
+    @if (_isAdmin)
+    {
+        <button class="btn btn-primary btn-add" @onclick="StartAdd" aria-label="Add registry credentials">
+            <svg class="mobile-only" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+            <span class="desktop-only">Add registry</span>
+        </button>
+    }
+    <AvatarMenu />
 </div>
 
 @if (!_isAdmin)
@@ -15,55 +24,58 @@
 }
 else if (_registries is null)
 {
-    <div class="eyebrow reg-loading">Loading…</div>
+    <div class="eyebrow reg-loading">Loading...</div>
 }
 else
 {
-    @if (_registries.Count > 0)
-    {
-        <div class="reg-list">
-            @foreach (var registry in _registries)
-            {
-                <div class="card reg-row">
-                    <div class="reg-ident">
-                        <span class="mono reg-host">@registry.Host</span>
-                        <span class="mono reg-meta">@registry.Username | Password ••••••••</span>
+    <div class="reg-body">
+        @if (_registries.Count > 0)
+        {
+            <div class="reg-list">
+                @foreach (var registry in _registries)
+                {
+                    <div class="card reg-card">
+                        <div class="reg-top">
+                            <span class="mono reg-host">@registry.Host</span>
+                            <span class="spacer"></span>
+                            <button class="reg-remove" @onclick="() => Remove(registry.Host)" disabled="@_busy">Remove</button>
+                        </div>
+                        <div class="reg-sub mono">
+                            <span class="reg-user">@registry.Username</span>
+                            <span class="reg-sep">|</span>
+                            <span>password</span>
+                            <span class="reg-masked">••••••••</span>
+                        </div>
+                        <span class="reg-matches mono">matches @registry.Host/*</span>
                     </div>
-                    <span class="spacer"></span>
-                    <span class="badge badge-green reg-matches">Matches @registry.Host/*</span>
-                    <button class="reg-remove" @onclick="() => Remove(registry.Host)" disabled="@_busy">Remove</button>
-                </div>
-            }
-        </div>
-    }
+                }
+            </div>
+        }
 
-    <div class="reg-note">
-        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="5" y="11" width="14" height="9" rx="1.6" /><path d="M8 11V8a4 4 0 0 1 8 0v3" />
-        </svg>
-        <span>Passwords are write-only. Set once, never shown again.</span>
+        <div class="reg-note">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="5" y="11" width="14" height="9" rx="1.6" /><path d="M8 11V8a4 4 0 0 1 8 0v3" />
+            </svg>
+            <span>Passwords are write-only. Set once, never shown again.</span>
+        </div>
+
+        @if (_error is not null)
+        {
+            <div class="cfg-error">@_error</div>
+        }
+
+        @if (_adding)
+        {
+            <div class="card reg-add">
+                <input class="input mono" placeholder="host (e.g. ghcr.io)" @bind="_host" />
+                <input class="input mono" placeholder="username" @bind="_username" autocomplete="off" />
+                <input class="input mono" type="password" placeholder="password" @bind="_password" autocomplete="new-password" />
+                <button class="btn btn-primary" @onclick="Add"
+                        disabled="@(_busy || string.IsNullOrWhiteSpace(_host) || string.IsNullOrWhiteSpace(_username))">Add</button>
+                <button class="btn btn-ghost" @onclick="() => _adding = false">Cancel</button>
+            </div>
+        }
     </div>
-
-    @if (_error is not null)
-    {
-        <div class="cfg-error">@_error</div>
-    }
-
-    @if (_adding)
-    {
-        <div class="card reg-add">
-            <input class="input mono" placeholder="host (e.g. ghcr.io)" @bind="_host" />
-            <input class="input mono" placeholder="username" @bind="_username" autocomplete="off" />
-            <input class="input mono" type="password" placeholder="password" @bind="_password" autocomplete="new-password" />
-            <button class="btn btn-primary" @onclick="Add"
-                    disabled="@(_busy || string.IsNullOrWhiteSpace(_host) || string.IsNullOrWhiteSpace(_username))">Add</button>
-            <button class="btn btn-ghost" @onclick="() => _adding = false">Cancel</button>
-        </div>
-    }
-    else
-    {
-        <button class="btn btn-ghost reg-add-btn" @onclick="StartAdd">+ Add registry credentials</button>
-    }
 }
 
 @code {

@@ -5,7 +5,7 @@
 
     @if (_type is null)
     {
-        <div class="eyebrow hc-loading">Loading…</div>
+        <div class="eyebrow hc-loading">Loading...</div>
     }
     else
     {
@@ -66,7 +66,7 @@
     private sealed record Option(string Value, string Description);
 
     private static readonly Option Docker =
-        new("docker", "Uses the image's own HEALTHCHECK. Nothing to configure.");
+        new("docker", "Uses the image's own HEALTHCHECK. Recommended default.");
     private static readonly Option Http =
         new("http", "Poll an endpoint until it responds. Needs a tool like wget/curl in the image.");
     private static readonly Option Tcp =

@@ -2,6 +2,10 @@
     padding: 8px 0;
 }
 
+.reg-body {
+    max-width: 760px;
+}
+
 .reg-list {
     display: flex;
     flex-direction: column;
@@ -9,32 +13,24 @@
     margin-bottom: 16px;
 }
 
-.reg-row {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    padding: 18px 22px;
-}
-
-.reg-ident {
+.reg-card {
     display: flex;
     flex-direction: column;
-    gap: 5px;
+    gap: 10px;
+    padding: 16px 20px;
+}
+
+.reg-top {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
 }
 
 .reg-host {
     font-size: 15px;
     font-weight: 600;
     color: var(--text);
-}
-
-.reg-meta {
-    font-size: 12.5px;
-    color: var(--text-dim);
-}
-
-.reg-matches {
-    flex: none;
 }
 
 .reg-remove {
@@ -53,6 +49,39 @@
     opacity: 0.5;
 }
 
+.reg-sub {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--text-dim);
+}
+
+.reg-user {
+    color: var(--text-muted);
+}
+
+.reg-sep {
+    color: var(--text-faint);
+}
+
+.reg-masked {
+    letter-spacing: 0.15em;
+}
+
+.reg-matches {
+    align-self: flex-start;
+    display: inline-flex;
+    align-items: center;
+    height: 26px;
+    padding: 0 11px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--green-border);
+    background: var(--green-soft);
+    color: var(--green);
+    font-size: 12px;
+}
+
 .reg-note {
     display: flex;
     align-items: center;
@@ -64,6 +93,10 @@
     border-radius: var(--radius);
     color: var(--amber);
     font-size: 13px;
+}
+
+.reg-note svg {
+    flex: none;
 }
 
 .reg-add {
@@ -82,6 +115,16 @@
     height: 42px;
 }
 
-.reg-add-btn {
-    align-self: flex-start;
+@media (max-width: 820px) {
+    .reg-add {
+        flex-wrap: wrap;
+    }
+
+    .reg-add .input {
+        flex: 1 1 100%;
+    }
+
+    .reg-add .btn {
+        flex: 1;
+    }
 }

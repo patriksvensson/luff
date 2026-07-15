@@ -6,23 +6,37 @@
 .activity-list {
     display: flex;
     flex-direction: column;
+    gap: 12px;
 }
 
-.activity-row {
+.activity-card {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 16px 20px;
+}
+
+.activity-top {
     display: flex;
     align-items: center;
-    gap: 14px;
-    padding: 16px 4px;
-    border-top: 1px solid var(--border);
-}
-
-.activity-row:first-child {
-    border-top: none;
+    gap: 12px;
 }
 
 .activity-tag {
-    font-size: 14px;
+    font-size: 15px;
+    font-weight: 600;
     color: var(--text);
+}
+
+.activity-when {
+    flex: none;
+    font-size: 13px;
+    color: var(--text-dim);
+}
+
+.activity-foot {
+    display: flex;
+    align-items: center;
 }
 
 .activity-status {
@@ -40,11 +54,4 @@
 
 .activity-status.is-progress {
     color: var(--amber);
-}
-
-.activity-when {
-    min-width: 72px;
-    text-align: right;
-    font-size: 13px;
-    color: var(--text-dim);
 }

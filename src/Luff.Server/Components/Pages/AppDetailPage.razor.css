@@ -1,27 +1,25 @@
-.breadcrumb {
+.detail-nav {
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: 13px;
-    color: var(--text-dim);
     margin-bottom: 18px;
 }
 
-.breadcrumb a {
+.detail-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 14px;
     color: var(--text-dim);
     transition: color 120ms ease;
 }
 
-.breadcrumb a:hover {
+.detail-back:hover {
     color: var(--text-muted);
 }
 
-.breadcrumb-sep {
-    color: var(--text-faint);
-}
-
-.breadcrumb-current {
-    color: var(--text-muted);
+.detail-back svg {
+    flex: none;
 }
 
 .detail-title-row {
@@ -56,9 +54,16 @@
 
 .tabs {
     display: flex;
+    flex-wrap: nowrap;
     gap: 26px;
     border-bottom: 1px solid var(--border);
     margin-bottom: 28px;
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+
+.tabs::-webkit-scrollbar {
+    display: none;
 }
 
 .detail-loading {
@@ -87,11 +92,16 @@
 
 /* Responsive */
 
-@media (max-width: 720px) {
+@media (max-width: 820px) {
     .detail-title-row {
         flex-wrap: wrap;
         gap: 12px 16px;
         margin-bottom: 22px;
+    }
+
+    .detail-title-left {
+        flex-wrap: wrap;
+        gap: 8px 12px;
     }
 
     .detail-title {
@@ -101,24 +111,20 @@
     .detail-actions {
         margin-left: 0;
         width: 100%;
+        flex-wrap: wrap;
+        gap: 12px;
     }
 
     .detail-actions .btn {
         flex: 1;
     }
 
+    /* Rollback + Deploy pair on one row; Stop/Start drops to a full-width row below. */
+    .detail-actions .act-rollback { order: 1; }
+    .detail-actions .act-deploy { order: 2; }
+    .detail-actions .act-toggle { order: 3; flex: 1 0 100%; }
+
     .tabs {
         gap: 20px;
-        overflow-x: auto;
-        scrollbar-width: none;
-        flex-wrap: nowrap;
-    }
-
-    .tabs::-webkit-scrollbar {
-        display: none;
-    }
-
-    .tab {
-        white-space: nowrap;
     }
 }

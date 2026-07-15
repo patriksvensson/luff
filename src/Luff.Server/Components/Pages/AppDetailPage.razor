@@ -15,14 +15,17 @@
 }
 else if (_detail is null)
 {
-    <div class="eyebrow detail-loading">Loading…</div>
+    <div class="eyebrow detail-loading">Loading...</div>
 }
 else
 {
-    <nav class="breadcrumb">
-        <a href="apps">Apps</a>
-        <span class="breadcrumb-sep">/</span>
-        <span class="breadcrumb-current">@_detail.Name</span>
+    <nav class="detail-nav">
+        <a class="detail-back" href="apps">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6" /></svg>
+            Apps
+        </a>
+        <span class="spacer"></span>
+        <AvatarMenu />
     </nav>
 
     <div class="detail-title-row">
@@ -45,19 +48,19 @@ else
         <div class="detail-actions">
             @if (_detail.Stopped)
             {
-                <button class="btn btn-primary" @onclick="Start" disabled="@_busy">Start</button>
+                <button class="btn btn-primary act-toggle" @onclick="Start" disabled="@_busy">Start</button>
             }
             else if (_detail.State != AppHealthState.Dormant)
             {
-                <button class="btn btn-ghost" @onclick="Stop" disabled="@_busy">Stop</button>
+                <button class="btn btn-ghost act-toggle" @onclick="Stop" disabled="@_busy">Stop</button>
             }
-            <button class="btn btn-ghost" @onclick='() => OpenModal("rollback")' disabled="@(_detail.PreviousTag is null)">
+            <button class="btn btn-ghost act-rollback" @onclick='() => OpenModal("rollback")' disabled="@(_detail.PreviousTag is null)">
                 <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M9 5 4 10l5 5" /><path d="M4 10h10a6 6 0 0 1 0 12h-3" />
                 </svg>
                 Rollback
             </button>
-            <button class="btn @(_detail.Stopped ? "btn-ghost" : "btn-primary")" @onclick='() => OpenModal("deploy")'>Deploy</button>
+            <button class="btn @(_detail.Stopped ? "btn-ghost" : "btn-primary") act-deploy" @onclick='() => OpenModal("deploy")'>Deploy</button>
         </div>
     </div>
 
@@ -72,7 +75,7 @@ else
             <NavLink class="tab" href="@($"apps/{Name}/ports")">Ports</NavLink>
         }
         <NavLink class="tab" href="@($"apps/{Name}/health")">Health check</NavLink>
-        <NavLink class="tab" href="@($"apps/{Name}/webhooks")">CI / Webhooks</NavLink>
+        <NavLink class="tab" href="@($"apps/{Name}/webhooks")">Webhooks</NavLink>
         <NavLink class="tab" href="@($"apps/{Name}/activity")">Activity</NavLink>
         <NavLink class="tab" href="@($"apps/{Name}/settings")">Settings</NavLink>
     </nav>

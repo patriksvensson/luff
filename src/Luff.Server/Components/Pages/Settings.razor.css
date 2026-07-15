@@ -101,24 +101,44 @@
     color: var(--text);
 }
 
-.user-add {
+.set-section-head {
     display: flex;
     align-items: center;
-    gap: 10px;
-    max-width: none;
+    gap: 12px;
+    margin-bottom: 16px;
 }
 
-.user-add .input {
-    flex: 1;
+.set-section-head + .set-sub {
+    margin-top: 0;
 }
 
-.user-role {
-    flex: 0 0 150px;
+.set-modal {
+    display: flex;
+    flex-direction: column;
 }
 
-.user-add .btn {
-    flex: none;
-    height: 42px;
+.set-modal-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+}
+
+.set-modal-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.set-modal .field {
+    margin-bottom: 14px;
+}
+
+.confirm-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 8px;
 }
 
 .chan-list {
@@ -159,30 +179,6 @@
 .chan-remove:disabled {
     cursor: not-allowed;
     opacity: 0.5;
-}
-
-.chan-add {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    max-width: none;
-}
-
-.chan-add .input:first-child {
-    flex: 1;
-}
-
-.chan-type {
-    flex: 0 0 130px;
-}
-
-.chan-url {
-    flex: 1;
-}
-
-.chan-add .btn {
-    flex: none;
-    height: 42px;
 }
 
 .twofa-enroll {

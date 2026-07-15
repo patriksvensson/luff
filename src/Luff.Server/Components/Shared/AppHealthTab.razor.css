@@ -92,3 +92,15 @@
     font-size: 13px;
     color: var(--green-dim);
 }
+
+@media (max-width: 820px) {
+    .hc-fields {
+        flex-direction: column;
+        gap: 14px;
+    }
+
+    .hc-endpoint,
+    .hc-timeout {
+        flex: 0 0 auto;
+    }
+}

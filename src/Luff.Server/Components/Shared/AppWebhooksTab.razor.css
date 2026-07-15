@@ -1,33 +1,83 @@
-.wh-reveal {
+.wh-warn {
     display: flex;
-    flex-direction: column;
     align-items: flex-start;
     gap: 12px;
-    padding: 16px 18px;
+    padding: 14px 18px;
     margin-bottom: 18px;
     border-color: var(--amber-border);
     background: var(--amber-soft);
+    color: var(--amber);
+    line-height: 1.55;
 }
 
-.wh-url {
-    font-size: 13.5px;
-    color: var(--text);
-    word-break: break-all;
+.wh-warn svg {
+    flex: none;
+    margin-top: 1px;
+}
+
+.wh-warn b {
+    font-weight: 600;
 }
 
 .wh-form {
     display: flex;
     align-items: center;
     gap: 12px;
-    margin-bottom: 8px;
 }
 
 .wh-name-input {
-    max-width: 280px;
+    flex: 1;
+    max-width: 320px;
 }
 
-.wh-reveal-name {
-    font-weight: 600;
+.wh-create {
+    flex: none;
+}
+
+.wh-reveal {
+    margin-top: 18px;
+}
+
+.wh-url-field {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 8px;
+    height: 44px;
+    padding: 0 6px 0 14px;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius);
+    background: var(--surface);
+}
+
+.wh-url {
+    flex: 1;
+    min-width: 0;
+    overflow-x: auto;
+    white-space: nowrap;
+    font-size: 13.5px;
+    color: var(--text);
+    scrollbar-width: none;
+}
+
+.wh-url::-webkit-scrollbar {
+    display: none;
+}
+
+.wh-copy {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-sm);
+    color: var(--text-dim);
+    transition: background 120ms ease, color 120ms ease;
+}
+
+.wh-copy:hover {
+    background: var(--surface-hover);
+    color: var(--text);
 }
 
 .wh-loading {
@@ -52,6 +102,7 @@
     display: flex;
     flex-direction: column;
     gap: 5px;
+    min-width: 0;
 }
 
 .wh-name {
@@ -101,4 +152,19 @@
 
 .wh-comment {
     color: var(--text-dim);
+}
+
+@media (max-width: 820px) {
+    .wh-form {
+        flex-wrap: wrap;
+    }
+
+    .wh-name-input {
+        flex: 1 1 100%;
+        max-width: none;
+    }
+
+    .wh-create {
+        flex: 1 1 100%;
+    }
 }

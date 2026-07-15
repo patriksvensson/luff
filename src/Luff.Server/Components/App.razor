@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <base href="/" />
     <title>Luff</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png" />
+    <link rel="icon" href="favicon.ico" sizes="any" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
     <link rel="stylesheet" href="fonts/fonts.css" />
     <link rel="stylesheet" href="css/tokens.css?v=@Version" />
     <link rel="stylesheet" href="css/app.css?v=@Version" />
@@ -13,6 +17,20 @@
 </head>
 <body>
     <Routes @rendermode="PageRenderMode" />
+
+    <div id="components-reconnect-modal">
+        <div class="reconnect-card">
+            <div class="reconnect-spinner" aria-hidden="true"></div>
+            <p class="reconnect-msg reconnect-msg-show">Reconnecting to the server...</p>
+            <p class="reconnect-msg reconnect-msg-failed">
+                Couldn't reconnect. <button type="button" class="reconnect-btn" onclick="Blazor.reconnect()">Retry</button>
+            </p>
+            <p class="reconnect-msg reconnect-msg-rejected">
+                The session expired. <button type="button" class="reconnect-btn" onclick="location.reload()">Reload</button>
+            </p>
+        </div>
+    </div>
+
     <script src="_framework/blazor.web.js"></script>
 </body>
 </html>

@@ -140,7 +140,7 @@
         AppHealthState.Live => "Running the intended version across the fleet.",
         AppHealthState.Deploying => "A rollout is in progress.",
         AppHealthState.Drift =>
-            $"Serving fine. {Detail.BehindCount} {(Detail.BehindCount == 1 ? "Machine is" : "Machines are")} a version behind after a partial rollout.",
+            $"Serving fine. {Detail.BehindCount} {(Detail.BehindCount == 1 ? "machine is" : "machines are")} a version behind after a partial rollout.",
         AppHealthState.Failed => "The last deploy failed; the previous version keeps serving.",
         AppHealthState.Unhealthy => "Deployed, but a container is reporting unhealthy.",
         AppHealthState.Stopped => "Manually stopped. Containers are kept; Start to bring it back.",

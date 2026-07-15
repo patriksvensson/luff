@@ -1,26 +1,16 @@
 @inject IScopedSender Sender
 
 <div class="env">
-    <p class="cfg-lede">
-        Environment variables are encrypted and <b>write-only</b>. You can set and remove them, but never read a
-        value back. They take effect on the next deploy.
-    </p>
-
-    <div class="env-add">
-        <input class="input mono env-key" placeholder="KEY" @bind="_newKey" />
-        <span class="env-eq mono">=</span>
-        <input class="input mono env-val" type="password" placeholder="value" @bind="_newValue" />
-        <button class="btn btn-primary" @onclick="Add" disabled="@(_busy || string.IsNullOrWhiteSpace(_newKey))">Set</button>
+    <div class="card env-note">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="5" y="11" width="14" height="9" rx="1.8" /><path d="M8 11V8a4 4 0 0 1 8 0v3" />
+        </svg>
+        <span>Values are encrypted and <b>write-only</b>. You set keys but never read them back; changes apply on the next deploy.</span>
     </div>
-
-    @if (_error is not null)
-    {
-        <div class="cfg-error">@_error</div>
-    }
 
     @if (_keys is null)
     {
-        <div class="eyebrow env-loading">Loading…</div>
+        <div class="eyebrow env-loading">Loading...</div>
     }
     else if (_keys.Count == 0)
     {
@@ -33,12 +23,24 @@
             {
                 <div class="card env-row">
                     <span class="mono env-name">@key</span>
-                    <span class="mono env-masked">••••••••••</span>
                     <span class="spacer"></span>
-                    <button class="env-remove" @onclick="() => Remove(key)" disabled="@_busy">Remove</button>
+                    <span class="mono env-masked">••••••••••</span>
+                    <button class="env-remove" @onclick="() => Remove(key)" disabled="@_busy">Unset</button>
                 </div>
             }
         </div>
+    }
+
+    <div class="env-add">
+        <input class="input mono env-key" placeholder="KEY" @bind="_newKey" />
+        <span class="env-eq mono">=</span>
+        <input class="input mono env-val" type="password" placeholder="value" @bind="_newValue" />
+        <button class="btn btn-ghost env-set" @onclick="Add" disabled="@(_busy || string.IsNullOrWhiteSpace(_newKey))">Set variable</button>
+    </div>
+
+    @if (_error is not null)
+    {
+        <div class="cfg-error">@_error</div>
     }
 </div>
 

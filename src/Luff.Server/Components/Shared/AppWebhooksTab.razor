@@ -1,30 +1,37 @@
 @inject IScopedSender Sender
 @inject NavigationManager Navigation
 @inject TimeProvider Time
+@inject IJSRuntime JS
 
 <div class="wh">
-    <p class="cfg-lede">
-        Let CI trigger a deploy by calling this webhook after it pushes an image. The token is part of the URL and
-        is shown <b>once</b>. Make sure you copy it.
-    </p>
+    <p class="cfg-lede">Let CI trigger a deploy by calling this webhook after it pushes an image</p>
 
-    @if (_created is not null)
-    {
-        <div class="card wh-reveal">
-            <span class="badge badge-amber">
-                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="5" y="11" width="14" height="9" rx="1.6" /><path d="M8 11V8a4 4 0 0 1 8 0v3" />
-                </svg>
-                <span class="wh-reveal-name">@_created.Name</span> | Shown once, copy it now
-            </span>
-            <div class="mono wh-url">@WebhookUrl(_created.Token)</div>
-        </div>
-    }
+    <div class="card wh-warn">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 3.6 2.4 20.2h19.2z" /><path d="M12 10v4.2" /><path d="M12 17.4h.01" />
+        </svg>
+        <span>The token is shown <b>once</b> at creation and never again. Copy it when you make it.</span>
+    </div>
 
     <div class="wh-form">
         <input class="input wh-name-input" @bind="_name" @bind:event="oninput" placeholder="Name, e.g. github-actions" />
-        <button class="btn btn-primary" @onclick="Create" disabled="@(_busy || string.IsNullOrWhiteSpace(_name))">+ Create webhook token</button>
+        <button class="btn btn-ghost wh-create" @onclick="Create" disabled="@(_busy || string.IsNullOrWhiteSpace(_name))">+ Create webhook token</button>
     </div>
+
+    @if (_created is not null)
+    {
+        <div class="wh-reveal">
+            <div class="eyebrow">Webhook URL | @_created.Name</div>
+            <div class="wh-url-field">
+                <span class="mono wh-url">@WebhookUrl(_created.Token)</span>
+                <button class="wh-copy" @onclick="() => Copy(WebhookUrl(_created.Token))" title="Copy URL" aria-label="Copy webhook URL">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="9" y="9" width="11" height="11" rx="2" /><path d="M5 15V5a2 2 0 0 1 2-2h10" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+    }
 
     @if (_error is not null)
     {
@@ -33,7 +40,7 @@
 
     @if (_tokens is null)
     {
-        <div class="eyebrow wh-loading">Loading…</div>
+        <div class="eyebrow wh-loading">Loading...</div>
     }
     else if (_tokens.Count == 0)
     {
@@ -62,7 +69,7 @@
 
     <div class="wh-snippet">
         <div class="eyebrow">CI snippet</div>
-        <pre class="mono card wh-code"><span class="wh-comment"># after your build pushes the image</span>
+        <pre class="mono card wh-code"><span class="wh-comment"># After your build pushes the image</span>
 curl -X POST "$LUFF_WEBHOOK" \
   -H "Content-Type: application/json" \
   -d '@("{" + "\"tag\":\"v1.4.4\"" + "}")'</pre>
@@ -124,6 +131,8 @@ curl -X POST "$LUFF_WEBHOOK" \
     }
 
     private string WebhookUrl(string token) => $"{Navigation.BaseUri}webhook/{token}";
+
+    private async Task Copy(string text) => await JS.InvokeVoidAsync("navigator.clipboard.writeText", text);
 
     private string Rel(DateTimeOffset at) => AppHealth.Relative(Time.GetUtcNow() - at);
 }

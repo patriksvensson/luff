@@ -125,3 +125,21 @@
     font-size: 13px;
     color: var(--amber);
 }
+
+/* Responsive */
+
+@media (max-width: 820px) {
+    .overview-top {
+        grid-template-columns: 1fr;
+    }
+
+    .ov-card,
+    .ov-config,
+    .ov-machines {
+        padding: 18px;
+    }
+
+    .ov-config-grid {
+        gap: 18px 24px;
+    }
+}

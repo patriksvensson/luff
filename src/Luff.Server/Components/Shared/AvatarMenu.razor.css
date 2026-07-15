@@ -1,0 +1,128 @@
+.avatarmenu {
+    position: relative;
+    display: inline-flex;
+    flex: none;
+}
+
+.avatar-btn {
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
+    background: var(--green-soft);
+    color: var(--green);
+    font-weight: 600;
+    font-size: 14px;
+    border: 1px solid transparent;
+    transition: border-color 120ms ease, background 120ms ease;
+}
+
+.avatar-btn:hover {
+    border-color: var(--green-border);
+}
+
+.avatar-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+}
+
+.avatar-pop {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    z-index: 41;
+    min-width: 232px;
+    padding: 8px;
+    background: var(--surface-strong);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-modal);
+    animation: avatar-pop-in 120ms ease;
+}
+
+.avatar-pop-head {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 8px 8px 10px;
+}
+
+.avatar-pop-avatar {
+    display: grid;
+    place-items: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 9px;
+    background: var(--green-soft);
+    color: var(--green);
+    font-weight: 600;
+    font-size: 15px;
+    flex: none;
+}
+
+.avatar-pop-id {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    line-height: 1.3;
+}
+
+.avatar-pop-name {
+    font-weight: 600;
+    font-size: 13.5px;
+    color: var(--text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.avatar-pop-role {
+    font-size: 10.5px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+}
+
+.avatar-pop-sep {
+    height: 1px;
+    margin: 2px 4px 6px;
+    background: var(--border);
+}
+
+.avatar-pop-signout button {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    height: 38px;
+    padding: 0 10px;
+    border-radius: var(--radius-sm);
+    color: var(--text-muted);
+    font-size: 13.5px;
+    font-weight: 500;
+    text-align: left;
+    transition: background 120ms ease, color 120ms ease;
+}
+
+.avatar-pop-signout button:hover {
+    background: var(--surface-hover);
+    color: var(--text);
+}
+
+.avatar-pop-signout svg {
+    flex: none;
+    color: var(--text-dim);
+}
+
+.avatar-pop-version {
+    padding: 8px 10px 4px;
+    font-size: 11px;
+    color: var(--text-dim);
+}
+
+@keyframes avatar-pop-in {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+}

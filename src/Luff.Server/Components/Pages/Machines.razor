@@ -10,18 +10,27 @@
 <PageTitle>Machines - Luff</PageTitle>
 
 <div class="page-head">
+    <BrandMark class="mobile-only" />
     <h1 class="page-title">Machines</h1>
-    <p class="page-lede">The hosts Luff deploys to.</p>
+    @if (_fleet is { Count: > 0 } fleet)
+    {
+        <span class="chip">@fleet.Count @(fleet.Count == 1 ? "host" : "hosts")</span>
+    }
+
+    <span class="spacer"></span>
     @if (_isAdmin)
     {
-        <span class="spacer"></span>
-        <button class="btn btn-primary" @onclick="StartEnroll">+ Add machine</button>
+        <button class="btn btn-primary btn-add" @onclick="StartEnroll" aria-label="Add machine">
+            <svg class="mobile-only" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+            <span class="desktop-only">Add machine</span>
+        </button>
     }
+    <AvatarMenu />
 </div>
 
 @if (_fleet is null)
 {
-    <div class="eyebrow fleet-loading">Loading…</div>
+    <div class="eyebrow fleet-loading">Loading...</div>
 }
 else if (_fleet.Count == 0)
 {
@@ -32,31 +41,43 @@ else
     <div class="fleet">
         @foreach (var machine in _fleet)
         {
-            <div class="card fleet-row">
-                <span class="dot @Dot(machine.Status)"></span>
-                <div class="fleet-ident">
-                    <div class="fleet-name-line">
-                        <span class="mono fleet-name">@machine.Name</span>
-                        @if (machine.FrontDoor)
+            <div class="card fleet-card @CardClass(machine.Status)">
+                <div class="fleet-top">
+                    <span class="dot @Dot(machine.Status)"></span>
+                    <span class="mono fleet-name">@machine.Name</span>
+                    @if (machine.FrontDoor)
+                    {
+                        <span class="chip">front door</span>
+                    }
+                    <span class="spacer"></span>
+                    <span class="mono fleet-version">@(machine.Version is not null ? $"v{machine.Version}" : "−")</span>
+                </div>
+                <div class="fleet-bottom">
+                    <div class="fleet-sub">
+                        @if (machine.Status == "connected")
                         {
-                            <span class="badge badge-green">front door</span>
+                            <span class="fleet-ok">connected</span>
+                            @foreach (var app in machine.Apps)
+                            {
+                                <span class="fleet-sep">|</span>
+                                <span class="mono fleet-app">@app</span>
+                            }
+                        }
+                        else if (machine.Status == "pending")
+                        {
+                            <span class="fleet-pending">Pending | Waiting to connect...</span>
+                        }
+                        else
+                        {
+                            <span class="fleet-down">Disconnected@(machine.LastSeen is not null ? $" | last seen {machine.LastSeen}" : "")</span>
                         }
                     </div>
-                    <span class="fleet-sub">@StatusLine(machine)</span>
+                    <span class="spacer"></span>
+                    @if (_isAdmin)
+                    {
+                        <button class="fleet-remove" @onclick="() => Remove(machine.Name)" disabled="@_busy">Remove</button>
+                    }
                 </div>
-                <span class="spacer"></span>
-                @if (machine.Apps.Count > 0)
-                {
-                    <span class="fleet-apps mono">@string.Join(" | ", machine.Apps)</span>
-                }
-                @if (machine.Version is not null)
-                {
-                    <span class="mono fleet-version">v@(machine.Version)</span>
-                }
-                @if (_isAdmin)
-                {
-                    <button class="fleet-remove" @onclick="() => Remove(machine.Name)" disabled="@_busy">Remove</button>
-                }
             </div>
         }
     </div>
@@ -112,7 +133,7 @@ Agent__ServerPin=@_agentLinkPin</code></pre>
                     else
                     {
                         <span class="dot dot-amber"></span>
-                        <span class="enroll-waiting">Waiting for <span class="mono">@_minted.Name</span> to dial in…</span>
+                        <span class="enroll-waiting">Waiting for <span class="mono">@_minted.Name</span> to dial in...</span>
                     }
                 </div>
 
@@ -248,11 +269,11 @@ Agent__ServerPin=@_agentLinkPin</code></pre>
         _ => "dot-red",
     };
 
-    private static string StatusLine(FleetAgent machine) => machine.Status switch
+    private static string? CardClass(string status) => status switch
     {
-        "connected" => "Connected",
-        "pending" => "Pending | Waiting to connect",
-        _ => machine.LastSeen is null ? "disconnected" : $"Disconnected. Last seen {machine.LastSeen}",
+        "pending" => "is-pending",
+        "connected" => null,
+        _ => "is-down",
     };
 
     public void Dispose() => _subscription?.Dispose();

@@ -5,13 +5,15 @@
 <PageTitle>Activity - Luff</PageTitle>
 
 <div class="page-head">
+    <BrandMark class="mobile-only" />
     <h1 class="page-title">Activity</h1>
-    <p class="page-lede">Every deploy across all apps.</p>
+    <span class="spacer"></span>
+    <AvatarMenu />
 </div>
 
 @if (_rows is null)
 {
-    <div class="eyebrow act-loading">Loading…</div>
+    <div class="eyebrow act-loading">Loading...</div>
 }
 else if (_rows.Count == 0)
 {
@@ -22,13 +24,18 @@ else
     <div class="act-list">
         @foreach (var row in _rows)
         {
-            <div class="act-row">
-                <span class="dot @Dot(row)"></span>
-                <a class="app-link" href="apps/@row.App/activity">@row.App</a>
-                <span class="mono act-tag">@row.Tag</span>
-                <span class="spacer"></span>
-                <span class="mono act-status @StatusClass(row)">@StatusText(row)</span>
-                <span class="act-when">@row.When</span>
+            <div class="card act-card @CardClass(row)">
+                <div class="act-top">
+                    <span class="dot @Dot(row)"></span>
+                    <a class="app-link" href="apps/@row.App/activity">@row.App</a>
+                    <span class="mono act-tag">@row.Tag</span>
+                    <span class="spacer"></span>
+                    <span class="act-when">@row.When</span>
+                </div>
+                <div class="act-foot">
+                    <span class="spacer"></span>
+                    <span class="mono act-status @StatusClass(row)">@StatusText(row)</span>
+                </div>
             </div>
         }
     </div>
@@ -67,4 +74,8 @@ else
         return row.Status;
     }
 
+    private static string? CardClass(ActivityRow row)
+    {
+        return row is { Succeeded: false, Failed: false } ? "is-progress" : null;
+    }
 }

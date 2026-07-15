@@ -150,6 +150,18 @@ h1:focus {
     font-size: 13px;
 }
 
+/* Add button: icon-only on phones, labelled on desktop (Apps / Machines). */
+.btn-add {
+    flex: none;
+}
+
+@media (max-width: 820px) {
+    .btn-add {
+        width: 40px;
+        padding: 0;
+    }
+}
+
 /* ---------- Cards ---------- */
 
 .card {
@@ -261,8 +273,10 @@ h1:focus {
 .page-head {
     display: flex;
     align-items: center;
-    gap: 16px;
-    margin-bottom: 30px;
+    gap: 14px;
+    margin-bottom: 26px;
+    padding-bottom: 18px;
+    border-bottom: 1px solid var(--border);
 }
 
 .page-title {
@@ -342,12 +356,51 @@ h1:focus {
     color: var(--green);
 }
 
+/* Bottom tab bar recasts the same nav items as icon-over-label tabs. */
+.bottomnav .nav-item {
+    flex: 1;
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
+    height: auto;
+    padding: 8px 0 5px;
+    border-radius: var(--radius-sm);
+    font-size: 10.5px;
+    font-weight: 500;
+    color: var(--text-dim);
+    background: none;
+}
+
+.bottomnav .nav-item svg {
+    width: 22px;
+    height: 22px;
+}
+
+.bottomnav .nav-item:hover {
+    background: none;
+    color: var(--text-muted);
+}
+
+.bottomnav .nav-item:hover svg {
+    color: var(--text-muted);
+}
+
+.bottomnav .nav-item.active {
+    background: none;
+    color: var(--green);
+}
+
+.bottomnav .nav-item.active svg {
+    color: var(--green);
+}
+
 /* ---------- Tabs (NavLink is a child component, so these are global) ---------- */
 
 .tab {
     padding: 0 2px 14px;
     color: var(--text-muted);
     font-weight: 500;
+    white-space: nowrap;
     border-bottom: 2px solid transparent;
     margin-bottom: -1px;
     transition: color 120ms ease, border-color 120ms ease;
@@ -362,28 +415,124 @@ h1:focus {
     border-bottom-color: var(--green);
 }
 
+/* ---------- Brand mark (shared: sidebar + mobile top bar) ---------- */
+
+.brandmark {
+    display: inline-flex;
+    align-items: center;
+    flex: none;
+}
+
+/* ---------- Show / hide utilities ---------- */
+
+@media (min-width: 821px) {
+    .mobile-only { display: none !important; }
+}
+
+@media (max-width: 820px) {
+    .desktop-only { display: none !important; }
+}
+
 /* ---------- Responsive (shared primitives) ---------- */
 
-@media (max-width: 640px) {
+/* On phones the page-head is the top app bar: a sticky, full-bleed strip. */
+@media (max-width: 820px) {
     .page-head {
-        flex-wrap: wrap;
+        position: sticky;
+        top: 0;
+        z-index: 30;
         gap: 12px;
-        margin-bottom: 22px;
+        margin: -18px -18px 18px;
+        padding: 13px 18px;
+        background: var(--bg);
     }
 
+    /* The descriptive subtitle would crowd the mobile app bar. */
+    .page-lede {
+        display: none;
+    }
+}
+
+@media (max-width: 640px) {
     .page-title {
         font-size: 22px;
     }
 }
 
-/* Icon-only sidebar rail once it is a top bar on phones. */
-@media (max-width: 560px) {
-    .nav-item {
-        gap: 0;
-        padding: 0 11px;
-    }
+/* ---------- Blazor reconnection overlay (replaces the framework default) ---------- */
 
-    .nav-item span {
-        display: none;
-    }
+#components-reconnect-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    place-items: center;
+    padding: 24px;
+    background: var(--overlay);
+    backdrop-filter: blur(2px);
+}
+
+#components-reconnect-modal.components-reconnect-show,
+#components-reconnect-modal.components-reconnect-failed,
+#components-reconnect-modal.components-reconnect-rejected {
+    display: grid;
+}
+
+.reconnect-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    width: 100%;
+    max-width: 340px;
+    padding: 30px 28px;
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-modal);
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 14px;
+}
+
+.reconnect-spinner {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 2.5px solid var(--border-strong);
+    border-top-color: var(--green);
+    animation: reconnect-spin 0.8s linear infinite;
+}
+
+@keyframes reconnect-spin {
+    to { transform: rotate(360deg); }
+}
+
+.reconnect-msg {
+    display: none;
+    margin: 0;
+    line-height: 1.5;
+}
+
+#components-reconnect-modal.components-reconnect-show .reconnect-msg-show,
+#components-reconnect-modal.components-reconnect-failed .reconnect-msg-failed,
+#components-reconnect-modal.components-reconnect-rejected .reconnect-msg-rejected {
+    display: block;
+}
+
+/* Only the actively-retrying state spins. */
+#components-reconnect-modal.components-reconnect-failed .reconnect-spinner,
+#components-reconnect-modal.components-reconnect-rejected .reconnect-spinner {
+    display: none;
+}
+
+.reconnect-btn {
+    margin-left: 4px;
+    color: var(--green);
+    font-weight: 600;
+    text-decoration: underline;
+}
+
+.reconnect-btn:hover {
+    color: var(--green-bright);
 }

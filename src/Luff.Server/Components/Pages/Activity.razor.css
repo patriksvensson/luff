@@ -5,23 +5,31 @@
 .act-list {
     display: flex;
     flex-direction: column;
+    gap: 12px;
+    max-width: 760px;
 }
 
-.act-row {
+.act-card {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 16px 20px;
+}
+
+.act-card.is-progress {
+    border-color: var(--amber-border);
+    box-shadow: inset 0 1px 0 var(--amber);
+}
+
+.act-top {
     display: flex;
     align-items: center;
-    gap: 16px;
-    padding: 16px 4px;
-    border-top: 1px solid var(--border);
-}
-
-.act-row:first-child {
-    border-top: none;
+    gap: 12px;
+    min-width: 0;
 }
 
 .app-link {
-    font-family: var(--font-mono);
-    font-size: 14px;
+    font-size: 15px;
     font-weight: 600;
     color: var(--text);
     transition: color 120ms ease;
@@ -33,7 +41,18 @@
 
 .act-tag {
     font-size: 13.5px;
-    color: var(--text-muted);
+    color: var(--text-dim);
+}
+
+.act-when {
+    flex: none;
+    font-size: 13px;
+    color: var(--text-dim);
+}
+
+.act-foot {
+    display: flex;
+    align-items: center;
 }
 
 .act-status {
@@ -51,11 +70,4 @@
 
 .act-status.is-progress {
     color: var(--amber);
-}
-
-.act-when {
-    min-width: 72px;
-    text-align: right;
-    font-size: 13px;
-    color: var(--text-dim);
 }

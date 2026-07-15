@@ -1,0 +1,70 @@
+@inject IScopedSender Sender
+
+<AuthorizeView>
+    <Authorized>
+        <div class="avatarmenu @Class">
+            <button class="avatar-btn" @onclick="Toggle" aria-label="Account" aria-haspopup="menu" aria-expanded="@(_open ? "true" : "false")">
+                @Initial(context.User.Identity?.Name)
+            </button>
+
+            @if (_open)
+            {
+                <div class="avatar-backdrop" @onclick="Close"></div>
+                <div class="avatar-pop" role="menu">
+                    <div class="avatar-pop-head">
+                        <div class="avatar-pop-avatar">@Initial(context.User.Identity?.Name)</div>
+                        <div class="avatar-pop-id">
+                            <span class="avatar-pop-name">@context.User.Identity?.Name</span>
+                            <span class="avatar-pop-role mono">@Role(context.User)</span>
+                        </div>
+                    </div>
+                    <div class="avatar-pop-sep"></div>
+                    <form method="post" action="/logout" class="avatar-pop-signout">
+                        <button type="submit">
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor"
+                                 stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M15 5V4a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1v-1M10 12h10M17 9l3 3-3 3"/>
+                            </svg>
+                            Sign out
+                        </button>
+                    </form>
+                    <div class="avatar-pop-version mono" title="Control plane version">v@_version</div>
+                </div>
+            }
+        </div>
+    </Authorized>
+</AuthorizeView>
+
+@code {
+    [Parameter]
+    public string? Class { get; set; }
+
+    private bool _open;
+    private string _version = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var server = await Sender.Send(new GetServerHandler.Request());
+        _version = server.Version;
+    }
+
+    private void Toggle()
+    {
+        _open = !_open;
+    }
+
+    private void Close()
+    {
+        _open = false;
+    }
+
+    private static string Initial(string? name)
+    {
+        return string.IsNullOrEmpty(name) ? "?" : name[..1].ToUpperInvariant();
+    }
+
+    private static string Role(ClaimsPrincipal user)
+    {
+        return user.FindFirst(ClaimTypes.Role)?.Value ?? "Operator";
+    }
+}

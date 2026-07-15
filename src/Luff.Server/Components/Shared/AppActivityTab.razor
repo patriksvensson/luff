@@ -8,12 +8,17 @@
         <div class="activity-list">
             @foreach (var deployment in Detail.Deployments)
             {
-                <div class="activity-row">
-                    <span class="dot @DeployDot(deployment)"></span>
-                    <span class="mono activity-tag">@deployment.Tag</span>
-                    <span class="spacer"></span>
-                    <span class="mono activity-status @StatusClass(deployment)">@StatusText(deployment)</span>
-                    <span class="activity-when">@deployment.When</span>
+                <div class="card activity-card">
+                    <div class="activity-top">
+                        <span class="dot @DeployDot(deployment)"></span>
+                        <span class="mono activity-tag">@deployment.Tag</span>
+                        <span class="spacer"></span>
+                        <span class="activity-when">@deployment.When</span>
+                    </div>
+                    <div class="activity-foot">
+                        <span class="spacer"></span>
+                        <span class="mono activity-status @StatusClass(deployment)">@StatusText(deployment)</span>
+                    </div>
                 </div>
             }
         </div>
@@ -37,7 +42,7 @@
     private static string StatusText(AppDeploymentLine deployment)
     {
         return deployment.Failed && deployment.FailureReason is not null
-            ? $"{deployment.Status}: {deployment.FailureReason}"
+            ? $"{deployment.Status} | {deployment.FailureReason}"
             : deployment.Status;
     }
 

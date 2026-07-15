@@ -6,7 +6,7 @@
         <p class="machines-lede">Where <span class="machines-app">@Detail.Name</span> is running. A deploy fans across these oldest-first.</p>
         @if (_isAdmin)
         {
-            <button class="btn btn-ghost btn-sm" @onclick="StartAttach">+ Attach machine</button>
+            <button class="btn btn-ghost btn-sm desktop-only" @onclick="StartAttach">+ Attach machine</button>
         }
     </div>
 
@@ -19,42 +19,40 @@
         <div class="machine-list">
             @foreach (var machine in Detail.Machines)
             {
-                <div class="card machine-row">
-                    <span class="dot @(machine.Connected ? "dot-green" : "dot-red")"></span>
-                    <div class="machine-ident">
-                        <div class="machine-ident-top">
-                            <span class="mono machine-name">@machine.Agent</span>
-                            @if (machine.FrontDoor)
-                            {
-                                <span class="chip">front door</span>
-                            }
-                        </div>
-                        <div class="machine-sub mono">@(machine.Connected ? machine.Health : "disconnected")</div>
-                    </div>
-
-                    <span class="spacer"></span>
-
-                    @if (machine.Behind)
-                    {
-                        <span class="badge badge-amber">
-                            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M12 3.6 2.4 20.2h19.2z" /><path d="M12 10v4.2" /><path d="M12 17.4h.01" />
-                            </svg>
-                            <span class="badge-tag">@machine.RunningTag</span> | 1 behind
-                        </span>
-                    }
-                    else
-                    {
-                        <div class="machine-version">
+                var status = !machine.Connected ? "disconnected"
+                    : machine is { Behind: false, RunningTag: not null } ? $"Connected | {machine.Health} | On intended"
+                    : $"Connected | {machine.Health}";
+                <div class="card machine-card">
+                    <div class="machine-top">
+                        <span class="dot @(machine.Connected ? "dot-green" : "dot-red")"></span>
+                        <span class="mono machine-name">@machine.Agent</span>
+                        @if (machine.FrontDoor)
+                        {
+                            <span class="chip">front door</span>
+                        }
+                        <span class="spacer"></span>
+                        @if (machine.Behind)
+                        {
+                            <span class="badge badge-amber">
+                                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M12 3.6 2.4 20.2h19.2z" /><path d="M12 10v4.2" /><path d="M12 17.4h.01" />
+                                </svg>
+                                <span class="badge-tag">@machine.RunningTag</span> | 1 behind
+                            </span>
+                        }
+                        else
+                        {
                             <span class="mono machine-tag">@(machine.RunningTag ?? "-")</span>
-                            <span class="machine-on">On intended</span>
-                        </div>
-                    }
-
-                    @if (_isAdmin)
-                    {
-                        <button class="machine-detach" @onclick="() => Detach(machine.Agent)" disabled="@_busy">Detach</button>
-                    }
+                        }
+                    </div>
+                    <div class="machine-sub">
+                        <span class="mono machine-status">@status</span>
+                        <span class="spacer"></span>
+                        @if (_isAdmin)
+                        {
+                            <button class="machine-detach" @onclick="() => Detach(machine.Agent)" disabled="@_busy">Detach</button>
+                        }
+                    </div>
                 </div>
             }
         </div>
@@ -66,6 +64,11 @@
                 <button class="btn drift-btn" @onclick="Redeploy">Redeploy to reconcile</button>
             </div>
         }
+    }
+
+    @if (_isAdmin)
+    {
+        <button class="btn btn-ghost machines-attach-bottom mobile-only" @onclick="StartAttach">+ Attach machine</button>
     }
 </div>
 
@@ -83,7 +86,7 @@
             <label class="field">
                 <span class="field-label">Machine</span>
                 <select class="input mono" @bind="_attachAgent">
-                    <option value="">Choose a machine…</option>
+                    <option value="">Choose a machine...</option>
                     @foreach (var name in Available())
                     {
                         <option value="@name">@name</option>
