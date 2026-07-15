@@ -75,7 +75,7 @@ else
                     <span class="spacer"></span>
                     @if (_isAdmin)
                     {
-                        <button class="fleet-remove" @onclick="() => Remove(machine.Name)" disabled="@_busy">Remove</button>
+                        <button class="fleet-remove" @onclick="() => StartRemove(machine.Name)" disabled="@_busy">Remove</button>
                     }
                 </div>
             </div>
@@ -145,6 +145,14 @@ Agent__ServerPin=@_agentLinkPin</code></pre>
     </Modal>
 }
 
+@if (_removing is not null)
+{
+    <ConfirmDelete Name="@_removing" Verb="Remove" Busy="_busy" Error="@_removeError"
+                   OnConfirm="ConfirmRemove" OnClose="CancelRemove">
+        Removes <span class="mono">@_removing</span> from the fleet. It stops receiving deploys until you enroll it again.
+    </ConfirmDelete>
+}
+
 @code {
     [CascadingParameter]
     private Task<AuthenticationState>? AuthState { get; set; }
@@ -164,6 +172,9 @@ Agent__ServerPin=@_agentLinkPin</code></pre>
     private string? _enrollError;
     private string _joinCommand = string.Empty;
     private bool _copied;
+
+    private string? _removing;
+    private string? _removeError;
 
     protected override async Task OnInitializedAsync()
     {
@@ -248,13 +259,36 @@ Agent__ServerPin=@_agentLinkPin</code></pre>
         }
     }
 
-    private async Task Remove(string name)
+    private void StartRemove(string name)
     {
+        _removeError = null;
+        _removing = name;
+    }
+
+    private void CancelRemove()
+    {
+        _removing = null;
+        _removeError = null;
+    }
+
+    private async Task ConfirmRemove()
+    {
+        if (_removing is null)
+        {
+            return;
+        }
+
         _busy = true;
+        _removeError = null;
         try
         {
-            await Sender.Send(new RemoveAgentHandler.Request(name));
+            await Sender.Send(new RemoveAgentHandler.Request(_removing));
+            _removing = null;
             await Reload();
+        }
+        catch (LuffException exception)
+        {
+            _removeError = exception.Message;
         }
         finally
         {

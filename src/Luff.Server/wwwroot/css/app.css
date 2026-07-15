@@ -144,6 +144,16 @@ h1:focus {
     border-color: var(--border-strong);
 }
 
+.btn-danger {
+    background: var(--red-soft);
+    color: var(--red);
+    border: 1px solid var(--red-border);
+}
+
+.btn-danger:not(:disabled):hover {
+    background: rgba(227, 123, 131, 0.18);
+}
+
 .btn-sm {
     height: 32px;
     padding: 0 13px;

@@ -1,0 +1,59 @@
+<Modal Width="md" OnClose="OnClose">
+    <div class="cd">
+        <div class="cd-head">
+            <h2 class="cd-title">@Verb <span class="mono">@Name</span>?</h2>
+            <button class="pipe-close" @onclick="Close" aria-label="Close">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="m6 6 12 12M18 6 6 18" /></svg>
+            </button>
+        </div>
+
+        @if (ChildContent is not null)
+        {
+            <div class="cd-warn">@ChildContent</div>
+        }
+
+        <label class="cd-field">
+            <span class="cd-label">Type <span class="mono">@Name</span> to confirm</span>
+            <input class="input mono" @bind="_typed" @bind:event="oninput" autocomplete="off" spellcheck="false" />
+        </label>
+
+        @if (Error is not null)
+        {
+            <div class="cfg-error">@Error</div>
+        }
+
+        <div class="confirm-actions">
+            <button class="btn btn-ghost" @onclick="Close" disabled="@Busy">Cancel</button>
+            <button class="btn btn-danger" @onclick="Confirm" disabled="@(Busy || _typed != Name)">@Verb</button>
+        </div>
+    </div>
+</Modal>
+
+@code {
+    [Parameter, EditorRequired]
+    public string Name { get; set; } = string.Empty;
+
+    [Parameter]
+    public string Verb { get; set; } = "Delete";
+
+    [Parameter]
+    public bool Busy { get; set; }
+
+    [Parameter]
+    public string? Error { get; set; }
+
+    [Parameter]
+    public EventCallback OnConfirm { get; set; }
+
+    [Parameter]
+    public EventCallback OnClose { get; set; }
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    private string _typed = string.Empty;
+
+    private async Task Confirm() => await OnConfirm.InvokeAsync();
+
+    private async Task Close() => await OnClose.InvokeAsync();
+}

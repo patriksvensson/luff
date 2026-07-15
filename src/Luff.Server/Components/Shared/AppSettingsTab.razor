@@ -77,24 +77,21 @@
 
         <div class="card danger">
             <div class="eyebrow danger-label">Danger zone</div>
-            @if (!_confirming)
-            {
-                <div class="danger-row">
-                    <span class="danger-text">Delete this app and its config. Running containers are left to drain.</span>
-                    <button class="btn danger-btn" @onclick="() => _confirming = true">Delete app</button>
-                </div>
-            }
-            else
-            {
-                <div class="danger-row">
-                    <span class="danger-text">Delete <span class="mono">@App</span>? This can't be undone.</span>
-                    <button class="btn btn-ghost" @onclick="() => _confirming = false">Cancel</button>
-                    <button class="btn danger-btn" @onclick="Delete" disabled="@_busy">Delete</button>
-                </div>
-            }
+            <div class="danger-row">
+                <span class="danger-text">Delete this app and its config. Running containers are left to drain.</span>
+                <button class="btn btn-danger" @onclick="StartDelete">Delete app</button>
+            </div>
         </div>
     }
 </div>
+
+@if (_confirming)
+{
+    <ConfirmDelete Name="@App" Verb="Delete" Busy="_busy" Error="@_deleteError"
+                   OnConfirm="Delete" OnClose="CancelDelete">
+        Deletes <span class="mono">@App</span> and its config. Running containers are left to drain. This can't be undone.
+    </ConfirmDelete>
+}
 
 @code {
     [Parameter, EditorRequired]
@@ -113,6 +110,7 @@
     private bool _busy;
     private bool _saved;
     private bool _confirming;
+    private string? _deleteError;
     private string? _error;
 
     private string PortLabel => _frontless ? (_direct ? "Container port" : "Service port") : "Internal port";
@@ -158,9 +156,22 @@
         }
     }
 
+    private void StartDelete()
+    {
+        _deleteError = null;
+        _confirming = true;
+    }
+
+    private void CancelDelete()
+    {
+        _confirming = false;
+        _deleteError = null;
+    }
+
     private async Task Delete()
     {
         _busy = true;
+        _deleteError = null;
         try
         {
             await Sender.Send(new DeleteAppHandler.Request(App));
@@ -168,8 +179,7 @@
         }
         catch (LuffException exception)
         {
-            _error = exception.Message;
-            _confirming = false;
+            _deleteError = exception.Message;
             _busy = false;
         }
     }

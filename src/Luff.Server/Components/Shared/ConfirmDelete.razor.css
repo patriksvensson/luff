@@ -1,0 +1,42 @@
+.cd {
+    display: flex;
+    flex-direction: column;
+}
+
+.cd-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+}
+
+.cd-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.cd-warn {
+    margin-bottom: 18px;
+    font-size: 13.5px;
+    line-height: 1.55;
+    color: var(--text-muted);
+}
+
+.cd-field {
+    display: block;
+}
+
+.cd-label {
+    display: block;
+    margin-bottom: 7px;
+    font-size: 12.5px;
+    color: var(--text-muted);
+}
+
+.confirm-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 18px;
+}

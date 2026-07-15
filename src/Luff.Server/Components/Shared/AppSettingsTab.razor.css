@@ -125,13 +125,6 @@
     color: var(--text-muted);
 }
 
-.danger-btn {
+.danger-row .btn {
     flex: none;
-    background: var(--red-soft);
-    color: var(--red);
-    border: 1px solid var(--red-border);
-}
-
-.danger-btn:not(:disabled):hover {
-    background: rgba(227, 123, 131, 0.18);
 }
