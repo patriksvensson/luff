@@ -209,3 +209,16 @@
     font-size: 13px;
     color: var(--red);
 }
+
+.fd-warn {
+    margin-bottom: 14px;
+    padding: 12px 14px;
+    background: var(--amber-soft);
+    border: 1px solid var(--amber-border);
+    border-radius: var(--radius);
+    color: var(--text-muted);
+}
+
+.fd-warn b {
+    color: var(--amber);
+}

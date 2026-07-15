@@ -149,6 +149,14 @@ Agent__ServerPin=@_agentLinkPin</code></pre>
 {
     <ConfirmDelete Name="@_removing" Verb="Remove" Busy="_busy" Error="@_removeError"
                    OnConfirm="ConfirmRemove" OnClose="CancelRemove">
+        @if (_removingFrontDoor)
+        {
+            <div class="fd-warn">
+                <b><span class="mono">@_removing</span> hosts your front door</b>, the public HTTPS entry to this
+                control plane. Removing it revokes the agent's enrollment, so it can no longer manage that entry
+                point and cannot rejoin without re-running the installer.
+            </div>
+        }
         Removes <span class="mono">@_removing</span> from the fleet. It stops receiving deploys until you enroll it again.
     </ConfirmDelete>
 }
@@ -174,6 +182,7 @@ Agent__ServerPin=@_agentLinkPin</code></pre>
     private bool _copied;
 
     private string? _removing;
+    private bool _removingFrontDoor;
     private string? _removeError;
 
     protected override async Task OnInitializedAsync()
@@ -263,6 +272,7 @@ Agent__ServerPin=@_agentLinkPin</code></pre>
     {
         _removeError = null;
         _removing = name;
+        _removingFrontDoor = _fleet?.FirstOrDefault(machine => machine.Name == name)?.FrontDoor ?? false;
     }
 
     private void CancelRemove()
