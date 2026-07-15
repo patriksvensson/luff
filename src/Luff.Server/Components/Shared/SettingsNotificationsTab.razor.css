@@ -1,0 +1,106 @@
+.set-section {
+    padding: 24px;
+    margin-bottom: 20px;
+}
+
+.set-section-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.set-section-head + .set-sub {
+    margin-top: 0;
+}
+
+.set-sub {
+    margin: 8px 0 18px;
+    font-size: 13.5px;
+    color: var(--text-muted);
+}
+
+.set-saved {
+    font-size: 13px;
+    color: var(--green-dim);
+}
+
+.chan-list {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 18px;
+}
+
+.chan-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 0;
+    border-top: 1px solid var(--border);
+}
+
+.chan-row:first-child {
+    border-top: none;
+}
+
+.chan-name {
+    min-width: 180px;
+    font-size: 14px;
+    color: var(--text);
+}
+
+.chan-remove {
+    flex: none;
+    font-size: 13px;
+    color: var(--text-dim);
+    transition: color 120ms ease;
+}
+
+.chan-remove:hover:not(:disabled) {
+    color: var(--red);
+}
+
+.chan-remove:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+.field {
+    display: block;
+}
+
+.field-label {
+    display: block;
+    font-size: 12.5px;
+    color: var(--text-muted);
+    margin-bottom: 7px;
+}
+
+.set-modal {
+    display: flex;
+    flex-direction: column;
+}
+
+.set-modal-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+}
+
+.set-modal-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.set-modal .field {
+    margin-bottom: 14px;
+}
+
+.confirm-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 8px;
+}

@@ -1,0 +1,169 @@
+@inject IScopedSender Sender
+
+<div class="set-notifications">
+    <div class="card set-section">
+        <div class="set-section-head">
+            <div class="eyebrow">Notifications</div>
+            <span class="spacer"></span>
+            <button class="btn btn-ghost btn-sm" @onclick="StartAddChannel">+ Add channel</button>
+        </div>
+        <div class="set-sub">Get pinged when a deploy fails, an agent drops, or an app goes unhealthy.</div>
+        @if (_channels is { Count: > 0 })
+        {
+            <div class="chan-list">
+                @foreach (var channel in _channels)
+                {
+                    <div class="chan-row">
+                        <span class="mono chan-name">@channel.Name</span>
+                        <span class="badge badge-neutral">@channel.Type</span>
+                        <span class="spacer"></span>
+                        <button class="btn btn-ghost btn-sm" @onclick="() => TestChannel(channel.Id)" disabled="@_busy">Send test</button>
+                        <button class="chan-remove" @onclick="() => RemoveChannel(channel.Id)" disabled="@_busy">Remove</button>
+                    </div>
+                }
+            </div>
+        }
+        @if (_chanNote is not null)
+        {
+            <div class="set-saved">@_chanNote</div>
+        }
+        @if (_chanError is not null && !_addingChannel)
+        {
+            <div class="cfg-error">@_chanError</div>
+        }
+    </div>
+</div>
+
+@if (_addingChannel)
+{
+    <Modal Width="md" OnClose="CloseAddChannel">
+        <div class="set-modal">
+            <div class="set-modal-head">
+                <h2 class="set-modal-title">Add notification channel</h2>
+                <button class="pipe-close" @onclick="CloseAddChannel" aria-label="Close">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="m6 6 12 12M18 6 6 18" /></svg>
+                </button>
+            </div>
+            <label class="field">
+                <span class="field-label">Name</span>
+                <input class="input mono" placeholder="e.g. team-discord" @bind="_chanName" autocomplete="off" />
+            </label>
+            <label class="field">
+                <span class="field-label">Type</span>
+                <select class="input mono" @bind="_chanType">
+                    <option value="Discord">Discord</option>
+                    <option value="Generic">Generic</option>
+                </select>
+            </label>
+            <label class="field">
+                <span class="field-label">Webhook URL</span>
+                <input class="input mono" placeholder="https://..." @bind="_chanUrl" autocomplete="off" />
+            </label>
+            @if (_chanError is not null)
+            {
+                <div class="cfg-error">@_chanError</div>
+            }
+            <div class="confirm-actions">
+                <button class="btn btn-ghost" @onclick="CloseAddChannel" disabled="@_busy">Cancel</button>
+                <button class="btn btn-primary" @onclick="AddChannel"
+                        disabled="@(_busy || string.IsNullOrWhiteSpace(_chanName) || string.IsNullOrWhiteSpace(_chanUrl))">Add channel</button>
+            </div>
+        </div>
+    </Modal>
+}
+
+@code {
+    private IReadOnlyList<NotificationChannelResponse>? _channels;
+    private string _chanName = string.Empty;
+    private string _chanType = "Discord";
+    private string _chanUrl = string.Empty;
+    private string? _chanError;
+    private string? _chanNote;
+    private bool _addingChannel;
+
+    private bool _busy;
+
+    protected override Task OnInitializedAsync() => LoadChannels();
+
+    private async Task LoadChannels() =>
+        _channels = await Sender.Send(new ListNotificationChannelsHandler.Request());
+
+    private void StartAddChannel()
+    {
+        _chanName = string.Empty;
+        _chanType = "Discord";
+        _chanUrl = string.Empty;
+        _chanError = null;
+        _chanNote = null;
+        _addingChannel = true;
+    }
+
+    private void CloseAddChannel()
+    {
+        _addingChannel = false;
+        _chanError = null;
+    }
+
+    private async Task AddChannel()
+    {
+        _busy = true;
+        _chanError = null;
+        _chanNote = null;
+        try
+        {
+            await Sender.Send(new AddNotificationChannelHandler.Request(_chanName.Trim(), _chanType, _chanUrl.Trim()));
+            _chanName = string.Empty;
+            _chanUrl = string.Empty;
+            _addingChannel = false;
+            await LoadChannels();
+        }
+        catch (LuffException exception)
+        {
+            _chanError = exception.Message;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task RemoveChannel(Guid id)
+    {
+        _busy = true;
+        _chanError = null;
+        _chanNote = null;
+        try
+        {
+            await Sender.Send(new RemoveNotificationChannelHandler.Request(id));
+            await LoadChannels();
+        }
+        catch (LuffException exception)
+        {
+            _chanError = exception.Message;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task TestChannel(Guid id)
+    {
+        _busy = true;
+        _chanError = null;
+        _chanNote = null;
+        try
+        {
+            await Sender.Send(new TestNotificationChannelHandler.Request(id));
+            _chanNote = "Test sent. Check the channel.";
+        }
+        catch (LuffException exception)
+        {
+            _chanError = exception.Message;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

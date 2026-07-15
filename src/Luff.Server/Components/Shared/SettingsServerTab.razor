@@ -1,0 +1,121 @@
+@inject IScopedSender Sender
+
+<div class="set-server">
+    <div class="card set-section">
+        <div class="eyebrow">Front door</div>
+        <div class="set-sub">The public domain the dashboard is served on.</div>
+        <label class="field set-domain-field">
+            <span class="field-label">Front-door domain</span>
+            <input class="input mono" @bind="_domain" />
+        </label>
+        <div class="set-tls">
+            <span class="set-tls-label">TLS</span>
+            <span class="mono @(_autoDomain ? "set-tls-warn" : "set-tls-ok")">@(_autoDomain ? "Self-signed" : "Publicly trusted")</span>
+            <span class="set-tls-note">
+                @(_autoDomain
+                    ? "Encrypted; browsers show a one-time warning. Set a real domain for a trusted certificate."
+                    : "Trusted, automatic HTTPS.")
+            </span>
+        </div>
+        @if (_domainError is not null)
+        {
+            <div class="cfg-error">@_domainError</div>
+        }
+        <div class="set-actions">
+            <button class="btn btn-primary" @onclick="SaveDomain" disabled="@(_busy || string.IsNullOrWhiteSpace(_domain))">Save domain</button>
+            @if (_domainSaved)
+            {
+                <span class="set-saved">Saved (re-points live)</span>
+            }
+        </div>
+    </div>
+
+    <div class="card set-section">
+        <div class="eyebrow">Agent link</div>
+        <div class="set-sub">The address agents dial to reach the control plane.</div>
+        <label class="field set-domain-field">
+            <span class="field-label">Agent-link address</span>
+            <input class="input mono" @bind="_agentLinkAddress" placeholder="https://host:8443" />
+        </label>
+        <div class="set-tls">
+            <span class="set-tls-label">Key pin</span>
+            <span class="mono">sha256/@_agentLinkPin</span>
+            <span class="set-tls-note">Agents pin this key to trust the control plane; it's baked into the join command.</span>
+        </div>
+        @if (_agentLinkError is not null)
+        {
+            <div class="cfg-error">@_agentLinkError</div>
+        }
+        <div class="set-actions">
+            <button class="btn btn-primary" @onclick="SaveAgentLink" disabled="@(_busy || string.IsNullOrWhiteSpace(_agentLinkAddress))">Save agent-link</button>
+            @if (_agentLinkSaved)
+            {
+                <span class="set-saved">Saved</span>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private string _domain = string.Empty;
+    private bool _autoDomain;
+    private bool _domainSaved;
+    private string? _domainError;
+
+    private string _agentLinkAddress = string.Empty;
+    private string _agentLinkPin = string.Empty;
+    private bool _agentLinkSaved;
+    private string? _agentLinkError;
+
+    private bool _busy;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var server = await Sender.Send(new GetServerHandler.Request());
+        _domain = server.FrontDoorDomain;
+        _autoDomain = AppHealth.IsAutoDomain(_domain);
+        _agentLinkAddress = server.AgentLinkAddress ?? string.Empty;
+        _agentLinkPin = server.AgentLinkPin;
+    }
+
+    private async Task SaveDomain()
+    {
+        _busy = true;
+        _domainError = null;
+        _domainSaved = false;
+        try
+        {
+            await Sender.Send(new SetFrontDoorDomainHandler.Request(_domain.Trim()));
+            _autoDomain = AppHealth.IsAutoDomain(_domain.Trim());
+            _domainSaved = true;
+        }
+        catch (LuffException exception)
+        {
+            _domainError = exception.Message;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task SaveAgentLink()
+    {
+        _busy = true;
+        _agentLinkError = null;
+        _agentLinkSaved = false;
+        try
+        {
+            await Sender.Send(new SetAgentLinkAddressHandler.Request(_agentLinkAddress.Trim()));
+            _agentLinkSaved = true;
+        }
+        catch (LuffException exception)
+        {
+            _agentLinkError = exception.Message;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

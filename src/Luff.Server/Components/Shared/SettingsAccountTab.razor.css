@@ -1,0 +1,128 @@
+.set-section {
+    padding: 24px;
+    margin-bottom: 20px;
+}
+
+.set-sub {
+    margin: 8px 0 18px;
+    font-size: 13.5px;
+    color: var(--text-muted);
+}
+
+.set-role {
+    color: var(--text-dim);
+}
+
+.field {
+    display: block;
+}
+
+.field-label {
+    display: block;
+    font-size: 12.5px;
+    color: var(--text-muted);
+    margin-bottom: 7px;
+}
+
+.set-form {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+    max-width: 640px;
+}
+
+.set-actions {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-top: 20px;
+}
+
+.set-saved {
+    font-size: 13px;
+    color: var(--green-dim);
+}
+
+.twofa-enroll {
+    display: flex;
+    gap: 24px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    margin: 4px 0 8px;
+}
+
+.twofa-qr {
+    flex: none;
+    background: #fff;
+    padding: 12px;
+    border-radius: var(--radius);
+    line-height: 0;
+}
+
+.twofa-qr svg {
+    display: block;
+    width: 176px;
+    height: 176px;
+}
+
+.twofa-enroll-body {
+    flex: 1;
+    min-width: 240px;
+}
+
+.twofa-secret {
+    margin: 8px 0 4px;
+    padding: 8px 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-size: 15px;
+    letter-spacing: 2px;
+    word-break: break-all;
+}
+
+.twofa-status {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.twofa-remaining {
+    color: var(--text-dim);
+    font-size: 14px;
+}
+
+.twofa-disable-field {
+    max-width: 420px;
+    margin-top: 8px;
+}
+
+.twofa-danger {
+    color: var(--red);
+}
+
+.twofa-codes-intro {
+    margin: 4px 0 12px;
+    color: var(--text-dim);
+    font-size: 14px;
+}
+
+.recovery-codes {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 200px));
+    gap: 8px 16px;
+    margin-bottom: 14px;
+}
+
+.recovery-code {
+    padding: 6px 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-size: 14px;
+    letter-spacing: 1px;
+    text-align: center;
+}

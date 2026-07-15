@@ -1,0 +1,144 @@
+@inject IScopedSender Sender
+
+<div class="set-users">
+    <div class="card set-section">
+        <div class="set-section-head">
+            <div class="eyebrow">Users &amp; roles</div>
+            <span class="spacer"></span>
+            <button class="btn btn-ghost btn-sm" @onclick="StartCreateUser">+ Add user</button>
+        </div>
+        @if (_users is not null)
+        {
+            <div class="user-list">
+                @foreach (var user in _users)
+                {
+                    <div class="user-row">
+                        <span class="mono user-name">@user.Username</span>
+                        <span class="badge @(user.Role == "Admin" ? "badge-green" : "badge-neutral")">@user.Role</span>
+                        @if (user.TwoFactorEnabled)
+                        {
+                            <span class="badge badge-neutral">2FA</span>
+                            <span class="spacer"></span>
+                            <button class="btn btn-ghost btn-sm" @onclick="() => ResetUserTwoFactor(user.Username)" disabled="@_busy">Reset 2FA</button>
+                        }
+                    </div>
+                }
+            </div>
+        }
+        @if (_userError is not null)
+        {
+            <div class="cfg-error">@_userError</div>
+        }
+    </div>
+</div>
+
+@if (_creatingUser)
+{
+    <Modal Width="md" OnClose="CloseCreateUser">
+        <div class="set-modal">
+            <div class="set-modal-head">
+                <h2 class="set-modal-title">Create user</h2>
+                <button class="pipe-close" @onclick="CloseCreateUser" aria-label="Close">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="m6 6 12 12M18 6 6 18" /></svg>
+                </button>
+            </div>
+            <label class="field">
+                <span class="field-label">Username</span>
+                <input class="input mono" placeholder="username" @bind="_newUser" autocomplete="off" />
+            </label>
+            <label class="field">
+                <span class="field-label">Password</span>
+                <input class="input" type="password" placeholder="password" @bind="_newUserPassword" autocomplete="new-password" />
+            </label>
+            <label class="field">
+                <span class="field-label">Role</span>
+                <select class="input mono" @bind="_newUserRole">
+                    <option value="Operator">Operator</option>
+                    <option value="Admin">Admin</option>
+                </select>
+            </label>
+            @if (_userError is not null)
+            {
+                <div class="cfg-error">@_userError</div>
+            }
+            <div class="confirm-actions">
+                <button class="btn btn-ghost" @onclick="CloseCreateUser" disabled="@_busy">Cancel</button>
+                <button class="btn btn-primary" @onclick="CreateUser"
+                        disabled="@(_busy || string.IsNullOrWhiteSpace(_newUser) || string.IsNullOrWhiteSpace(_newUserPassword))">Create user</button>
+            </div>
+        </div>
+    </Modal>
+}
+
+@code {
+    private IReadOnlyList<UserResponse>? _users;
+    private string _newUser = string.Empty;
+    private string _newUserPassword = string.Empty;
+    private string _newUserRole = "Operator";
+    private string? _userError;
+    private bool _creatingUser;
+
+    private bool _busy;
+
+    protected override Task OnInitializedAsync() => LoadUsers();
+
+    private async Task LoadUsers() =>
+        _users = await Sender.Send(new ListUsersHandler.Request());
+
+    private void StartCreateUser()
+    {
+        _newUser = string.Empty;
+        _newUserPassword = string.Empty;
+        _newUserRole = "Operator";
+        _userError = null;
+        _creatingUser = true;
+    }
+
+    private void CloseCreateUser()
+    {
+        _creatingUser = false;
+        _userError = null;
+    }
+
+    private async Task CreateUser()
+    {
+        _busy = true;
+        _userError = null;
+        try
+        {
+            await Sender.Send(new CreateUserHandler.Request(_newUser.Trim(), _newUserPassword, _newUserRole));
+            _newUser = string.Empty;
+            _newUserPassword = string.Empty;
+            _newUserRole = "Operator";
+            _creatingUser = false;
+            await LoadUsers();
+        }
+        catch (LuffException exception)
+        {
+            _userError = exception.Message;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task ResetUserTwoFactor(string username)
+    {
+        _busy = true;
+        _userError = null;
+        try
+        {
+            await Sender.Send(new ResetUserTwoFactorHandler.Request(username));
+            await LoadUsers();
+        }
+        catch (LuffException exception)
+        {
+            _userError = exception.Message;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}
