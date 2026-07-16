@@ -61,12 +61,16 @@
     color: var(--text-muted);
 }
 
-.reg-sep {
-    color: var(--text-faint);
+.reg-secret {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    max-width: 340px;
 }
 
-.reg-masked {
-    letter-spacing: 0.15em;
+.reg-secret-label {
+    font-size: 12px;
+    color: var(--text-dim);
 }
 
 .reg-matches {
@@ -110,6 +114,10 @@
     flex: 1;
 }
 
+.reg-add-field {
+    flex: 1;
+}
+
 .reg-add .btn {
     flex: none;
     height: 42px;
@@ -120,7 +128,8 @@
         flex-wrap: wrap;
     }
 
-    .reg-add .input {
+    .reg-add .input,
+    .reg-add-field {
         flex: 1 1 100%;
     }
 

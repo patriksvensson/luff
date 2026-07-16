@@ -20,4 +20,18 @@ public sealed class ListRegistriesHandlerTests
         result.Select(registry => registry.Host)
             .ShouldBe(["docker.io", "ghcr.io"]);
     }
+
+    [Fact]
+    public async Task Should_Return_The_Decrypted_Password()
+    {
+        // Given
+        using var fixture = new RegistriesFixture();
+        await fixture.AddRegistry("ghcr.io", "user", "s3cret");
+
+        // When
+        var result = await fixture.ListRegistries();
+
+        // Then
+        result.ShouldHaveSingleItem().Password.ShouldBe("s3cret");
+    }
 }

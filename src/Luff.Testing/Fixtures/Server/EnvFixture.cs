@@ -46,7 +46,7 @@ public sealed class EnvFixture : IDisposable
 
     public async Task<IReadOnlyList<EnvVarResponse>> ListEnv(ListEnvVarsHandler.Request request)
     {
-        var handler = new ListEnvVarsHandler(CreateContext());
+        var handler = new ListEnvVarsHandler(CreateContext(), Protector);
         return await handler.Handle(request, CancellationToken.None);
     }
 

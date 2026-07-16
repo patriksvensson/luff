@@ -6,8 +6,8 @@ public sealed class EnvVar
     public required string Key { get; init; }
     public required string Value { get; set; }
 
-    public EnvVarResponse ToResponse()
+    public EnvVarResponse ToResponse(string value)
     {
-        return new EnvVarResponse(Key);
+        return new EnvVarResponse(Key, value);
     }
 }

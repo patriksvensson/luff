@@ -49,7 +49,7 @@ public sealed class AddRegistryHandler : IRequestHandler<AddRegistryHandler.Requ
 
         await _database.SaveChangesAsync(cancellationToken);
 
-        return existing.ToResponse();
+        return existing.ToResponse(request.Password);
     }
 }
 

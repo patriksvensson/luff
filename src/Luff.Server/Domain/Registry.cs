@@ -6,9 +6,9 @@ public sealed class Registry
     public required string Username { get; set; }
     public required string Password { get; set; }
 
-    public RegistryResponse ToResponse()
+    public RegistryResponse ToResponse(string password)
     {
-        return new RegistryResponse(Host, Username);
+        return new RegistryResponse(Host, Username, password);
     }
 
     public static string? ParseHost(string image)

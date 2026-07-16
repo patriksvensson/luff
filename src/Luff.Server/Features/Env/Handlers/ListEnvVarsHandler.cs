@@ -3,6 +3,7 @@ namespace Luff.Server.Features;
 public sealed class ListEnvVarsHandler : IRequestHandler<ListEnvVarsHandler.Request, IReadOnlyList<EnvVarResponse>>
 {
     private readonly LuffDbContext _database;
+    private readonly ISecretProtector _protector;
 
     public sealed class Request : IRequest<IReadOnlyList<EnvVarResponse>>
     {
@@ -14,9 +15,10 @@ public sealed class ListEnvVarsHandler : IRequestHandler<ListEnvVarsHandler.Requ
         }
     }
 
-    public ListEnvVarsHandler(LuffDbContext database)
+    public ListEnvVarsHandler(LuffDbContext database, ISecretProtector protector)
     {
         _database = database ?? throw new ArgumentNullException(nameof(database));
+        _protector = protector ?? throw new ArgumentNullException(nameof(protector));
     }
 
     public async Task<IReadOnlyList<EnvVarResponse>> Handle(Request request, CancellationToken cancellationToken)
@@ -32,7 +34,7 @@ public sealed class ListEnvVarsHandler : IRequestHandler<ListEnvVarsHandler.Requ
             .OrderBy(env => env.Key)
             .ToListAsync(cancellationToken);
 
-        return [.. vars.Select(env => env.ToResponse())];
+        return [.. vars.Select(env => env.ToResponse(_protector.Unprotect(env.Value)))];
     }
 }
 

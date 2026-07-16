@@ -37,7 +37,7 @@ public sealed class RegistriesFixture : IDisposable
 
     public async Task<IReadOnlyList<RegistryResponse>> ListRegistries()
     {
-        var handler = new ListRegistriesHandler(CreateContext());
+        var handler = new ListRegistriesHandler(CreateContext(), Protector);
         return await handler.Handle(new ListRegistriesHandler.Request(), CancellationToken.None);
     }
 

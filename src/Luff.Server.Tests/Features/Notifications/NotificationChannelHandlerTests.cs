@@ -9,7 +9,7 @@ public sealed class NotificationChannelHandlerTests
     private const string Webhook = "https://discord.com/api/webhooks/123/abc";
 
     [Fact]
-    public async Task Should_Add_A_Channel_And_Not_Return_The_Url()
+    public async Task Should_Add_A_Channel_And_Return_The_Url()
     {
         // Given
         using var fixture = new NotificationsFixture();
@@ -21,7 +21,8 @@ public sealed class NotificationChannelHandlerTests
         result.ShouldSatisfyAllConditions(
             channel => channel.Name.ShouldBe("team-discord"),
             channel => channel.Type.ShouldBe("Discord"),
-            channel => channel.Enabled.ShouldBeTrue());
+            channel => channel.Enabled.ShouldBeTrue(),
+            channel => channel.Url.ShouldBe(Webhook));
     }
 
     [Fact]
@@ -37,6 +38,20 @@ public sealed class NotificationChannelHandlerTests
         await using var context = fixture.CreateContext();
         var stored = context.NotificationChannels.Single();
         stored.Url.ShouldBe($"protected:{Webhook}");
+    }
+
+    [Fact]
+    public async Task Should_List_Channels_With_The_Decrypted_Url()
+    {
+        // Given
+        using var fixture = new NotificationsFixture();
+        await fixture.AddChannel("team-discord", "discord", Webhook);
+
+        // When
+        var result = await fixture.ListChannels();
+
+        // Then
+        result.ShouldHaveSingleItem().Url.ShouldBe(Webhook);
     }
 
     [Fact]

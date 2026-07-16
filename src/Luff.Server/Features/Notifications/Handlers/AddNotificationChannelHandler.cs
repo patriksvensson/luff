@@ -46,7 +46,7 @@ public sealed class AddNotificationChannelHandler
         _database.NotificationChannels.Add(channel);
         await _database.SaveChangesAsync(cancellationToken);
 
-        return channel.ToResponse();
+        return channel.ToResponse(url);
     }
 }
 

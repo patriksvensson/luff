@@ -4,12 +4,14 @@ public sealed class ListNotificationChannelsHandler
     : IRequestHandler<ListNotificationChannelsHandler.Request, IReadOnlyList<NotificationChannelResponse>>
 {
     private readonly LuffDbContext _database;
+    private readonly ISecretProtector _protector;
 
     public sealed class Request : IRequest<IReadOnlyList<NotificationChannelResponse>>;
 
-    public ListNotificationChannelsHandler(LuffDbContext database)
+    public ListNotificationChannelsHandler(LuffDbContext database, ISecretProtector protector)
     {
         _database = database ?? throw new ArgumentNullException(nameof(database));
+        _protector = protector ?? throw new ArgumentNullException(nameof(protector));
     }
 
     public async Task<IReadOnlyList<NotificationChannelResponse>> Handle(
@@ -21,7 +23,7 @@ public sealed class ListNotificationChannelsHandler
         [
             .. channels
                 .OrderBy(channel => channel.CreatedAt)
-                .Select(channel => channel.ToResponse()),
+                .Select(channel => channel.ToResponse(_protector.Unprotect(channel.Url))),
         ];
     }
 }

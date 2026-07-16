@@ -42,9 +42,10 @@ else
                         </div>
                         <div class="reg-sub mono">
                             <span class="reg-user">@registry.Username</span>
-                            <span class="reg-sep">|</span>
-                            <span>password</span>
-                            <span class="reg-masked">••••••••</span>
+                        </div>
+                        <div class="reg-secret">
+                            <span class="reg-secret-label">Password</span>
+                            <SecretField Value="@registry.Password" ReadOnly="true" />
                         </div>
                         <span class="reg-matches mono">matches @registry.Host/*</span>
                     </div>
@@ -56,7 +57,7 @@ else
             <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                 <rect x="5" y="11" width="14" height="9" rx="1.6" /><path d="M8 11V8a4 4 0 0 1 8 0v3" />
             </svg>
-            <span>Passwords are write-only. Set once, never shown again.</span>
+            <span>Passwords are encrypted at rest. Reveal one with the eye toggle to copy it.</span>
         </div>
 
         @if (_error is not null)
@@ -69,7 +70,9 @@ else
             <div class="card reg-add">
                 <input class="input mono" placeholder="host (e.g. ghcr.io)" @bind="_host" />
                 <input class="input mono" placeholder="username" @bind="_username" autocomplete="off" />
-                <input class="input mono" type="password" placeholder="password" @bind="_password" autocomplete="new-password" />
+                <div class="reg-add-field">
+                    <SecretField @bind-Value="_password" Placeholder="password" />
+                </div>
                 <button class="btn btn-primary" @onclick="Add"
                         disabled="@(_busy || string.IsNullOrWhiteSpace(_host) || string.IsNullOrWhiteSpace(_username))">Add</button>
                 <button class="btn btn-ghost" @onclick="() => _adding = false">Cancel</button>

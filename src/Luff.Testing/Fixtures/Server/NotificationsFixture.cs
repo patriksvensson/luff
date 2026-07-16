@@ -46,7 +46,7 @@ public sealed class NotificationsFixture : IDisposable
 
     public async Task<IReadOnlyList<NotificationChannelResponse>> ListChannels()
     {
-        var handler = new ListNotificationChannelsHandler(CreateContext());
+        var handler = new ListNotificationChannelsHandler(CreateContext(), Protector);
         return await handler.Handle(new ListNotificationChannelsHandler.Request(), CancellationToken.None);
     }
 

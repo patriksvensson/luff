@@ -41,10 +41,8 @@
     color: var(--text);
 }
 
-.env-masked {
-    font-size: 14px;
-    color: var(--text-dim);
-    letter-spacing: 0.05em;
+.env-value {
+    flex: 0 1 340px;
 }
 
 .env-remove {

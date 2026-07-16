@@ -89,7 +89,7 @@ same-host only (no overlay network), so an app and its datastore must attach to 
 ## Domain model
 
 - **App** — the unit of deployment: a `kind` (`Web` | `Internal` | `Direct`), `image`, `internalPort`,
-  encrypted write-only `envVars`, `volumes`, a health check (`Docker`/`Http`/`Tcp`/`None`), a `stopped`
+  encrypted, reveal-able `envVars`, `volumes`, a health check (`Docker`/`Http`/`Tcp`/`None`), a `stopped`
   desired run-state, current/previous tags. A **web** app also has a `domain` and `tlsMode` (route
   fronted by Caddy). An **internal** service has **no domain** (not internet-exposed), reachable by sibling
   apps on the same host under its bare name; health limited to `Docker`/`Tcp`/`None` (no HTTP probe), and it
@@ -107,7 +107,7 @@ same-host only (no overlay network), so an app and its datastore must attach to 
   `firstName`/`lastName`; optional TOTP 2FA — `twoFactorEnabled` + encrypted `twoFactorSecret`) / RecoveryCode
   (hashed, single-use 2FA backup codes) / ServerSettings** (front-door domain singleton).
 - **NotificationChannel** — an Admin-managed alert target (`Discord` | `Generic`; webhook URL stored encrypted,
-  never returned). An event — deploy failed, deploy succeeded, agent connected, agent disconnected, app went
+  returned decrypted to Admins). An event — deploy failed, deploy succeeded, agent connected, agent disconnected, app went
   unhealthy (on the transition into unhealthy only), app manually started, app manually stopped — is formatted
   per type (Discord colour-coded embeds with a per-event icon / Generic structured JSON) and POSTed
   **fire-and-forget** through a singleton background `NotificationDispatcher`, so a slow/down endpoint never
@@ -133,8 +133,12 @@ same-host only (no overlay network), so an app and its datastore must attach to 
 - **Roles:** Operator = app lifecycle (create/deploy/rollback/env/logs/status, attach/detach apps to machines).
   Admin = host- or credential-bearing ops (volumes, registries, agent enroll/remove, users, set-domain). Gate any
   new host-reaching or credential-bearing endpoint behind Admin.
-- Secrets (env values, registry passwords, JWT key) encrypted / kept in `keys/` beside the DB. **Back up the
-  DB + the keys.** The API never returns plaintext.
+- Secrets (env values, registry passwords, notification URLs, JWT key) encrypted / kept in `keys/` beside the
+  DB. **Back up the DB + the keys.** These are **encrypted at rest but viewable**: the list APIs return the
+  decrypted value to any caller already authorized for the resource, masked-by-default with a reveal toggle
+  (the shared `SecretField`, a non-`password` text input so password managers ignore it) in the UI. Registry
+  passwords and channel URLs are Admin-only surfaces; env values are visible to any authenticated user
+  (matching env access). The JWT key is never exposed.
 - Front door serves **self-signed HTTPS by default** (Caddy `tls internal`); real domains get Let's Encrypt.
   Volume sources denylisted; image tags grammar-validated; the agent keeps a validation backstop on the
   rendered compose (rejects `privileged`/host-mounts/host-net/etc.).

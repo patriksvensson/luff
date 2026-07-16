@@ -2719,11 +2719,15 @@
       },
       "EnvVarResponse": {
         "required": [
-          "key"
+          "key",
+          "value"
         ],
         "type": "object",
         "properties": {
           "key": {
+            "type": "string"
+          },
+          "value": {
             "type": "string"
           }
         }
@@ -2801,7 +2805,8 @@
           "name",
           "type",
           "enabled",
-          "createdAt"
+          "createdAt",
+          "url"
         ],
         "type": "object",
         "properties": {
@@ -2821,6 +2826,9 @@
           "createdAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "url": {
+            "type": "string"
           }
         }
       },
@@ -2895,7 +2903,8 @@
       "RegistryResponse": {
         "required": [
           "host",
-          "username"
+          "username",
+          "password"
         ],
         "type": "object",
         "properties": {
@@ -2903,6 +2912,9 @@
             "type": "string"
           },
           "username": {
+            "type": "string"
+          },
+          "password": {
             "type": "string"
           }
         }

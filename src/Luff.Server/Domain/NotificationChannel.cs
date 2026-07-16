@@ -9,8 +9,8 @@ public sealed class NotificationChannel
     public bool Enabled { get; set; } = true;
     public required DateTimeOffset CreatedAt { get; init; }
 
-    public NotificationChannelResponse ToResponse()
+    public NotificationChannelResponse ToResponse(string url)
     {
-        return new NotificationChannelResponse(Id, Name, Type.ToString(), Enabled, CreatedAt);
+        return new NotificationChannelResponse(Id, Name, Type.ToString(), Enabled, CreatedAt, url);
     }
 }

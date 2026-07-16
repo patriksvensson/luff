@@ -14,11 +14,14 @@
                 @foreach (var channel in _channels)
                 {
                     <div class="chan-row">
-                        <span class="mono chan-name">@channel.Name</span>
-                        <span class="badge badge-neutral">@channel.Type</span>
-                        <span class="spacer"></span>
-                        <button class="btn btn-ghost btn-sm" @onclick="() => TestChannel(channel.Id)" disabled="@_busy">Send test</button>
-                        <button class="chan-remove" @onclick="() => StartRemoveChannel(channel)" disabled="@_busy">Remove</button>
+                        <div class="chan-main">
+                            <span class="mono chan-name">@channel.Name</span>
+                            <span class="badge badge-neutral">@channel.Type</span>
+                            <span class="spacer"></span>
+                            <button class="btn btn-ghost btn-sm" @onclick="() => TestChannel(channel.Id)" disabled="@_busy">Send test</button>
+                            <button class="chan-remove" @onclick="() => StartRemoveChannel(channel)" disabled="@_busy">Remove</button>
+                        </div>
+                        <SecretField Value="@channel.Url" ReadOnly="true" />
                     </div>
                 }
             </div>
@@ -55,10 +58,10 @@
                     <option value="Generic">Generic</option>
                 </select>
             </label>
-            <label class="field">
+            <div class="field">
                 <span class="field-label">Webhook URL</span>
-                <input class="input mono" placeholder="https://..." @bind="_chanUrl" autocomplete="off" />
-            </label>
+                <SecretField @bind-Value="_chanUrl" Placeholder="https://..." />
+            </div>
             @if (_chanError is not null)
             {
                 <div class="cfg-error">@_chanError</div>

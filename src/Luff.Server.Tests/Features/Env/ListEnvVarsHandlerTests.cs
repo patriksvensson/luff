@@ -38,4 +38,19 @@ public sealed class ListEnvVarsHandlerTests
         // Then
         exception.ShouldBeOfType<AppNotFoundException>();
     }
+
+    [Fact]
+    public async Task Should_Return_The_Decrypted_Value()
+    {
+        // Given
+        using var fixture = new EnvFixture();
+        await fixture.HasApp("web");
+        await fixture.SetEnv(new SetEnvVarHandler.Request("web", "DATABASE_URL", "postgres://secret"));
+
+        // When
+        var result = await fixture.ListEnv(new ListEnvVarsHandler.Request("web"));
+
+        // Then
+        result.ShouldHaveSingleItem().Value.ShouldBe("postgres://secret");
+    }
 }

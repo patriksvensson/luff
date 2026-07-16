@@ -5,27 +5,29 @@
         <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <rect x="5" y="11" width="14" height="9" rx="1.8" /><path d="M8 11V8a4 4 0 0 1 8 0v3" />
         </svg>
-        <span>Values are encrypted and <b>write-only</b>. You set keys but never read them back; changes apply on the next deploy.</span>
+        <span>Values are encrypted at rest. Reveal one with the eye toggle to copy it; changes apply on the next deploy.</span>
     </div>
 
-    @if (_keys is null)
+    @if (_vars is null)
     {
         <div class="eyebrow env-loading">Loading...</div>
     }
-    else if (_keys.Count == 0)
+    else if (_vars.Count == 0)
     {
         <div class="cfg-empty">No environment variables set.</div>
     }
     else
     {
         <div class="env-list">
-            @foreach (var key in _keys)
+            @foreach (var variable in _vars)
             {
                 <div class="card env-row">
-                    <span class="mono env-name">@key</span>
+                    <span class="mono env-name">@variable.Key</span>
                     <span class="spacer"></span>
-                    <span class="mono env-masked">••••••••••</span>
-                    <button class="env-remove" @onclick="() => StartUnset(key)" disabled="@_busy">Unset</button>
+                    <div class="env-value">
+                        <SecretField Value="@variable.Value" ReadOnly="true" />
+                    </div>
+                    <button class="env-remove" @onclick="() => StartUnset(variable.Key)" disabled="@_busy">Unset</button>
                 </div>
             }
         </div>
@@ -34,7 +36,9 @@
     <div class="env-add">
         <input class="input mono env-key" placeholder="KEY" @bind="_newKey" />
         <span class="env-eq mono">=</span>
-        <input class="input mono env-val" type="password" placeholder="value" @bind="_newValue" />
+        <div class="env-val">
+            <SecretField @bind-Value="_newValue" Placeholder="value" />
+        </div>
         <button class="btn btn-ghost env-set" @onclick="Add" disabled="@(_busy || string.IsNullOrWhiteSpace(_newKey))">Set variable</button>
     </div>
 
@@ -47,7 +51,7 @@
     {
         <ConfirmDelete Name="@_unsetting" Verb="Unset" Busy="_busy" Error="@_unsetError"
                        OnConfirm="ConfirmUnset" OnClose="CancelUnset">
-            Unsets <span class="mono">@_unsetting</span>. Values are write-only, so you'll have to set it again from scratch if you need it back. Applies on the next deploy.
+            Unsets <span class="mono">@_unsetting</span>. Reveal and copy the value first if you might still need it. Applies on the next deploy.
         </ConfirmDelete>
     }
 </div>
@@ -56,7 +60,7 @@
     [Parameter, EditorRequired]
     public string App { get; set; } = string.Empty;
 
-    private IReadOnlyList<string>? _keys;
+    private IReadOnlyList<EnvVarResponse>? _vars;
     private string _newKey = string.Empty;
     private string _newValue = string.Empty;
     private bool _busy;
@@ -66,11 +70,8 @@
 
     protected override Task OnInitializedAsync() => LoadAsync();
 
-    private async Task LoadAsync()
-    {
-        var vars = await Sender.Send(new ListEnvVarsHandler.Request(App));
-        _keys = [.. vars.Select(variable => variable.Key)];
-    }
+    private async Task LoadAsync() =>
+        _vars = await Sender.Send(new ListEnvVarsHandler.Request(App));
 
     private async Task Add()
     {
