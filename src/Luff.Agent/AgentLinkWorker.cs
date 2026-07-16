@@ -424,7 +424,8 @@ public sealed class AgentLinkWorker : BackgroundService
         {
             // A front-door failure must not tear down the whole link (deploys, logs, routes). Log it and carry on.
             // The control plane re-pushes on the next reconnect
-            await _agentDeployRunner.ConfigureFrontDoorAsync(frontDoor.Domain, frontDoor.Upstream, cancellationToken);
+            await _agentDeployRunner.ConfigureFrontDoorAsync(
+                frontDoor.Domain, frontDoor.Upstream, frontDoor.ManagedTls, cancellationToken);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {

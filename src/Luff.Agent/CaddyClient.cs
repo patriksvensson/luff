@@ -11,7 +11,7 @@ public interface ICaddyClient
     Task ConfigureRouteAsync(string host, string upstream, TlsRoute route, CancellationToken cancellationToken);
     Task RemoveRouteAsync(string host, CancellationToken cancellationToken);
     Task RerouteAsync(string oldHost, string newHost, TlsRoute route, CancellationToken cancellationToken);
-    Task ConfigureFrontDoorAsync(string domain, string upstream, CancellationToken cancellationToken);
+    Task ConfigureFrontDoorAsync(string domain, string upstream, bool managedTls, CancellationToken cancellationToken);
 }
 
 public sealed class CaddyClient : ICaddyClient, IDisposable
@@ -99,8 +99,14 @@ public sealed class CaddyClient : ICaddyClient, IDisposable
         await RemoveRouteAsync(oldHost, cancellationToken);
     }
 
-    public async Task ConfigureFrontDoorAsync(string domain, string upstream, CancellationToken cancellationToken)
+    public async Task ConfigureFrontDoorAsync(
+        string domain, string upstream, bool managedTls, CancellationToken cancellationToken)
     {
+        var issuer = new Dictionary<string, object?>
+        {
+            ["module"] = managedTls ? "acme" : "internal",
+        };
+
         var automation = new Dictionary<string, object?>
         {
             ["automation"] = new Dictionary<string, object?>
@@ -110,10 +116,7 @@ public sealed class CaddyClient : ICaddyClient, IDisposable
                     new Dictionary<string, object?>
                     {
                         ["subjects"] = new[] { domain },
-                        ["issuers"] = new[]
-                        {
-                            new Dictionary<string, object?> { ["module"] = "internal" },
-                        },
+                        ["issuers"] = new[] { issuer },
                     },
                 },
             },

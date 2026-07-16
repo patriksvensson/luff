@@ -73,10 +73,11 @@ public sealed class DeployRunnerFixture
         await runner.AssertRouteAsync(domain, upstream, route, cancellationToken);
     }
 
-    public async Task ConfigureFrontDoorAsync(string domain, string upstream, CancellationToken cancellationToken = default)
+    public async Task ConfigureFrontDoorAsync(
+        string domain, string upstream, bool managedTls, CancellationToken cancellationToken = default)
     {
         var runner = new AgentDeployRunner(DockerCompose, Caddy, TcpProbe, Clock);
-        await runner.ConfigureFrontDoorAsync(domain, upstream, cancellationToken);
+        await runner.ConfigureFrontDoorAsync(domain, upstream, managedTls, cancellationToken);
     }
 
     public static DeployRunnerFixture CreateForSuccess()

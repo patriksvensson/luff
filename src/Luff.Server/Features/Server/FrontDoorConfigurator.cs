@@ -41,6 +41,7 @@ public sealed class FrontDoorConfigurator
             {
                 Domain = domain,
                 Upstream = _options.Upstream,
+                ManagedTls = FrontDoor.UsesManagedTls(domain),
             },
         });
     }

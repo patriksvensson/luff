@@ -12,19 +12,17 @@ public sealed class CaddyClientTests
     public async Task Should_Replace_The_Front_Door_Config_In_Place_When_It_Already_Exists()
     {
         // Given
-        var fixture = new CaddyAdminClientFixture(
-            _ => HttpStatusCode.OK);
+        var fixture = new CaddyAdminClientFixture(_ => HttpStatusCode.OK);
 
         // When
         await fixture.Client.ConfigureFrontDoorAsync(
             "cp.example.com", "host.docker.internal:8080",
-            CancellationToken.None);
+            managedTls: true, CancellationToken.None);
 
         // Then
         fixture.Handler.Requests.ShouldBe(new[]
         {
-            (HttpMethod.Patch, "/config/apps/tls"),
-            (HttpMethod.Patch, "/id/luff-frontdoor"),
+            (HttpMethod.Patch, "/config/apps/tls"), (HttpMethod.Patch, "/id/luff-frontdoor"),
         });
     }
 
@@ -36,15 +34,14 @@ public sealed class CaddyClientTests
             request.Method == HttpMethod.Patch ? HttpStatusCode.NotFound : HttpStatusCode.OK);
 
         // When
-        await fixture.Client.ConfigureFrontDoorAsync("cp.example.com", "host.docker.internal:8080", CancellationToken.None);
+        await fixture.Client.ConfigureFrontDoorAsync(
+            "cp.example.com", "host.docker.internal:8080", managedTls: true, CancellationToken.None);
 
         // Then
         fixture.Handler.Requests.ShouldBe(new[]
         {
-            (HttpMethod.Patch, "/config/apps/tls"),
-            (HttpMethod.Put, "/config/apps/tls"),
-            (HttpMethod.Patch, "/id/luff-frontdoor"),
-            (HttpMethod.Post, "/config/apps/http/servers/srv443/routes"),
+            (HttpMethod.Patch, "/config/apps/tls"), (HttpMethod.Put, "/config/apps/tls"),
+            (HttpMethod.Patch, "/id/luff-frontdoor"), (HttpMethod.Post, "/config/apps/http/servers/srv443/routes"),
         });
     }
 
@@ -56,13 +53,12 @@ public sealed class CaddyClientTests
 
         // When
         await fixture.Client.ConfigureFrontDoorAsync(
-            "203.0.113.10", "server:8080", CancellationToken.None);
+            "203.0.113.10", "server:8080", managedTls: false, CancellationToken.None);
 
         // Then
         fixture.Handler.Requests.ShouldBe(new[]
         {
-            (HttpMethod.Patch, "/config/apps/tls"),
-            (HttpMethod.Patch, "/id/luff-frontdoor"),
+            (HttpMethod.Patch, "/config/apps/tls"), (HttpMethod.Patch, "/id/luff-frontdoor"),
             (HttpMethod.Patch, "/config/apps/http/servers/srv443/tls_connection_policies"),
         });
     }
@@ -75,14 +71,41 @@ public sealed class CaddyClientTests
 
         // When
         await fixture.Client.ConfigureFrontDoorAsync(
-            "cp.example.com", "server:8080", CancellationToken.None);
+            "cp.example.com", "server:8080", managedTls: true, CancellationToken.None);
 
         // Then
         fixture.Handler.Requests.ShouldBe(new[]
         {
-            (HttpMethod.Patch, "/config/apps/tls"),
-            (HttpMethod.Patch, "/id/luff-frontdoor"),
+            (HttpMethod.Patch, "/config/apps/tls"), (HttpMethod.Patch, "/id/luff-frontdoor"),
         });
+    }
+
+    [Fact]
+    public async Task Should_Issue_A_Managed_Cert_When_The_Front_Door_Domain_Is_Real()
+    {
+        // Given
+        var fixture = new CaddyAdminClientFixture(_ => HttpStatusCode.OK);
+
+        // When
+        await fixture.Client.ConfigureFrontDoorAsync(
+            "cp.example.com", "server:8080", managedTls: true, CancellationToken.None);
+
+        // Then
+        fixture.Handler.Bodies.ShouldContain(body => body != null && body.Contains("acme"));
+    }
+
+    [Fact]
+    public async Task Should_Issue_A_Self_Signed_Cert_When_The_Front_Door_Domain_Is_Not_Real()
+    {
+        // Given
+        var fixture = new CaddyAdminClientFixture(_ => HttpStatusCode.OK);
+
+        // When
+        await fixture.Client.ConfigureFrontDoorAsync(
+            "127.0.0.1.sslip.io", "server:8080", managedTls: false, CancellationToken.None);
+
+        // Then
+        fixture.Handler.Bodies.ShouldContain(body => body != null && body.Contains("internal"));
     }
 
     [Fact]
@@ -93,7 +116,8 @@ public sealed class CaddyClientTests
             request.Method == HttpMethod.Patch ? HttpStatusCode.NotFound : HttpStatusCode.OK);
 
         // When
-        await fixture.Client.ConfigureRouteAsync("web.example.com", "web-d1:80", TlsRoute.Managed, CancellationToken.None);
+        await fixture.Client.ConfigureRouteAsync("web.example.com", "web-d1:80", TlsRoute.Managed,
+            CancellationToken.None);
 
         // Then
         fixture.Handler.Requests.ShouldBe(new[]
@@ -111,7 +135,8 @@ public sealed class CaddyClientTests
             request.Method == HttpMethod.Patch ? HttpStatusCode.NotFound : HttpStatusCode.OK);
 
         // When
-        await fixture.Client.ConfigureRouteAsync("web.127.0.0.1.sslip.io", "web-d1:80", TlsRoute.Http, CancellationToken.None);
+        await fixture.Client.ConfigureRouteAsync("web.127.0.0.1.sslip.io", "web-d1:80", TlsRoute.Http,
+            CancellationToken.None);
 
         // Then
         fixture.Handler.Requests.ShouldBe(new[]
@@ -129,7 +154,9 @@ public sealed class CaddyClientTests
             request.Method == HttpMethod.Patch ? HttpStatusCode.NotFound : HttpStatusCode.OK);
 
         // When
-        await fixture.Client.ConfigureRouteAsync("app.example.com", "app-d1:80", TlsRoute.External, CancellationToken.None);
+        await fixture.Client.ConfigureRouteAsync(
+            "app.example.com", "app-d1:80",
+            TlsRoute.External, CancellationToken.None);
 
         // Then
         fixture.Handler.Requests.ShouldContain((HttpMethod.Post, "/config/apps/http/servers/srv0/routes"));
@@ -145,7 +172,10 @@ public sealed class CaddyClientTests
             request.Method == HttpMethod.Patch ? HttpStatusCode.NotFound : HttpStatusCode.OK);
 
         // When
-        await fixture.Client.ConfigureRouteAsync("web.127.0.0.1.sslip.io", "web-d1:80", TlsRoute.Http, CancellationToken.None);
+        await fixture.Client.ConfigureRouteAsync(
+            "web.127.0.0.1.sslip.io", "web-d1:80",
+            TlsRoute.Http,
+            CancellationToken.None);
 
         // Then
         fixture.Handler.Bodies.ShouldAllBe(body => body == null || !body.Contains("X-Forwarded-Proto"));
@@ -163,7 +193,8 @@ public sealed class CaddyClientTests
             request => request.Method == HttpMethod.Get ? "[{\"dial\":\"web-d1:80\"}]" : null);
 
         // When
-        await fixture.Client.RerouteAsync("old.example.com", "new.example.com", TlsRoute.Managed, CancellationToken.None);
+        await fixture.Client.RerouteAsync("old.example.com", "new.example.com", TlsRoute.Managed,
+            CancellationToken.None);
 
         // Then
         fixture.Handler.Requests.ShouldBe(new[]

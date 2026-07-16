@@ -13,6 +13,7 @@ public sealed class FakeCaddyClient : ICaddyClient
     public TlsRoute? RerouteKind { get; private set; }
     public string? FrontDoorDomain { get; private set; }
     public string? FrontDoorUpstream { get; private set; }
+    public bool? FrontDoorManagedTls { get; private set; }
 
     public Task ConfigureRouteAsync(string host, string upstream, TlsRoute route, CancellationToken cancellationToken)
     {
@@ -36,10 +37,12 @@ public sealed class FakeCaddyClient : ICaddyClient
         return Task.CompletedTask;
     }
 
-    public Task ConfigureFrontDoorAsync(string domain, string upstream, CancellationToken cancellationToken)
+    public Task ConfigureFrontDoorAsync(
+        string domain, string upstream, bool managedTls, CancellationToken cancellationToken)
     {
         FrontDoorDomain = domain;
         FrontDoorUpstream = upstream;
+        FrontDoorManagedTls = managedTls;
         return Task.CompletedTask;
     }
 }

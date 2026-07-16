@@ -268,9 +268,10 @@ public sealed class AgentDeployRunner
         await _caddy.ConfigureRouteAsync(domain, upstream, route, cancellationToken);
     }
 
-    public async Task ConfigureFrontDoorAsync(string domain, string upstream, CancellationToken cancellationToken)
+    public async Task ConfigureFrontDoorAsync(
+        string domain, string upstream, bool managedTls, CancellationToken cancellationToken)
     {
-        await _caddy.ConfigureFrontDoorAsync(domain, upstream, cancellationToken);
+        await _caddy.ConfigureFrontDoorAsync(domain, upstream, managedTls, cancellationToken);
     }
 
     private static DeployResult Failure(Deploy deploy, string reason)

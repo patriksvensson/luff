@@ -539,11 +539,12 @@ public sealed class AgentDeployRunnerTests
 
         // When
         await fixture.ConfigureFrontDoorAsync(
-            "cp.example.com", "host.docker.internal:8080", CancellationToken.None);
+            "cp.example.com", "host.docker.internal:8080", managedTls: true, CancellationToken.None);
 
         // Then
         fixture.Caddy.FrontDoorDomain.ShouldBe("cp.example.com");
         fixture.Caddy.FrontDoorUpstream.ShouldBe("host.docker.internal:8080");
+        fixture.Caddy.FrontDoorManagedTls.ShouldBe(true);
     }
 
     [Fact]
