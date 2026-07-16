@@ -2,7 +2,7 @@ using Luff.Protobuf;
 
 namespace Luff.Agent;
 
-public delegate Task DeployProgressReporter(string phase, CancellationToken cancellationToken);
+public delegate Task DeployProgressReporter(DeployPhase phase, CancellationToken cancellationToken);
 
 public sealed class AgentDeployRunner
 {
@@ -25,7 +25,7 @@ public sealed class AgentDeployRunner
     public async Task<DeployResult> RunAsync(
         Deploy deploy, DeployProgressReporter? report, CancellationToken cancellationToken)
     {
-        Task Report(string phase) => report is null ? Task.CompletedTask : report(phase, cancellationToken);
+        Task Report(DeployPhase phase) => report is null ? Task.CompletedTask : report(phase, cancellationToken);
 
         var violation = DockerComposeValidator.Validate(deploy.Compose);
         if (violation is not null)
@@ -215,7 +215,7 @@ public sealed class AgentDeployRunner
                 : "the container is not running";
         }
 
-        if (string.Equals(status.Health, "unhealthy", StringComparison.OrdinalIgnoreCase))
+        if (status.Health == DockerHealth.Unhealthy)
         {
             return "the container reported an unhealthy health check";
         }

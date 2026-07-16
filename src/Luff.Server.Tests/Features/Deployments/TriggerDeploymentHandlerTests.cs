@@ -22,7 +22,7 @@ public sealed class TriggerDeploymentHandlerTests
         result.ShouldSatisfyAllConditions(
             deployment => deployment.App.ShouldBe("web"),
             deployment => deployment.Tag.ShouldBe("v1"),
-            deployment => deployment.Status.ShouldBe("InProgress"));
+            deployment => deployment.Status.ShouldBe(DeploymentStatus.InProgress));
     }
 
     [Fact]
@@ -37,7 +37,7 @@ public sealed class TriggerDeploymentHandlerTests
         var result = await fixture.TriggerDeployment("web", "v1");
 
         // Then
-        result.Status.ShouldBe("InProgress");
+        result.Status.ShouldBe(DeploymentStatus.InProgress);
         (await fixture.FindApp("web")).ShouldNotBeNull().Stopped.ShouldBeFalse();
     }
 
@@ -53,7 +53,7 @@ public sealed class TriggerDeploymentHandlerTests
 
         // Then
         result.ShouldSatisfyAllConditions(
-            deployment => deployment.Status.ShouldBe("Failed"),
+            deployment => deployment.Status.ShouldBe(DeploymentStatus.Failed),
             deployment => deployment.FailureReason.ShouldBe("The app is not attached to any agent"));
     }
 
@@ -84,7 +84,7 @@ public sealed class TriggerDeploymentHandlerTests
         var result = await fixture.TriggerDeployment("web", "v2");
 
         // Then
-        result.Status.ShouldBe("Pending");
+        result.Status.ShouldBe(DeploymentStatus.Pending);
         var deployments = await fixture.GetDeployments("web");
         deployments.Where(deployment => deployment.Status == DeploymentStatus.Pending)
             .ShouldHaveSingleItem().Tag.ShouldBe("v2");

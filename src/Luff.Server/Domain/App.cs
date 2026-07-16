@@ -23,9 +23,9 @@ public static class AppExtensions
     public static AppResponse ToResponse(this App app)
     {
         return new AppResponse(
-            app.Name, app.Kind.ToString(), app.Image, app.Domain, app.TlsMode.ToString(), app.InternalPort,
+            app.Name, app.Kind, app.Image, app.Domain, app.TlsMode, app.InternalPort,
             app.Stopped, app.CurrentImageTag, app.PreviousImageTag,
             new HealthCheckContract(
-                app.HealthCheckType.ToString(), app.HealthCheckEndpoint, app.HealthCheckTimeoutSeconds));
+                app.HealthCheckType, app.HealthCheckEndpoint, app.HealthCheckTimeoutSeconds));
     }
 }

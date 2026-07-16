@@ -103,7 +103,7 @@ public sealed class UpdateAppHandlerTests
         var reader = fixture.Agents.Register("agent-1");
 
         // When
-        await fixture.UpdateApp("web", "nginx", "web.example.com", 80, tlsMode: "external");
+        await fixture.UpdateApp("web", "nginx", "web.example.com", 80, tlsMode: TlsMode.External);
 
         // Then
         reader.TryRead(out var message).ShouldBeTrue();
@@ -123,7 +123,7 @@ public sealed class UpdateAppHandlerTests
         var reader = fixture.Agents.Register("agent-1");
 
         // When
-        await fixture.UpdateApp("web", "nginx", "web.127.0.0.1.sslip.io", 80, tlsMode: "external");
+        await fixture.UpdateApp("web", "nginx", "web.127.0.0.1.sslip.io", 80, tlsMode: TlsMode.External);
 
         // Then
         reader.TryRead(out _).ShouldBeFalse();

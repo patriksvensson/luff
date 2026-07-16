@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 
@@ -39,7 +40,22 @@ public static class Program
             });
         });
 
-        builder.Services.AddOpenApi("v1", options => options.OpenApiVersion = OpenApiSpecVersion.OpenApi3_0);
+        builder.Services.AddOpenApi("v1", options =>
+        {
+            options.OpenApiVersion = OpenApiSpecVersion.OpenApi3_0;
+            options.AddSchemaTransformer((schema, context, _) =>
+            {
+                if (context.JsonTypeInfo.Type.IsEnum && schema.Enum is { Count: > 0 })
+                {
+                    schema.Type = JsonSchemaType.String;
+                }
+
+                return Task.CompletedTask;
+            });
+        });
+
+        builder.Services.ConfigureHttpJsonOptions(options =>
+            options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 
         builder.Services.AddDbContext<LuffDbContext>(options => options.UseSqlite(connectionString));
 

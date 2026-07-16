@@ -1,5 +1,5 @@
 <span class="badge @_class">
-    @if (_icon == "warn")
+    @if (_warn)
     {
         <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M12 3.6 2.4 20.2h19.2z" />
@@ -24,18 +24,19 @@
     private string _class = string.Empty;
     private string _icon = string.Empty;
     private string _text = string.Empty;
+    private bool _warn;
 
     protected override void OnParametersSet()
     {
-        (_class, _icon, _text) = State switch
+        (_class, _icon, _text, _warn) = State switch
         {
-            AppHealthState.Live => ("badge-green", "dot-green", "live"),
-            AppHealthState.Deploying => ("badge-amber", "dot-amber", Compose("deploying")),
-            AppHealthState.Drift => ("badge-amber", "warn", Compose("drift")),
-            AppHealthState.Failed => ("badge-red", "dot-red", "deploy failed"),
-            AppHealthState.Unhealthy => ("badge-red", "warn", Compose("unhealthy")),
-            AppHealthState.Stopped => ("badge-neutral", "dot-neutral", "stopped"),
-            _ => ("badge-neutral", "dot-neutral", Compose("dormant")),
+            AppHealthState.Live => ("badge-green", "dot-green", "live", false),
+            AppHealthState.Deploying => ("badge-amber", "dot-amber", Compose("deploying"), false),
+            AppHealthState.Drift => ("badge-amber", "", Compose("drift"), true),
+            AppHealthState.Failed => ("badge-red", "dot-red", "deploy failed", false),
+            AppHealthState.Unhealthy => ("badge-red", "", Compose("unhealthy"), true),
+            AppHealthState.Stopped => ("badge-neutral", "dot-neutral", "stopped", false),
+            _ => ("badge-neutral", "dot-neutral", Compose("dormant"), false),
         };
     }
 

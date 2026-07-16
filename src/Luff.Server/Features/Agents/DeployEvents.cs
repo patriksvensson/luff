@@ -10,14 +10,14 @@ public sealed record DeployEvent(
     DeployEventKind Kind,
     Guid DeploymentId,
     string Agent,
-    string? Phase,
+    DeployPhase? Phase,
     bool Healthy,
     string? RunningTag,
     string? FailureReason);
 
 public interface IDeployEvents
 {
-    void PublishProgress(Guid deploymentId, string agent, string phase);
+    void PublishProgress(Guid deploymentId, string agent, DeployPhase phase);
 
     void PublishResult(Guid deploymentId, string agent, bool healthy, string runningTag, string? failureReason);
 
@@ -29,7 +29,7 @@ public sealed class DeployEvents : IDeployEvents
     private readonly object _gate = new();
     private readonly Dictionary<Guid, Feed> _feeds = new();
 
-    public void PublishProgress(Guid deploymentId, string agent, string phase)
+    public void PublishProgress(Guid deploymentId, string agent, DeployPhase phase)
     {
         Publish(
             deploymentId,

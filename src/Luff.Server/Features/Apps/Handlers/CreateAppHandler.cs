@@ -9,13 +9,13 @@ public sealed class CreateAppHandler : IRequestHandler<CreateAppHandler.Request,
         public string Name { get; }
         public string Image { get; }
         public int InternalPort { get; }
-        public string? Kind { get; }
+        public AppKind? Kind { get; }
         public string? Domain { get; }
-        public string? TlsMode { get; }
+        public TlsMode? TlsMode { get; }
 
         public Request(
             string name, string image, int internalPort,
-            string? kind = null, string? domain = null, string? tlsMode = null)
+            AppKind? kind = null, string? domain = null, TlsMode? tlsMode = null)
         {
             Name = name ?? throw new ArgumentNullException(nameof(name));
             Image = image ?? throw new ArgumentNullException(nameof(image));
@@ -39,7 +39,7 @@ public sealed class CreateAppHandler : IRequestHandler<CreateAppHandler.Request,
             throw new AppAlreadyExistsException(request.Name);
         }
 
-        var kind = AppKinds.Parse(request.Kind);
+        var kind = request.Kind ?? AppKind.Web;
         var domain = string.IsNullOrWhiteSpace(request.Domain) ? null : request.Domain.Trim();
 
         if (kind == AppKind.Web && domain is null)
@@ -73,7 +73,7 @@ public sealed class CreateAppHandler : IRequestHandler<CreateAppHandler.Request,
             Domain = domain,
             InternalPort = request.InternalPort,
             // TLS is only meaningful for a web app's route; an internal service keeps the default and ignores it.
-            TlsMode = TlsRouting.ParseMode(request.TlsMode),
+            TlsMode = request.TlsMode ?? TlsMode.Managed,
             // An internal service has no HTTP endpoint, so default it to the agent-side TCP readiness probe.
             HealthCheckType = kind == AppKind.Web ? AppHealthCheckType.Docker : AppHealthCheckType.Tcp,
         };
@@ -89,7 +89,7 @@ public static class CreateAppHandlerExtensions
 {
     public static async Task<AppResponse> CreateApp(
         this ISender sender, string name, string image, int internalPort,
-        string? kind = null, string? domain = null, string? tlsMode = null,
+        AppKind? kind = null, string? domain = null, TlsMode? tlsMode = null,
         CancellationToken cancellationToken = default)
     {
         return await sender.Send(

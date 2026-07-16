@@ -62,10 +62,10 @@
         }
     </div>
 
-    <div class="pipe-foot pipe-foot-@Outcome">
+    <div class="pipe-foot pipe-foot-@OutcomeClass">
         @switch (Outcome)
         {
-            case "succeeded":
+            case DeployOutcome.Succeeded:
                 <span class="foot-mark foot-ok">
                     <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-11" /></svg>
                 </span>
@@ -78,7 +78,7 @@
                 </div>
                 <button class="btn btn-primary" @onclick="OnClose">Done</button>
                 break;
-            case "failed":
+            case DeployOutcome.Failed:
                 <span class="foot-mark foot-fail">
                     <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v5M12 16.5h.01" /><circle cx="12" cy="12" r="9" /></svg>
                 </span>
@@ -122,7 +122,14 @@
     public IReadOnlyList<DeployLane> Lanes { get; set; } = [];
 
     [Parameter]
-    public string Outcome { get; set; } = "running";
+    public DeployOutcome Outcome { get; set; } = DeployOutcome.Running;
+
+    private string OutcomeClass => Outcome switch
+    {
+        DeployOutcome.Failed => "failed",
+        DeployOutcome.Succeeded => "succeeded",
+        _ => "running",
+    };
 
     [Parameter]
     public string? AppUrl { get; set; }
@@ -165,7 +172,7 @@
         };
     }
 
-    private static int PhaseStep(string? phase) => phase switch
+    private static int PhaseStep(DeployPhase? phase) => phase switch
     {
         DeployPhase.Pulling => 0,
         DeployPhase.Starting => 1,

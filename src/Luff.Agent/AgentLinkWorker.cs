@@ -226,8 +226,8 @@ public sealed class AgentLinkWorker : BackgroundService
                     report.Apps.Add(new ContainerHealth
                     {
                         App = container.App,
-                        Status = MapHealth(container.State, container.Health),
-                        Detail = container.Health ?? container.State,
+                        Status = container.Status,
+                        Detail = container.Detail,
                     });
                 }
 
@@ -237,27 +237,6 @@ public sealed class AgentLinkWorker : BackgroundService
         catch (OperationCanceledException)
         {
         }
-    }
-
-    private static RuntimeHealth MapHealth(string state, string? health)
-    {
-        if (string.Equals(health, "unhealthy", StringComparison.OrdinalIgnoreCase))
-        {
-            return RuntimeHealth.Unhealthy;
-        }
-
-        if (string.Equals(health, "starting", StringComparison.OrdinalIgnoreCase))
-        {
-            return RuntimeHealth.Starting;
-        }
-
-        return state.ToLowerInvariant() switch
-        {
-            "running" => RuntimeHealth.Healthy,
-            "restarting" => RuntimeHealth.Unhealthy,
-            "exited" => RuntimeHealth.Stopped,
-            _ => RuntimeHealth.Unknown,
-        };
     }
 
     private async Task HandleStopApp(StopApp stop, CancellationToken cancellationToken)

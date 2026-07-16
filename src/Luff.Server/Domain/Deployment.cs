@@ -15,7 +15,7 @@ public sealed class Deployment
     {
         return new DeploymentResponse(
             Id, AppName, Tag,
-            Status.ToString(),
+            Status,
             FailureReason, CreatedAt);
     }
 }

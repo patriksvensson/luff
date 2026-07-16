@@ -143,7 +143,15 @@ enum HealthCheckKind {
 
 message DeployProgress {
   string deployment_id = 1;
-  string phase = 2;
+  DeployPhase phase = 2;
+}
+
+enum DeployPhase {
+  DEPLOY_PHASE_PULLING = 0;
+  DEPLOY_PHASE_STARTING = 1;
+  DEPLOY_PHASE_HEALTHY = 2;
+  DEPLOY_PHASE_SWAPPING = 3;
+  DEPLOY_PHASE_DRAINING = 4;
 }
 
 message DeployResult {

@@ -40,7 +40,7 @@ public static class AgentEndpoints
     private static IEnumerable<AgentResponse> ListAgents(AgentRegistry registry)
     {
         return registry.List()
-            .Select(agent => new AgentResponse(agent.Name, agent.Status.ToString(), agent.Version));
+            .Select(agent => new AgentResponse(agent.Name, agent.Status, agent.Version));
     }
 
     private static async Task<Created<EnrollAgentResponse>> Enroll(

@@ -50,7 +50,7 @@
             {
                 @foreach (var line in Newest())
                 {
-                    <div class="logs-line @(line.Stream == "stderr" ? "is-err" : null)">
+                    <div class="logs-line @(line.Stream == LogStreamKind.Stderr ? "is-err" : null)">
                         @if (line.Timestamp is { } timestamp)
                         {
                             <span class="logs-ts mono">@timestamp.ToLocalTime().ToString("HH:mm:ss.fff")</span>

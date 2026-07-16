@@ -108,7 +108,7 @@ public sealed class AgentDeployRunnerTests
         // Then
         result.Healthy.ShouldBeTrue();
         fixture.Caddy.Host.ShouldBeNull();
-        fixture.Phases.ShouldNotContain("swapping");
+        fixture.Phases.ShouldNotContain(DeployPhase.Swapping);
     }
 
     [Fact]
@@ -130,7 +130,7 @@ public sealed class AgentDeployRunnerTests
         // Given
         var fixture = DeployRunnerFixture.CreateForSuccess();
         fixture.DockerCompose.InspectResult = new ContainerStatus(
-            Running: true, Restarting: true, RestartCount: 3, ExitCode: 1, Health: null);
+            Running: true, Restarting: true, RestartCount: 3, ExitCode: 1, Health: DockerHealth.None);
         fixture.DockerCompose.TailedLogs = "FATAL: password authentication failed";
 
         // When
@@ -151,7 +151,7 @@ public sealed class AgentDeployRunnerTests
         result.Healthy.ShouldBeFalse();
         result.FailureReason.ShouldContain("restart-looping");
         result.FailureReason.ShouldContain("password authentication failed");
-        fixture.Phases.ShouldNotContain("swapping");
+        fixture.Phases.ShouldNotContain(DeployPhase.Swapping);
     }
 
     [Fact]
@@ -161,7 +161,7 @@ public sealed class AgentDeployRunnerTests
         var fixture = DeployRunnerFixture.CreateForSuccess();
         fixture.TcpProbe.Connects = false;
         fixture.DockerCompose.InspectResult = new ContainerStatus(
-            Running: false, Restarting: false, RestartCount: 0, ExitCode: 1, Health: null);
+            Running: false, Restarting: false, RestartCount: 0, ExitCode: 1, Health: DockerHealth.None);
         fixture.DockerCompose.TailedLogs = "You must specify POSTGRES_PASSWORD";
 
         // When
@@ -605,7 +605,8 @@ public sealed class AgentDeployRunnerTests
             CancellationToken.None);
 
         // Then
-        fixture.Phases.ShouldBe(["pulling", "starting", "healthy", "swapping", "draining"]);
+        fixture.Phases.ShouldBe(
+            [DeployPhase.Pulling, DeployPhase.Starting, DeployPhase.Healthy, DeployPhase.Swapping, DeployPhase.Draining]);
         fixture.DockerCompose.Pulled.ShouldBeTrue();
     }
 
@@ -634,6 +635,6 @@ public sealed class AgentDeployRunnerTests
         // Then
         result.Healthy.ShouldBeFalse();
         result.FailureReason.ShouldBe("no such image");
-        fixture.Phases.ShouldBe(["pulling"]);
+        fixture.Phases.ShouldBe([DeployPhase.Pulling]);
     }
 }

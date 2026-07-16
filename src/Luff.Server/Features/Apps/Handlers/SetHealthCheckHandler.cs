@@ -7,14 +7,14 @@ public sealed class SetHealthCheckHandler : IRequestHandler<SetHealthCheckHandle
     public sealed class Request : IRequest<AppResponse>
     {
         public string Name { get; }
-        public string Type { get; }
+        public AppHealthCheckType Type { get; }
         public string? Endpoint { get; }
         public int TimeoutSeconds { get; }
 
-        public Request(string name, string type, string? endpoint, int timeoutSeconds)
+        public Request(string name, AppHealthCheckType type, string? endpoint, int timeoutSeconds)
         {
             Name = name ?? throw new ArgumentNullException(nameof(name));
-            Type = type ?? throw new ArgumentNullException(nameof(type));
+            Type = type;
             Endpoint = endpoint;
             TimeoutSeconds = timeoutSeconds;
         }
@@ -30,13 +30,7 @@ public sealed class SetHealthCheckHandler : IRequestHandler<SetHealthCheckHandle
         var app = await _database.Apps.FindAsync([request.Name], cancellationToken)
             ?? throw new AppNotFoundException(request.Name);
 
-        if (!Enum.TryParse<AppHealthCheckType>(request.Type, ignoreCase: true, out var type))
-        {
-            throw new InvalidHealthCheckException(
-                $"Unknown health check type '{request.Type}'. Use docker, http, tcp, or none");
-        }
-
-        if (!app.IsCaddyFronted && type == AppHealthCheckType.Http)
+        if (!app.IsCaddyFronted && request.Type == AppHealthCheckType.Http)
         {
             throw new InvalidHealthCheckException(
                 "Only a web app can use an HTTP health check. Use docker, tcp, or none");
@@ -49,7 +43,7 @@ public sealed class SetHealthCheckHandler : IRequestHandler<SetHealthCheckHandle
         }
 
         string? endpoint = null;
-        if (type == AppHealthCheckType.Http)
+        if (request.Type == AppHealthCheckType.Http)
         {
             endpoint = string.IsNullOrEmpty(request.Endpoint) ? "/" : request.Endpoint;
             if (!AppHealthCheck.IsValidEndpoint(endpoint))
@@ -59,7 +53,7 @@ public sealed class SetHealthCheckHandler : IRequestHandler<SetHealthCheckHandle
             }
         }
 
-        app.HealthCheckType = type;
+        app.HealthCheckType = request.Type;
         app.HealthCheckEndpoint = endpoint;
         app.HealthCheckTimeoutSeconds = timeout;
 
@@ -72,7 +66,7 @@ public sealed class SetHealthCheckHandler : IRequestHandler<SetHealthCheckHandle
 public static class SetHealthCheckHandlerExtensions
 {
     public static async Task<AppResponse> SetHealthCheck(
-        this ISender sender, string name, string type, string? endpoint, int timeoutSeconds,
+        this ISender sender, string name, AppHealthCheckType type, string? endpoint, int timeoutSeconds,
         CancellationToken cancellationToken = default)
     {
         return await sender.Send(

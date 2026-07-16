@@ -219,17 +219,17 @@ else
 
     private bool _creating;
     private string _name = string.Empty;
-    private string _kind = "Web";
+    private AppKind _kind = AppKind.Web;
     private string _image = string.Empty;
     private string _domain = string.Empty;
     private string _port = "8080";
-    private string _tlsMode = "Managed";
+    private TlsMode _tlsMode = TlsMode.Managed;
     private bool _busy;
     private string? _error;
 
-    private bool Internal => _kind == "Internal";
-    private bool Direct => _kind == "Direct";
-    private bool Frontless => _kind != "Web";
+    private bool Internal => _kind == AppKind.Internal;
+    private bool Direct => _kind == AppKind.Direct;
+    private bool Frontless => _kind != AppKind.Web;
 
     private bool CanCreate =>
         !string.IsNullOrWhiteSpace(_name)
@@ -273,11 +273,11 @@ else
     private void StartCreate()
     {
         _name = string.Empty;
-        _kind = "Web";
+        _kind = AppKind.Web;
         _image = string.Empty;
         _domain = string.Empty;
         _port = "8080";
-        _tlsMode = "Managed";
+        _tlsMode = TlsMode.Managed;
         _error = null;
         _creating = true;
     }

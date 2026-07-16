@@ -64,7 +64,7 @@ public sealed class CreateAppHandlerTests
         var result = await fixture.CreateApp("web", "nginx", "web.example.com", 80);
 
         // Then
-        result.TlsMode.ShouldBe("Managed");
+        result.TlsMode.ShouldBe(TlsMode.Managed);
     }
 
     [Fact]
@@ -74,24 +74,10 @@ public sealed class CreateAppHandlerTests
         using var fixture = new AppsFixture();
 
         // When
-        var result = await fixture.CreateApp("web", "nginx", "web.example.com", 80, tlsMode: "external");
+        var result = await fixture.CreateApp("web", "nginx", "web.example.com", 80, tlsMode: TlsMode.External);
 
         // Then
-        result.TlsMode.ShouldBe("External");
-    }
-
-    [Fact]
-    public async Task Should_Throw_On_An_Unknown_Tls_Mode()
-    {
-        // Given
-        using var fixture = new AppsFixture();
-
-        // When
-        var exception = await Record.ExceptionAsync(() =>
-            fixture.CreateApp("web", "nginx", "web.example.com", 80, tlsMode: "bogus"));
-
-        // Then
-        exception.ShouldBeOfType<InvalidTlsModeException>();
+        result.TlsMode.ShouldBe(TlsMode.External);
     }
 
     [Fact]
@@ -104,7 +90,7 @@ public sealed class CreateAppHandlerTests
         var result = await fixture.CreateApp("web", "nginx", "web.example.com", 80);
 
         // Then
-        result.Kind.ShouldBe("Web");
+        result.Kind.ShouldBe(AppKind.Web);
     }
 
     [Fact]
@@ -115,7 +101,7 @@ public sealed class CreateAppHandlerTests
 
         // When
         var exception = await Record.ExceptionAsync(() =>
-            fixture.CreateApp(new CreateAppHandler.Request("web", "nginx", 80, kind: "Web", domain: null)));
+            fixture.CreateApp(new CreateAppHandler.Request("web", "nginx", 80, kind: AppKind.Web, domain: null)));
 
         // Then
         exception.ShouldBeOfType<InvalidDomainException>();
@@ -129,14 +115,14 @@ public sealed class CreateAppHandlerTests
 
         // When
         var result = await fixture.CreateApp(
-            new CreateAppHandler.Request("postgres", "postgres", 5432, kind: "Internal"));
+            new CreateAppHandler.Request("postgres", "postgres", 5432, kind: AppKind.Internal));
 
         // Then
         result.ShouldSatisfyAllConditions(
-            app => app.Kind.ShouldBe("Internal"),
+            app => app.Kind.ShouldBe(AppKind.Internal),
             app => app.Domain.ShouldBeNull(),
             app => app.InternalPort.ShouldBe(5432),
-            app => app.HealthCheck.Type.ShouldBe("Tcp"));
+            app => app.HealthCheck.Type.ShouldBe(AppHealthCheckType.Tcp));
     }
 
     [Fact]
@@ -148,7 +134,7 @@ public sealed class CreateAppHandlerTests
         // When
         var exception = await Record.ExceptionAsync(() =>
             fixture.CreateApp(new CreateAppHandler.Request(
-                "postgres", "postgres", 5432, kind: "Internal", domain: "db.example.com")));
+                "postgres", "postgres", 5432, kind: AppKind.Internal, domain: "db.example.com")));
 
         // Then
         exception.ShouldBeOfType<InternalServiceDomainException>();
@@ -165,24 +151,10 @@ public sealed class CreateAppHandlerTests
 
         // When
         var exception = await Record.ExceptionAsync(() =>
-            fixture.CreateApp(new CreateAppHandler.Request(name, "postgres", 5432, kind: "Internal")));
+            fixture.CreateApp(new CreateAppHandler.Request(name, "postgres", 5432, kind: AppKind.Internal)));
 
         // Then
         exception.ShouldBeOfType<ReservedServiceNameException>();
-    }
-
-    [Fact]
-    public async Task Should_Throw_On_An_Unknown_Kind()
-    {
-        // Given
-        using var fixture = new AppsFixture();
-
-        // When
-        var exception = await Record.ExceptionAsync(() =>
-            fixture.CreateApp(new CreateAppHandler.Request("web", "nginx", 80, kind: "bogus", domain: "web.example.com")));
-
-        // Then
-        exception.ShouldBeOfType<InvalidAppKindException>();
     }
 
     [Fact]
@@ -193,14 +165,14 @@ public sealed class CreateAppHandlerTests
 
         // When
         var result = await fixture.CreateApp(
-            new CreateAppHandler.Request("tool", "grafana", 3000, kind: "Direct"));
+            new CreateAppHandler.Request("tool", "grafana", 3000, kind: AppKind.Direct));
 
         // Then
         result.ShouldSatisfyAllConditions(
-            app => app.Kind.ShouldBe("Direct"),
+            app => app.Kind.ShouldBe(AppKind.Direct),
             app => app.Domain.ShouldBeNull(),
             app => app.InternalPort.ShouldBe(3000),
-            app => app.HealthCheck.Type.ShouldBe("Tcp"));
+            app => app.HealthCheck.Type.ShouldBe(AppHealthCheckType.Tcp));
     }
 
     [Fact]
@@ -212,7 +184,7 @@ public sealed class CreateAppHandlerTests
         // When
         var exception = await Record.ExceptionAsync(() =>
             fixture.CreateApp(new CreateAppHandler.Request(
-                "tool", "grafana", 3000, kind: "Direct", domain: "tool.example.com")));
+                "tool", "grafana", 3000, kind: AppKind.Direct, domain: "tool.example.com")));
 
         // Then
         exception.ShouldBeOfType<DirectAppDomainException>();
@@ -229,7 +201,7 @@ public sealed class CreateAppHandlerTests
 
         // When
         var exception = await Record.ExceptionAsync(() =>
-            fixture.CreateApp(new CreateAppHandler.Request(name, "grafana", 3000, kind: "Direct")));
+            fixture.CreateApp(new CreateAppHandler.Request(name, "grafana", 3000, kind: AppKind.Direct)));
 
         // Then
         exception.ShouldBeOfType<ReservedServiceNameException>();

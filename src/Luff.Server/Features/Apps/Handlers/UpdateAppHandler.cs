@@ -11,9 +11,9 @@ public sealed class UpdateAppHandler : IRequestHandler<UpdateAppHandler.Request,
         public string Image { get; }
         public int InternalPort { get; }
         public string? Domain { get; }
-        public string? TlsMode { get; }
+        public TlsMode? TlsMode { get; }
 
-        public Request(string name, string image, int internalPort, string? domain = null, string? tlsMode = null)
+        public Request(string name, string image, int internalPort, string? domain = null, TlsMode? tlsMode = null)
         {
             Name = name ?? throw new ArgumentNullException(nameof(name));
             Image = image ?? throw new ArgumentNullException(nameof(image));
@@ -67,7 +67,7 @@ public sealed class UpdateAppHandler : IRequestHandler<UpdateAppHandler.Request,
         app.Image = request.Image;
         app.Domain = domain;
         app.InternalPort = request.InternalPort;
-        app.TlsMode = TlsRouting.ParseMode(request.TlsMode);
+        app.TlsMode = request.TlsMode ?? TlsMode.Managed;
 
         await _database.SaveChangesAsync(cancellationToken);
 
@@ -108,7 +108,7 @@ public static class UpdateAppHandlerExtensions
 {
     public static async Task<AppResponse> UpdateApp(
         this ISender sender, string name, string image, int internalPort,
-        string? domain = null, string? tlsMode = null, CancellationToken cancellationToken = default)
+        string? domain = null, TlsMode? tlsMode = null, CancellationToken cancellationToken = default)
     {
         return await sender.Send(
             new UpdateAppHandler.Request(name, image, internalPort, domain, tlsMode),

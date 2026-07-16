@@ -33,9 +33,10 @@ public sealed class DeployEventsTests
         await done.Task.WaitAsync(TimeSpan.FromSeconds(2));
 
         // Then
-        received.Select(deployEvent => deployEvent.Phase ?? deployEvent.Kind.ToString())
-            .ShouldBe(["pulling", "starting", "Result"]);
+        received.Select(deployEvent => deployEvent.Phase)
+            .ShouldBe([DeployPhase.Pulling, DeployPhase.Starting, null]);
         received[^1].ShouldSatisfyAllConditions(
+            last => last.Kind.ShouldBe(DeployEventKind.Result),
             last => last.Healthy.ShouldBeTrue(),
             last => last.RunningTag.ShouldBe("v2"));
     }
@@ -65,7 +66,7 @@ public sealed class DeployEventsTests
         await got.Task.WaitAsync(TimeSpan.FromSeconds(2));
 
         // Then
-        received.Select(deployEvent => deployEvent.Phase).ShouldBe(["pulling", "starting"]);
+        received.Select(deployEvent => deployEvent.Phase).ShouldBe([DeployPhase.Pulling, DeployPhase.Starting]);
     }
 
     [Fact]

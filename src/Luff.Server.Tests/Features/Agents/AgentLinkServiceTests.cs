@@ -171,7 +171,7 @@ public sealed class AgentLinkServiceTests
         (await next).ShouldBeTrue();
         logs.Current.ShouldSatisfyAllConditions(
             chunk => chunk.Line.ShouldBe("boom"),
-            chunk => chunk.Stream.ShouldBe("stderr"),
+            chunk => chunk.Stream.ShouldBe(LogStreamKind.Stderr),
             chunk => chunk.Agent.ShouldBe("local"));
     }
 }

@@ -25,7 +25,7 @@ public sealed class TriggerWebhookHandlerTests
         result.ShouldSatisfyAllConditions(
             deployment => deployment.App.ShouldBe("web"),
             deployment => deployment.Tag.ShouldBe("v1"),
-            deployment => deployment.Status.ShouldBe("InProgress"));
+            deployment => deployment.Status.ShouldBe(DeploymentStatus.InProgress));
     }
 
     [Fact]

@@ -2358,6 +2358,14 @@
           }
         }
       },
+      "AgentConnectionStatus": {
+        "enum": [
+          "Pending",
+          "Connected",
+          "Disconnected"
+        ],
+        "type": "string"
+      },
       "AgentResponse": {
         "required": [
           "name",
@@ -2370,7 +2378,7 @@
             "type": "string"
           },
           "status": {
-            "type": "string"
+            "$ref": "#/components/schemas/AgentConnectionStatus"
           },
           "version": {
             "type": "string"
@@ -2397,6 +2405,23 @@
           }
         }
       },
+      "AppHealthCheckType": {
+        "enum": [
+          "Docker",
+          "Http",
+          "None",
+          "Tcp"
+        ],
+        "type": "string"
+      },
+      "AppKind": {
+        "enum": [
+          "Web",
+          "Internal",
+          "Direct"
+        ],
+        "type": "string"
+      },
       "AppResponse": {
         "required": [
           "name",
@@ -2416,7 +2441,7 @@
             "type": "string"
           },
           "kind": {
-            "type": "string"
+            "$ref": "#/components/schemas/AppKind"
           },
           "image": {
             "type": "string"
@@ -2426,7 +2451,7 @@
             "nullable": true
           },
           "tlsMode": {
-            "type": "string"
+            "$ref": "#/components/schemas/TlsMode"
           },
           "internalPort": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
@@ -2501,8 +2526,7 @@
             "type": "string"
           },
           "kind": {
-            "type": "string",
-            "nullable": true
+            "$ref": "#/components/schemas/AppKind"
           },
           "image": {
             "type": "string"
@@ -2516,8 +2540,7 @@
             "format": "int32"
           },
           "tlsMode": {
-            "type": "string",
-            "nullable": true
+            "$ref": "#/components/schemas/TlsMode"
           }
         }
       },
@@ -2627,7 +2650,7 @@
             "type": "string"
           },
           "status": {
-            "type": "string"
+            "$ref": "#/components/schemas/DeploymentStatus"
           },
           "failureReason": {
             "type": "string",
@@ -2638,6 +2661,15 @@
             "format": "date-time"
           }
         }
+      },
+      "DeploymentStatus": {
+        "enum": [
+          "Pending",
+          "InProgress",
+          "Succeeded",
+          "Failed"
+        ],
+        "type": "string"
       },
       "DeployRequest": {
         "type": "object",
@@ -2705,7 +2737,7 @@
         "type": "object",
         "properties": {
           "type": {
-            "type": "string"
+            "$ref": "#/components/schemas/AppHealthCheckType"
           },
           "endpoint": {
             "type": "string",
@@ -2980,6 +3012,13 @@
         "type": "string",
         "format": "binary"
       },
+      "TlsMode": {
+        "enum": [
+          "Managed",
+          "External"
+        ],
+        "type": "string"
+      },
       "TokenResponse": {
         "required": [
           "id",
@@ -3071,8 +3110,7 @@
             "format": "int32"
           },
           "tlsMode": {
-            "type": "string",
-            "nullable": true
+            "$ref": "#/components/schemas/TlsMode"
           }
         }
       },

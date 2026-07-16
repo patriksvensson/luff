@@ -15,7 +15,7 @@
                 <button type="button" class="hc-option @(_type == option.Value ? "is-selected" : null)" @onclick="() => _type = option.Value">
                     <span class="hc-radio"></span>
                     <div class="hc-text">
-                        <div class="mono hc-name">@option.Value</div>
+                        <div class="mono hc-name">@option.Label</div>
                         <div class="hc-desc">@option.Description</div>
                     </div>
                 </button>
@@ -23,7 +23,7 @@
         </div>
 
         <div class="hc-fields">
-            @if (_type == "http")
+            @if (_type == AppHealthCheckType.Http)
             {
                 <label class="field hc-endpoint">
                     <span class="field-label">Endpoint</span>
@@ -55,7 +55,7 @@
     [Parameter, EditorRequired]
     public string App { get; set; } = string.Empty;
 
-    private string? _type;
+    private AppHealthCheckType? _type;
     private string? _endpoint;
     private int _timeout = 300;
     private bool _internal;
@@ -63,16 +63,16 @@
     private bool _saved;
     private string? _error;
 
-    private sealed record Option(string Value, string Description);
+    private sealed record Option(AppHealthCheckType Value, string Label, string Description);
 
     private static readonly Option Docker =
-        new("docker", "Uses the image's own HEALTHCHECK. Recommended default.");
+        new(AppHealthCheckType.Docker, "docker", "Uses the image's own HEALTHCHECK. Recommended default.");
     private static readonly Option Http =
-        new("http", "Poll an endpoint until it responds. Needs a tool like wget/curl in the image.");
+        new(AppHealthCheckType.Http, "http", "Poll an endpoint until it responds. Needs a tool like wget/curl in the image.");
     private static readonly Option Tcp =
-        new("tcp", "The agent connects to the port until it accepts.");
+        new(AppHealthCheckType.Tcp, "tcp", "The agent connects to the port until it accepts.");
     private static readonly Option None =
-        new("none", "Don't gate on readiness. A crash-looping container is still caught.");
+        new(AppHealthCheckType.None, "none", "Don't gate on readiness. A crash-looping container is still caught.");
 
     // Every deploy also runs a crash-loop stabilization check, so these only add readiness gating on top.
     private Option[] AvailableOptions => _internal ? [Docker, Tcp, None] : [Docker, Http, Tcp, None];
@@ -80,8 +80,8 @@
     protected override async Task OnInitializedAsync()
     {
         var app = await Sender.Send(new GetAppHandler.Request(App));
-        _internal = app.Kind == "Internal";
-        _type = app.HealthCheck.Type.ToLowerInvariant();
+        _internal = app.Kind == AppKind.Internal;
+        _type = app.HealthCheck.Type;
         _endpoint = app.HealthCheck.Endpoint;
         _timeout = app.HealthCheck.TimeoutSeconds;
     }
@@ -94,7 +94,7 @@
         try
         {
             await Sender.Send(new SetHealthCheckHandler.Request(
-                App, _type!, _type == "http" ? _endpoint : null, _timeout));
+                App, _type!.Value, _type == AppHealthCheckType.Http ? _endpoint : null, _timeout));
             _saved = true;
         }
         catch (LuffException exception)

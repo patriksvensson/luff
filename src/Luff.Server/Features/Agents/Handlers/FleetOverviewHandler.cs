@@ -3,14 +3,15 @@ namespace Luff.Server.Features;
 public sealed class FleetAgent
 {
     public string Name { get; }
-    public string Status { get; }
+    public AgentConnectionStatus Status { get; }
     public string? Version { get; }
     public bool FrontDoor { get; }
     public IReadOnlyList<string> Apps { get; }
     public string? LastSeen { get; }
 
     public FleetAgent(
-        string name, string status, string? version, bool frontDoor, IReadOnlyList<string> apps, string? lastSeen)
+        string name, AgentConnectionStatus status, string? version, bool frontDoor, IReadOnlyList<string> apps,
+        string? lastSeen)
     {
         Name = name;
         Status = status;
@@ -52,8 +53,10 @@ public sealed class FleetOverviewHandler : IRequestHandler<FleetOverviewHandler.
                     snapshots.TryGetValue(agent.Name, out var snapshot);
 
                     var status = snapshot is not null
-                        ? snapshot.Status == AgentConnectionStatus.Connected ? "connected" : "disconnected"
-                        : agent.LastSeenAt is null ? "pending" : "disconnected";
+                        ? snapshot.Status == AgentConnectionStatus.Connected
+                            ? AgentConnectionStatus.Connected
+                            : AgentConnectionStatus.Disconnected
+                        : agent.LastSeenAt is null ? AgentConnectionStatus.Pending : AgentConnectionStatus.Disconnected;
 
                     var apps = attachments
                         .Where(attachment => attachment.AgentName == agent.Name)
@@ -61,7 +64,7 @@ public sealed class FleetOverviewHandler : IRequestHandler<FleetOverviewHandler.
                         .OrderBy(name => name, StringComparer.Ordinal)
                         .ToList();
 
-                    var lastSeen = status != "connected" && agent.LastSeenAt is not null
+                    var lastSeen = status != AgentConnectionStatus.Connected && agent.LastSeenAt is not null
                         ? AppHealth.Relative(now - agent.LastSeenAt.Value)
                         : null;
 

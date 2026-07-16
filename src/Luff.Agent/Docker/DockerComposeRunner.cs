@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Globalization;
+using Luff.Protobuf;
 
 namespace Luff.Agent;
 
@@ -219,7 +220,7 @@ public sealed class DockerComposeRunner : IDockerComposeRunner
             Restarting: string.Equals(parts[1], "true", StringComparison.OrdinalIgnoreCase),
             RestartCount: int.TryParse(parts[2], out var restarts) ? restarts : 0,
             ExitCode: int.TryParse(parts[3], out var code) ? code : null,
-            Health: string.IsNullOrWhiteSpace(parts[4]) ? null : parts[4]);
+            Health: ParseInspectHealth(parts[4]));
     }
 
     public async Task<IReadOnlyList<ContainerReport>> ListManagedAsync(CancellationToken cancellationToken)
@@ -237,17 +238,59 @@ public sealed class DockerComposeRunner : IDockerComposeRunner
                 continue;
             }
 
-            var status = parts.Length > 2 ? parts[2] : string.Empty;
-            var health = status.Contains("(unhealthy)", StringComparison.OrdinalIgnoreCase) ? "unhealthy"
-                : status.Contains("(health: starting)", StringComparison.OrdinalIgnoreCase) ? "starting"
-                : status.Contains("(healthy)", StringComparison.OrdinalIgnoreCase) ? "healthy"
-                : null;
+            var state = parts[1];
+            var statusText = parts.Length > 2 ? parts[2] : string.Empty;
+            var health = ParsePsHealth(statusText);
+            var detail = health != DockerHealth.None ? HealthLabel(health) : state;
 
-            reports.Add(new ContainerReport(parts[0], parts[1], health));
+            reports.Add(new ContainerReport(parts[0], MapRuntimeHealth(state, health), detail));
         }
 
         return reports;
     }
+
+    private static DockerHealth ParseInspectHealth(string value) => value.Trim().ToLowerInvariant() switch
+    {
+        "healthy" => DockerHealth.Healthy,
+        "unhealthy" => DockerHealth.Unhealthy,
+        "starting" => DockerHealth.Starting,
+        _ => DockerHealth.None,
+    };
+
+    private static DockerHealth ParsePsHealth(string status) =>
+        status.Contains("(unhealthy)", StringComparison.OrdinalIgnoreCase) ? DockerHealth.Unhealthy
+        : status.Contains("(health: starting)", StringComparison.OrdinalIgnoreCase) ? DockerHealth.Starting
+        : status.Contains("(healthy)", StringComparison.OrdinalIgnoreCase) ? DockerHealth.Healthy
+        : DockerHealth.None;
+
+    private static RuntimeHealth MapRuntimeHealth(string state, DockerHealth health)
+    {
+        if (health == DockerHealth.Unhealthy)
+        {
+            return RuntimeHealth.Unhealthy;
+        }
+
+        if (health == DockerHealth.Starting)
+        {
+            return RuntimeHealth.Starting;
+        }
+
+        return state.Trim().ToLowerInvariant() switch
+        {
+            "running" => RuntimeHealth.Healthy,
+            "restarting" => RuntimeHealth.Unhealthy,
+            "exited" => RuntimeHealth.Stopped,
+            _ => RuntimeHealth.Unknown,
+        };
+    }
+
+    private static string HealthLabel(DockerHealth health) => health switch
+    {
+        DockerHealth.Healthy => "healthy",
+        DockerHealth.Unhealthy => "unhealthy",
+        DockerHealth.Starting => "starting",
+        _ => "none",
+    };
 
     public async Task<string?> TailLogsAsync(string app, int lines, CancellationToken cancellationToken)
     {

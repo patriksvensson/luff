@@ -81,7 +81,7 @@ public sealed class FakeDockerComposeRunner : IDockerComposeRunner
 
     // Inspect returns a healthy, running container by default so a normal deploy passes the stabilization
     // gate; tests set this to a crashed/looping status to exercise the failure path.
-    public ContainerStatus? InspectResult { get; set; } = new(true, false, 0, null, null);
+    public ContainerStatus? InspectResult { get; set; } = new(true, false, 0, null, DockerHealth.None);
     public List<ContainerReport> ManagedContainers { get; set; } = [];
     public string? TailedLogs { get; set; }
 

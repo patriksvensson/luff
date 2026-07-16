@@ -54,7 +54,7 @@ else
                 </div>
                 <div class="fleet-bottom">
                     <div class="fleet-sub">
-                        @if (machine.Status == "connected")
+                        @if (machine.Status == AgentConnectionStatus.Connected)
                         {
                             <span class="fleet-ok">connected</span>
                             @foreach (var app in machine.Apps)
@@ -63,7 +63,7 @@ else
                                 <span class="mono fleet-app">@app</span>
                             }
                         }
-                        else if (machine.Status == "pending")
+                        else if (machine.Status == AgentConnectionStatus.Pending)
                         {
                             <span class="fleet-pending">Pending | Waiting to connect...</span>
                         }
@@ -306,17 +306,17 @@ Agent__ServerPin=@_agentLinkPin</code></pre>
         }
     }
 
-    private static string Dot(string status) => status switch
+    private static string Dot(AgentConnectionStatus status) => status switch
     {
-        "connected" => "dot-green",
-        "pending" => "dot-amber",
+        AgentConnectionStatus.Connected => "dot-green",
+        AgentConnectionStatus.Pending => "dot-amber",
         _ => "dot-red",
     };
 
-    private static string? CardClass(string status) => status switch
+    private static string? CardClass(AgentConnectionStatus status) => status switch
     {
-        "pending" => "is-pending",
-        "connected" => null,
+        AgentConnectionStatus.Pending => "is-pending",
+        AgentConnectionStatus.Connected => null,
         _ => "is-down",
     };
 

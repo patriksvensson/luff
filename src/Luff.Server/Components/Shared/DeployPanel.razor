@@ -3,8 +3,8 @@
 @inject IDeployEvents Events
 @inject TimeProvider Time
 
-<Modal Width="@(_mode == "running" ? "lg" : "md")" OnClose="Close">
-    @if (_mode == "trigger" && Kind == "rollback")
+<Modal Width="@(_mode == PanelMode.Running ? "lg" : "md")" OnClose="Close">
+    @if (_mode == PanelMode.Trigger && Kind == DeployKind.Rollback)
     {
         <div class="confirm">
             <div class="confirm-icon">
@@ -29,7 +29,7 @@
             </div>
         </div>
     }
-    else if (_mode == "trigger")
+    else if (_mode == PanelMode.Trigger)
     {
         <div class="trigger">
             <div class="trigger-head">
@@ -86,7 +86,7 @@
     public string App { get; set; } = string.Empty;
 
     [Parameter]
-    public string Kind { get; set; } = "deploy";
+    public DeployKind Kind { get; set; } = DeployKind.Deploy;
 
     [Parameter]
     public string? CurrentTag { get; set; }
@@ -106,11 +106,11 @@
     [Parameter]
     public EventCallback OnClose { get; set; }
 
-    private string _mode = "trigger";
+    private PanelMode _mode = PanelMode.Trigger;
     private string _tag = string.Empty;
     private string? _error;
     private bool _busy;
-    private string _outcome = "running";
+    private DeployOutcome _outcome = DeployOutcome.Running;
     private string? _failureText;
     private string? _fromTag;
     private string _toTag = string.Empty;
@@ -121,7 +121,7 @@
     private CancellationTokenSource? _ticker;
     private long _startedAt;
 
-    private string Verb => Kind == "rollback" ? "Rolling back" : "Deploying";
+    private string Verb => Kind == DeployKind.Rollback ? "Rolling back" : "Deploying";
 
     private string? AppUrl =>
         AppDomain is null ? null : (Https ? "https://" : "http://") + AppDomain;
@@ -134,20 +134,20 @@
         var tag = string.IsNullOrWhiteSpace(_tag) ? null : _tag.Trim();
         InitLanes();
         _fromTag = CurrentTag;
-        _mode = "running";
-        _outcome = "running";
+        _mode = PanelMode.Running;
+        _outcome = DeployOutcome.Running;
 
         try
         {
-            var deployment = Kind == "rollback"
+            var deployment = Kind == DeployKind.Rollback
                 ? await Sender.Send(new RollbackHandler.Request(App))
                 : await Sender.Send(new TriggerDeploymentHandler.Request(App, tag));
 
             _toTag = deployment.Tag;
 
-            if (deployment.Status == "Failed")
+            if (deployment.Status == DeploymentStatus.Failed)
             {
-                _outcome = "failed";
+                _outcome = DeployOutcome.Failed;
                 _failureText = deployment.FailureReason ?? "The deploy could not start.";
                 return;
             }
@@ -157,7 +157,7 @@
         }
         catch (LuffException exception)
         {
-            _mode = "trigger";
+            _mode = PanelMode.Trigger;
             _error = exception.Message;
         }
         finally
@@ -209,7 +209,7 @@
         var failed = _lanes.Values.FirstOrDefault(lane => lane.Failed);
         if (failed is not null)
         {
-            _outcome = "failed";
+            _outcome = DeployOutcome.Failed;
             _failureText = $"Failed on {failed.Agent} at {Stage(failed.Phase)}. Old version still serving.";
             StopTicker();
             return;
@@ -217,12 +217,12 @@
 
         if (_lanes.Count > 0 && _lanes.Values.All(lane => lane.Done))
         {
-            _outcome = "succeeded";
+            _outcome = DeployOutcome.Succeeded;
             StopTicker();
         }
     }
 
-    private static string Stage(string? phase) => phase switch
+    private static string Stage(DeployPhase? phase) => phase switch
     {
         DeployPhase.Pulling => "pull",
         DeployPhase.Starting => "start",
@@ -267,5 +267,11 @@
         StopTicker();
         _subscription?.Dispose();
         await ValueTask.CompletedTask;
+    }
+
+    private enum PanelMode
+    {
+        Trigger,
+        Running,
     }
 }

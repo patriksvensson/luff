@@ -3,15 +3,15 @@ namespace Luff.Server.Features;
 public sealed class CreateAppRequest
 {
     public string Name { get; }
-    public string? Kind { get; }
+    public AppKind? Kind { get; }
     public string Image { get; }
     public string? Domain { get; }
     public int InternalPort { get; }
-    public string? TlsMode { get; }
+    public TlsMode? TlsMode { get; }
 
     public CreateAppRequest(
         string name, string image, int internalPort,
-        string? kind = null, string? domain = null, string? tlsMode = null)
+        AppKind? kind = null, string? domain = null, TlsMode? tlsMode = null)
     {
         Name = name ?? throw new ArgumentNullException(nameof(name));
         Image = image ?? throw new ArgumentNullException(nameof(image));
@@ -27,9 +27,9 @@ public sealed class UpdateAppRequest
     public string Image { get; }
     public string? Domain { get; }
     public int InternalPort { get; }
-    public string? TlsMode { get; }
+    public TlsMode? TlsMode { get; }
 
-    public UpdateAppRequest(string image, int internalPort, string? domain = null, string? tlsMode = null)
+    public UpdateAppRequest(string image, int internalPort, string? domain = null, TlsMode? tlsMode = null)
     {
         Image = image ?? throw new ArgumentNullException(nameof(image));
         InternalPort = internalPort;
@@ -40,13 +40,13 @@ public sealed class UpdateAppRequest
 
 public sealed class HealthCheckContract
 {
-    public string Type { get; }
+    public AppHealthCheckType Type { get; }
     public string? Endpoint { get; }
     public int TimeoutSeconds { get; }
 
-    public HealthCheckContract(string type, string? endpoint, int timeoutSeconds)
+    public HealthCheckContract(AppHealthCheckType type, string? endpoint, int timeoutSeconds)
     {
-        Type = type ?? throw new ArgumentNullException(nameof(type));
+        Type = type;
         Endpoint = endpoint;
         TimeoutSeconds = timeoutSeconds;
     }
@@ -55,10 +55,10 @@ public sealed class HealthCheckContract
 public sealed class AppResponse
 {
     public string Name { get; }
-    public string Kind { get; }
+    public AppKind Kind { get; }
     public string Image { get; }
     public string? Domain { get; }
-    public string TlsMode { get; }
+    public TlsMode TlsMode { get; }
     public int InternalPort { get; }
     public bool Stopped { get; }
     public string? CurrentImageTag { get; }
@@ -66,14 +66,14 @@ public sealed class AppResponse
     public HealthCheckContract HealthCheck { get; }
 
     public AppResponse(
-        string name, string kind, string image, string? domain, string tlsMode, int internalPort, bool stopped,
+        string name, AppKind kind, string image, string? domain, TlsMode tlsMode, int internalPort, bool stopped,
         string? currentImageTag, string? previousImageTag, HealthCheckContract healthCheck)
     {
         Name = name ?? throw new ArgumentNullException(nameof(name));
-        Kind = kind ?? throw new ArgumentNullException(nameof(kind));
+        Kind = kind;
         Image = image ?? throw new ArgumentNullException(nameof(image));
         Domain = domain;
-        TlsMode = tlsMode ?? throw new ArgumentNullException(nameof(tlsMode));
+        TlsMode = tlsMode;
         InternalPort = internalPort;
         Stopped = stopped;
         CurrentImageTag = currentImageTag;

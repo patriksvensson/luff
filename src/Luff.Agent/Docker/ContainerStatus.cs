@@ -1,3 +1,5 @@
+using Luff.Protobuf;
+
 namespace Luff.Agent;
 
 // A single managed container's state, from `docker inspect`. Used to gate a deploy on the container staying
@@ -7,7 +9,7 @@ public sealed record ContainerStatus(
     bool Restarting,
     int RestartCount,
     int? ExitCode,
-    string? Health);
+    DockerHealth Health);
 
 // One managed app's runtime state, from a `docker ps` sweep of `luff.managed` containers.
-public sealed record ContainerReport(string App, string State, string? Health);
+public sealed record ContainerReport(string App, RuntimeHealth Status, string Detail);

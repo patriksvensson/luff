@@ -29,7 +29,7 @@ public sealed class AppsFixture : IDisposable
     }
 
     public async Task<AppResponse> CreateApp(
-        string name, string image, string domain, int internalPort, string? tlsMode = null)
+        string name, string image, string domain, int internalPort, TlsMode? tlsMode = null)
     {
         var handler = new CreateAppHandler(CreateContext());
         return await handler.Handle(
@@ -67,7 +67,7 @@ public sealed class AppsFixture : IDisposable
             CancellationToken.None);
     }
 
-    public async Task<AppResponse> SetHealthCheck(string name, string type, string? endpoint, int timeoutSeconds)
+    public async Task<AppResponse> SetHealthCheck(string name, AppHealthCheckType type, string? endpoint, int timeoutSeconds)
     {
         var handler = new SetHealthCheckHandler(CreateContext());
         return await handler.Handle(
@@ -76,7 +76,7 @@ public sealed class AppsFixture : IDisposable
     }
 
     public async Task<AppResponse> UpdateApp(
-        string name, string image, string domain, int internalPort, string? tlsMode = null)
+        string name, string image, string domain, int internalPort, TlsMode? tlsMode = null)
     {
         var handler = new UpdateAppHandler(CreateContext(), Agents);
         return await handler.Handle(

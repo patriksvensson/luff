@@ -15,19 +15,4 @@ public static class TlsRouting
 
         return app.TlsMode == TlsMode.External ? TlsRoute.External : TlsRoute.Managed;
     }
-
-    public static TlsMode ParseMode(string? value)
-    {
-        if (string.IsNullOrWhiteSpace(value))
-        {
-            return TlsMode.Managed;
-        }
-
-        if (!Enum.TryParse<TlsMode>(value, ignoreCase: true, out var mode) || !Enum.IsDefined(mode))
-        {
-            throw new InvalidTlsModeException(value);
-        }
-
-        return mode;
-    }
 }

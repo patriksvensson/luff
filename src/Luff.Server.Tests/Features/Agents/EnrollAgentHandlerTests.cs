@@ -1,3 +1,4 @@
+using Luff.Server.Features;
 using Luff.Server.Infrastructure;
 using Shouldly;
 using Xunit;
@@ -21,7 +22,7 @@ public sealed class EnrollAgentHandlerTests
 
         var fleet = await fixture.Fleet();
         fleet.ShouldHaveSingleItem();
-        fleet[0].Status.ShouldBe("pending");
+        fleet[0].Status.ShouldBe(AgentConnectionStatus.Pending);
     }
 
     [Fact]

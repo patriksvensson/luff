@@ -3,13 +3,13 @@ namespace Luff.Server.Features;
 public sealed class AgentResponse
 {
     public string Name { get; }
-    public string Status { get; }
+    public AgentConnectionStatus Status { get; }
     public string Version { get; }
 
-    public AgentResponse(string name, string status, string version)
+    public AgentResponse(string name, AgentConnectionStatus status, string version)
     {
         Name = name ?? throw new ArgumentNullException(nameof(name));
-        Status = status ?? throw new ArgumentNullException(nameof(status));
+        Status = status;
         Version = version ?? throw new ArgumentNullException(nameof(version));
     }
 }

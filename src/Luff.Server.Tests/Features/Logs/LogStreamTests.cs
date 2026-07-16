@@ -21,7 +21,7 @@ public sealed class LogStreamTests
         var next = enumerator.MoveNextAsync();
         var start = await connections.GetChannel("agent-1").ReadAsync();
         var streamId = Guid.Parse(start.StartLogStream.StreamId);
-        stream.PublishChunk(streamId, new LogEvent(null, "stdout", "hello", "agent-1"));
+        stream.PublishChunk(streamId, new LogEvent(null, LogStreamKind.Stdout, "hello", "agent-1"));
 
         // Then
         start.StartLogStream.ShouldSatisfyAllConditions(
@@ -44,7 +44,7 @@ public sealed class LogStreamTests
         var streamId = Guid.Parse(start.StartLogStream.StreamId);
 
         // When
-        stream.PublishChunk(streamId, new LogEvent(null, "stdout", "hi", "agent-1"));
+        stream.PublishChunk(streamId, new LogEvent(null, LogStreamKind.Stdout, "hi", "agent-1"));
         (await next).ShouldBeTrue();
         await enumerator.DisposeAsync();
 
@@ -62,7 +62,7 @@ public sealed class LogStreamTests
 
         // When
         var exception = Record.Exception(() =>
-            stream.PublishChunk(Guid.NewGuid(), new LogEvent(null, "stdout", "orphan", "agent-1")));
+            stream.PublishChunk(Guid.NewGuid(), new LogEvent(null, LogStreamKind.Stdout, "orphan", "agent-1")));
 
         // Then
         exception.ShouldBeNull();

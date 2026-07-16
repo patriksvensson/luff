@@ -1,6 +1,5 @@
 using Luff.Protobuf;
 using Luff.Server.Features;
-using Luff.Server.Infrastructure;
 using Shouldly;
 using Xunit;
 
@@ -23,31 +22,5 @@ public sealed class TlsRoutingTests
 
         // Then
         route.ShouldBe(expected);
-    }
-
-    [Theory]
-    [InlineData(null)]
-    [InlineData("")]
-    [InlineData("  ")]
-    public void Should_Default_To_Managed_When_The_Mode_Is_Missing(string? value)
-    {
-        TlsRouting.ParseMode(value).ShouldBe(TlsMode.Managed);
-    }
-
-    [Theory]
-    [InlineData("managed", TlsMode.Managed)]
-    [InlineData("External", TlsMode.External)]
-    [InlineData("EXTERNAL", TlsMode.External)]
-    public void Should_Parse_A_Known_Mode(string value, TlsMode expected)
-    {
-        TlsRouting.ParseMode(value).ShouldBe(expected);
-    }
-
-    [Fact]
-    public void Should_Throw_On_An_Unknown_Mode()
-    {
-        var exception = Record.Exception(() => TlsRouting.ParseMode("bogus"));
-
-        exception.ShouldBeOfType<InvalidTlsModeException>();
     }
 }

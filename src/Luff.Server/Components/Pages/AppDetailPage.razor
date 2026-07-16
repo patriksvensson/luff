@@ -54,13 +54,13 @@ else
             {
                 <button class="btn btn-ghost act-toggle" @onclick="Stop" disabled="@_busy">Stop</button>
             }
-            <button class="btn btn-ghost act-rollback" @onclick='() => OpenModal("rollback")' disabled="@(_detail.PreviousTag is null)">
+            <button class="btn btn-ghost act-rollback" @onclick='() => OpenModal(DeployKind.Rollback)' disabled="@(_detail.PreviousTag is null)">
                 <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M9 5 4 10l5 5" /><path d="M4 10h10a6 6 0 0 1 0 12h-3" />
                 </svg>
                 Rollback
             </button>
-            <button class="btn @(_detail.Stopped ? "btn-ghost" : "btn-primary") act-deploy" @onclick='() => OpenModal("deploy")'>Deploy</button>
+            <button class="btn @(_detail.Stopped ? "btn-ghost" : "btn-primary") act-deploy" @onclick='() => OpenModal(DeployKind.Deploy)'>Deploy</button>
         </div>
     </div>
 
@@ -84,7 +84,7 @@ else
         @switch (ActiveTab)
         {
             case "machines":
-                <AppMachinesTab Detail="_detail" OnChanged="ReloadDetail" OnRedeploy='() => OpenModal("deploy")' />
+                <AppMachinesTab Detail="_detail" OnChanged="ReloadDetail" OnRedeploy='() => OpenModal(DeployKind.Deploy)' />
                 break;
             case "logs":
                 <AppLogsTab Detail="_detail" />
@@ -118,7 +118,7 @@ else
 
     @if (_modal is not null)
     {
-        <DeployPanel Kind="@_modal" App="@_detail.Name" CurrentTag="@_detail.CurrentTag"
+        <DeployPanel Kind="@(_modal.Value)" App="@_detail.Name" CurrentTag="@_detail.CurrentTag"
                      PreviousTag="@_detail.PreviousTag"
                      Machines="_detail.Machines.Select(machine => machine.Agent).ToList()"
                      AppDomain="@_detail.Domain" Https="_detail.Https" OnClose="CloseModal" />
@@ -139,7 +139,7 @@ else
     private bool _notFound;
     private string? _loadedName;
     private bool _deployOpened;
-    private string? _modal;
+    private DeployKind? _modal;
     private bool _busy;
 
     private string ActiveTab => Tab?.ToLowerInvariant() switch
@@ -167,7 +167,7 @@ else
         if (_detail is not null && DeployRequested && !_deployOpened)
         {
             _deployOpened = true;
-            _modal = "deploy";
+            _modal = DeployKind.Deploy;
         }
     }
 
@@ -226,7 +226,7 @@ else
         }
     }
 
-    private void OpenModal(string kind) => _modal = kind;
+    private void OpenModal(DeployKind kind) => _modal = kind;
 
     private async Task CloseModal()
     {

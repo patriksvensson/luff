@@ -157,8 +157,7 @@ public sealed class AgentLinkService : Link.LinkBase
             ? parsed
             : null;
 
-        var stream = chunk.Stream == LogStreamKind.Stderr ? "stderr" : "stdout";
-        _logs.PublishChunk(streamId, new LogEvent(timestamp, stream, chunk.Line, agent));
+        _logs.PublishChunk(streamId, new LogEvent(timestamp, chunk.Stream, chunk.Line, agent));
     }
 
     private async Task HandleDeployResult(string agentName, DeployResult result, CancellationToken cancellationToken)

@@ -33,13 +33,13 @@
                 <div class="field settings-tls">
                     <span class="field-label">TLS termination</span>
                     <div class="tls-modes">
-                        <button type="button" class="tls-mode @(_tlsMode == "Managed" ? "is-active" : null)"
-                                @onclick='() => _tlsMode = "Managed"'>
+                        <button type="button" class="tls-mode @(_tlsMode == TlsMode.Managed ? "is-active" : null)"
+                                @onclick='() => _tlsMode = TlsMode.Managed'>
                             <span class="tls-mode-name">Managed</span>
                             <span class="tls-mode-desc">Luff obtains the certificate automatically</span>
                         </button>
-                        <button type="button" class="tls-mode @(_tlsMode == "External" ? "is-active" : null)"
-                                @onclick='() => _tlsMode = "External"'>
+                        <button type="button" class="tls-mode @(_tlsMode == TlsMode.External ? "is-active" : null)"
+                                @onclick='() => _tlsMode = TlsMode.External'>
                             <span class="tls-mode-name">External</span>
                             <span class="tls-mode-desc">A load balancer in front terminates TLS</span>
                         </button>
@@ -106,7 +106,7 @@
     private bool _frontless => _internal || _direct;
     private string _domain = string.Empty;
     private int _port;
-    private string _tlsMode = "Managed";
+    private TlsMode _tlsMode = TlsMode.Managed;
     private bool _busy;
     private bool _saved;
     private bool _confirming;
@@ -115,7 +115,7 @@
 
     private string PortLabel => _frontless ? (_direct ? "Container port" : "Service port") : "Internal port";
 
-    private string ServedScheme => _tlsMode == "External"
+    private string ServedScheme => _tlsMode == TlsMode.External
         ? "Serves HTTP on :80. TLS is terminated by your load balancer."
         : AppHealth.IsAutoDomain(_domain)
             ? "Serves HTTP on :80. sslip.io default domains are plain HTTP."
@@ -125,8 +125,8 @@
     {
         var app = await Sender.Send(new GetAppHandler.Request(App));
         _image = app.Image;
-        _internal = app.Kind == "Internal";
-        _direct = app.Kind == "Direct";
+        _internal = app.Kind == AppKind.Internal;
+        _direct = app.Kind == AppKind.Direct;
         _domain = app.Domain ?? string.Empty;
         _port = app.InternalPort;
         _tlsMode = app.TlsMode;

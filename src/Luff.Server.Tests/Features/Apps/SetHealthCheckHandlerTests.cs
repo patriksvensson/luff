@@ -15,7 +15,7 @@ public sealed class SetHealthCheckHandlerTests
         await fixture.HasApp("web");
 
         // When
-        await fixture.SetHealthCheck("web", "http", "/healthz", 120);
+        await fixture.SetHealthCheck("web", AppHealthCheckType.Http, "/healthz", 120);
 
         // Then
         (await fixture.GetAppFromDatabase("web")).ShouldNotBeNull().ShouldSatisfyAllConditions(
@@ -32,7 +32,7 @@ public sealed class SetHealthCheckHandlerTests
         await fixture.HasApp("web");
 
         // When
-        await fixture.SetHealthCheck("web", "http", null, 30);
+        await fixture.SetHealthCheck("web", AppHealthCheckType.Http, null, 30);
 
         // Then
         (await fixture.GetAppFromDatabase("web")).ShouldNotBeNull()
@@ -47,27 +47,12 @@ public sealed class SetHealthCheckHandlerTests
         await fixture.HasApp("web");
 
         // When
-        await fixture.SetHealthCheck("web", "none", "/ignored", 30);
+        await fixture.SetHealthCheck("web", AppHealthCheckType.None, "/ignored", 30);
 
         // Then
         (await fixture.GetAppFromDatabase("web")).ShouldNotBeNull().ShouldSatisfyAllConditions(
             app => app.HealthCheckType.ShouldBe(AppHealthCheckType.None),
             app => app.HealthCheckEndpoint.ShouldBeNull());
-    }
-
-    [Fact]
-    public async Task Should_Reject_An_Unknown_Type()
-    {
-        // Given
-        using var fixture = new AppsFixture();
-        await fixture.HasApp("web");
-
-        // When
-        var exception = await Record.ExceptionAsync(() =>
-            fixture.SetHealthCheck("web", "bogus", null, 30));
-
-        // Then
-        exception.ShouldBeOfType<InvalidHealthCheckException>();
     }
 
     [Fact]
@@ -79,7 +64,7 @@ public sealed class SetHealthCheckHandlerTests
 
         // When
         var exception = await Record.ExceptionAsync(() =>
-            fixture.SetHealthCheck("web", "http", "/health; rm -rf /", 30));
+            fixture.SetHealthCheck("web", AppHealthCheckType.Http, "/health; rm -rf /", 30));
 
         // Then
         exception.ShouldBeOfType<InvalidHealthCheckException>();
@@ -93,7 +78,7 @@ public sealed class SetHealthCheckHandlerTests
 
         // When
         var exception = await Record.ExceptionAsync(() =>
-            fixture.SetHealthCheck("ghost", "docker", null, 30));
+            fixture.SetHealthCheck("ghost", AppHealthCheckType.Docker, null, 30));
 
         // Then
         exception.ShouldBeOfType<AppNotFoundException>();
@@ -108,7 +93,7 @@ public sealed class SetHealthCheckHandlerTests
 
         // When
         var exception = await Record.ExceptionAsync(() =>
-            fixture.SetHealthCheck("postgres", "http", "/health", 30));
+            fixture.SetHealthCheck("postgres", AppHealthCheckType.Http, "/health", 30));
 
         // Then
         exception.ShouldBeOfType<InvalidHealthCheckException>();
@@ -123,7 +108,7 @@ public sealed class SetHealthCheckHandlerTests
 
         // When
         var exception = await Record.ExceptionAsync(() =>
-            fixture.SetHealthCheck("tool", "http", "/health", 30));
+            fixture.SetHealthCheck("tool", AppHealthCheckType.Http, "/health", 30));
 
         // Then
         exception.ShouldBeOfType<InvalidHealthCheckException>();

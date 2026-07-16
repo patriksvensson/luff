@@ -1,3 +1,4 @@
+using Luff.Server.Features;
 using Shouldly;
 using Xunit;
 
@@ -19,12 +20,12 @@ public sealed class FleetOverviewHandlerTests
         var fleet = await fixture.Fleet();
 
         // Then
-        fleet.Single(agent => agent.Name == "pending1").Status.ShouldBe("pending");
+        fleet.Single(agent => agent.Name == "pending1").Status.ShouldBe(AgentConnectionStatus.Pending);
         fleet.Single(agent => agent.Name == "live1").ShouldSatisfyAllConditions(
-            live => live.Status.ShouldBe("connected"),
+            live => live.Status.ShouldBe(AgentConnectionStatus.Connected),
             live => live.Version.ShouldBe("1.2.0"));
         fleet.Single(agent => agent.Name == "gone1").ShouldSatisfyAllConditions(
-            gone => gone.Status.ShouldBe("disconnected"),
+            gone => gone.Status.ShouldBe(AgentConnectionStatus.Disconnected),
             gone => gone.LastSeen.ShouldBe("5m ago"));
     }
 

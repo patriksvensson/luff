@@ -21,7 +21,7 @@ public sealed class RollbackHandlerTests
         // Then
         result.ShouldSatisfyAllConditions(
             deployment => deployment.Tag.ShouldBe("v1"),
-            deployment => deployment.Status.ShouldBe("InProgress"));
+            deployment => deployment.Status.ShouldBe(DeploymentStatus.InProgress));
     }
 
     [Fact]
@@ -53,7 +53,7 @@ public sealed class RollbackHandlerTests
         var result = await fixture.Rollback("web");
 
         // Then
-        result.Status.ShouldBe("Pending");
+        result.Status.ShouldBe(DeploymentStatus.Pending);
         (await fixture.GetDeployments("web"))
             .Where(deployment => deployment.Status == DeploymentStatus.Pending)
             .ShouldHaveSingleItem().Tag.ShouldBe("v1");

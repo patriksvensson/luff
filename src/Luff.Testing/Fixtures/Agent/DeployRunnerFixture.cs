@@ -10,7 +10,7 @@ public sealed class DeployRunnerFixture
     public FakeCaddyClient Caddy { get; }
     public FakeTcpProbe TcpProbe { get; }
     public FakeTimeProvider Clock { get; }
-    public List<string> Phases { get; } = [];
+    public List<DeployPhase> Phases { get; } = [];
 
     private DeployRunnerFixture(bool succeed, string? output)
     {
