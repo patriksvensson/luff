@@ -25,7 +25,7 @@ public sealed class AppsOverviewHandlerTests
             row => row.State.ShouldBe(AppHealthState.Live),
             row => row.CurrentTag.ShouldBe("v2"),
             row => row.MachineCount.ShouldBe(1),
-            row => row.LastDeploy.ShouldBe("deployed 5m ago"));
+            row => row.LastDeploy.ShouldBe("Deployed 5m ago"));
     }
 
     [Fact]
@@ -42,9 +42,9 @@ public sealed class AppsOverviewHandlerTests
         var app = overview.Apps.Single();
         app.ShouldSatisfyAllConditions(
             row => row.State.ShouldBe(AppHealthState.Dormant),
-            row => row.StateDetail.ShouldBe("not attached"),
+            row => row.StateDetail.ShouldBe("Not attached"),
             row => row.MachineCount.ShouldBe(0),
-            row => row.LastDeploy.ShouldBe("never deployed"));
+            row => row.LastDeploy.ShouldBe("Never deployed"));
     }
 
     [Fact]

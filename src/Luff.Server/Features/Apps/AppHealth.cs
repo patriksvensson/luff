@@ -24,12 +24,12 @@ public static class AppHealth
         // Explicit desired state wins over everything else.
         if (app.Stopped)
         {
-            return (AppHealthState.Stopped, "stopped");
+            return (AppHealthState.Stopped, "Stopped");
         }
 
         if (attachments.Count == 0)
         {
-            return (AppHealthState.Dormant, "not attached");
+            return (AppHealthState.Dormant, "Not attached");
         }
 
         if (inFlight)
@@ -39,7 +39,7 @@ public static class AppHealth
 
         if (app.CurrentImageTag is null)
         {
-            return (AppHealthState.Dormant, "not deployed");
+            return (AppHealthState.Dormant, "Not deployed");
         }
 
         var behind = attachments.Count(attachment => attachment.RunningTag != app.CurrentImageTag);
@@ -57,7 +57,7 @@ public static class AppHealth
         var unhealthy = attachments.Count(attachment => attachment.HealthStatus == AppRuntimeHealth.Unhealthy);
         if (unhealthy > 0)
         {
-            return (AppHealthState.Unhealthy, unhealthy == attachments.Count ? "not running" : $"{unhealthy} unhealthy");
+            return (AppHealthState.Unhealthy, unhealthy == attachments.Count ? "Not running" : $"{unhealthy} unhealthy");
         }
 
         return (AppHealthState.Live, null);
@@ -67,7 +67,7 @@ public static class AppHealth
     {
         if (span < TimeSpan.FromMinutes(1))
         {
-            return "just now";
+            return "Just now";
         }
 
         if (span < TimeSpan.FromHours(1))
@@ -87,14 +87,14 @@ public static class AppHealth
     {
         if (latest is null)
         {
-            return "never deployed";
+            return "Never deployed";
         }
 
         var verb = latest.Status switch
         {
-            DeploymentStatus.Failed => "failed",
-            DeploymentStatus.Succeeded => "deployed",
-            _ => "deploying",
+            DeploymentStatus.Failed => "Failed",
+            DeploymentStatus.Succeeded => "Deployed",
+            _ => "Deploying",
         };
 
         return $"{verb} {Relative(now - latest.CreatedAt)}";

@@ -186,15 +186,15 @@
     {
         if (index == progress.FailedStep)
         {
-            return "failed";
+            return "Failed";
         }
 
         if (index < progress.Completed)
         {
-            return "done";
+            return "Done";
         }
 
-        return index == progress.Active ? "active" : "pending";
+        return index == progress.Active ? "Active" : "Pending";
     }
 
     private static string StatusWord(DeployLane lane)

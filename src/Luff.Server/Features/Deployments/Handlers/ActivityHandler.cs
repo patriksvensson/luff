@@ -65,9 +65,9 @@ public sealed class ActivityHandler : IRequestHandler<ActivityHandler.Request, I
 
     private static string StatusLabel(DeploymentStatus status) => status switch
     {
-        DeploymentStatus.Succeeded => "succeeded",
-        DeploymentStatus.Failed => "failed",
-        DeploymentStatus.InProgress => "in progress",
+        DeploymentStatus.Succeeded => "Succeeded",
+        DeploymentStatus.Failed => "Failed",
+        DeploymentStatus.InProgress => "In progress",
         _ => "pending",
     };
 }

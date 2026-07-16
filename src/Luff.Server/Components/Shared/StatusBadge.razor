@@ -30,13 +30,13 @@
     {
         (_class, _icon, _text, _warn) = State switch
         {
-            AppHealthState.Live => ("badge-green", "dot-green", "live", false),
-            AppHealthState.Deploying => ("badge-amber", "dot-amber", Compose("deploying"), false),
-            AppHealthState.Drift => ("badge-amber", "", Compose("drift"), true),
-            AppHealthState.Failed => ("badge-red", "dot-red", "deploy failed", false),
-            AppHealthState.Unhealthy => ("badge-red", "", Compose("unhealthy"), true),
-            AppHealthState.Stopped => ("badge-neutral", "dot-neutral", "stopped", false),
-            _ => ("badge-neutral", "dot-neutral", Compose("dormant"), false),
+            AppHealthState.Live => ("badge-green", "dot-green", "Live", false),
+            AppHealthState.Deploying => ("badge-amber", "dot-amber", Compose("Deploying"), false),
+            AppHealthState.Drift => ("badge-amber", "", Compose("Drift"), true),
+            AppHealthState.Failed => ("badge-red", "dot-red", "Deploy failed", false),
+            AppHealthState.Unhealthy => ("badge-red", "", Compose("Unhealthy"), true),
+            AppHealthState.Stopped => ("badge-neutral", "dot-neutral", "Stopped", false),
+            _ => ("badge-neutral", "dot-neutral", Compose("Dormant"), false),
         };
     }
 

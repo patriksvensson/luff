@@ -286,7 +286,7 @@ public sealed class DockerComposeRunner : IDockerComposeRunner
 
     private static string HealthLabel(DockerHealth health) => health switch
     {
-        DockerHealth.Healthy => "healthy",
+        DockerHealth.Healthy => "Healthy",
         DockerHealth.Unhealthy => "unhealthy",
         DockerHealth.Starting => "starting",
         _ => "none",

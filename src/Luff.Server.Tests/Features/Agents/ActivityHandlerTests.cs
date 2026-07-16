@@ -24,7 +24,7 @@ public sealed class ActivityHandlerTests
         rows.Select(row => (row.App, row.Tag)).ShouldBe([("web", "v2"), ("api", "v2"), ("web", "v1")]);
         rows[1].ShouldSatisfyAllConditions(
             failed => failed.Failed.ShouldBeTrue(),
-            failed => failed.Status.ShouldBe("failed"),
+            failed => failed.Status.ShouldBe("Failed"),
             failed => failed.When.ShouldBe("5m ago"));
     }
 }
