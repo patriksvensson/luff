@@ -1,7 +1,16 @@
 <Modal Width="md" OnClose="OnClose">
     <div class="cd">
         <div class="cd-head">
-            <h2 class="cd-title">@Verb <span class="mono">@Name</span>?</h2>
+            <h2 class="cd-title">
+                @if (Title is not null)
+                {
+                    @Title
+                }
+                else
+                {
+                    <text>@Verb <span class="mono">@Name</span>?</text>
+                }
+            </h2>
             <button class="pipe-close" @onclick="Close" aria-label="Close">
                 <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="m6 6 12 12M18 6 6 18" /></svg>
             </button>
@@ -35,6 +44,9 @@
 
     [Parameter]
     public string Verb { get; set; } = "Delete";
+
+    [Parameter]
+    public string? Title { get; set; }
 
     [Parameter]
     public bool Busy { get; set; }

@@ -61,7 +61,7 @@
                         </span>
                     </div>
                     <span class="spacer"></span>
-                    <button class="wh-revoke" @onclick="() => Revoke(token.Id)" disabled="@_busy">Revoke</button>
+                    <button class="wh-revoke" @onclick="() => StartRevoke(token)" disabled="@_busy">Revoke</button>
                 </div>
             }
         </div>
@@ -74,6 +74,14 @@ curl -X POST "$LUFF_WEBHOOK" \
   -H "Content-Type: application/json" \
   -d '@("{" + "\"tag\":\"v1.4.4\"" + "}")'</pre>
     </div>
+
+    @if (_revoking is { } revoke)
+    {
+        <ConfirmDelete Name="@revoke.Name" Verb="Revoke" Busy="_busy" Error="@_revokeError"
+                       OnConfirm="ConfirmRevoke" OnClose="CancelRevoke">
+            Revokes <span class="mono">@revoke.Name</span>. Any CI still calling this webhook gets a 401 until you create a new token. This can't be undone.
+        </ConfirmDelete>
+    }
 </div>
 
 @code {
@@ -85,6 +93,8 @@ curl -X POST "$LUFF_WEBHOOK" \
     private string _name = string.Empty;
     private bool _busy;
     private string? _error;
+    private (Guid Id, string Name)? _revoking;
+    private string? _revokeError;
 
     protected override Task OnInitializedAsync() => LoadAsync();
 
@@ -111,18 +121,41 @@ curl -X POST "$LUFF_WEBHOOK" \
         }
     }
 
-    private async Task Revoke(Guid id)
+    private void StartRevoke(TokenResponse token)
     {
+        _revoking = (token.Id, string.IsNullOrEmpty(token.Name) ? token.Id.ToString()[..8] : token.Name);
+        _revokeError = null;
+    }
+
+    private void CancelRevoke()
+    {
+        _revoking = null;
+        _revokeError = null;
+    }
+
+    private async Task ConfirmRevoke()
+    {
+        if (_revoking is not { } revoke)
+        {
+            return;
+        }
+
         _busy = true;
+        _revokeError = null;
         try
         {
-            await Sender.Send(new RevokeWebhookTokenHandler.Request(App, id));
-            if (_created?.Id == id)
+            await Sender.Send(new RevokeWebhookTokenHandler.Request(App, revoke.Id));
+            if (_created?.Id == revoke.Id)
             {
                 _created = null;
             }
 
+            _revoking = null;
             await LoadAsync();
+        }
+        catch (LuffException exception)
+        {
+            _revokeError = exception.Message;
         }
         finally
         {

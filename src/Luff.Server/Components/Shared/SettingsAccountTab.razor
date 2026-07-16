@@ -81,7 +81,7 @@
                 <div class="cfg-error">@_twoFactorError</div>
             }
             <div class="set-actions">
-                <button class="btn btn-ghost" @onclick="RegenerateCodes" disabled="@_busy">Regenerate backup codes</button>
+                <button class="btn btn-ghost" @onclick="StartRegenerate" disabled="@_busy">Regenerate backup codes</button>
             </div>
             <label class="field twofa-disable-field">
                 <span class="field-label">Enter a current code to turn off two-factor</span>
@@ -104,6 +104,14 @@
         }
     </div>
 </div>
+
+@if (_regenerating)
+{
+    <ConfirmDelete Name="@_username" Verb="Regenerate" Title="Regenerate your backup codes?" Busy="_busy" Error="@_regenerateError"
+                   OnConfirm="ConfirmRegenerate" OnClose="CancelRegenerate">
+        Replaces your backup codes with a fresh set. Your existing codes stop working immediately.
+    </ConfirmDelete>
+}
 
 @code {
     [CascadingParameter]
@@ -129,6 +137,8 @@
     private string? _twoFactorError;
 
     private bool _busy;
+    private bool _regenerating;
+    private string? _regenerateError;
 
     protected override async Task OnInitializedAsync()
     {
@@ -227,20 +237,33 @@
         }
     }
 
-    private async Task RegenerateCodes()
+    private void StartRegenerate()
+    {
+        _regenerating = true;
+        _regenerateError = null;
+    }
+
+    private void CancelRegenerate()
+    {
+        _regenerating = false;
+        _regenerateError = null;
+    }
+
+    private async Task ConfirmRegenerate()
     {
         _busy = true;
-        _twoFactorError = null;
+        _regenerateError = null;
         try
         {
             var response = await Sender.Send(new RegenerateRecoveryCodesHandler.Request(_username));
             _recoveryCodes = response.Codes;
             _codesCopied = false;
             _recoveryRemaining = response.Codes.Count;
+            _regenerating = false;
         }
         catch (LuffException exception)
         {
-            _twoFactorError = exception.Message;
+            _regenerateError = exception.Message;
         }
         finally
         {

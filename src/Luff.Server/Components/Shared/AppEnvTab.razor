@@ -25,7 +25,7 @@
                     <span class="mono env-name">@key</span>
                     <span class="spacer"></span>
                     <span class="mono env-masked">••••••••••</span>
-                    <button class="env-remove" @onclick="() => Remove(key)" disabled="@_busy">Unset</button>
+                    <button class="env-remove" @onclick="() => StartUnset(key)" disabled="@_busy">Unset</button>
                 </div>
             }
         </div>
@@ -42,6 +42,14 @@
     {
         <div class="cfg-error">@_error</div>
     }
+
+    @if (_unsetting is not null)
+    {
+        <ConfirmDelete Name="@_unsetting" Verb="Unset" Busy="_busy" Error="@_unsetError"
+                       OnConfirm="ConfirmUnset" OnClose="CancelUnset">
+            Unsets <span class="mono">@_unsetting</span>. Values are write-only, so you'll have to set it again from scratch if you need it back. Applies on the next deploy.
+        </ConfirmDelete>
+    }
 </div>
 
 @code {
@@ -53,6 +61,8 @@
     private string _newValue = string.Empty;
     private bool _busy;
     private string? _error;
+    private string? _unsetting;
+    private string? _unsetError;
 
     protected override Task OnInitializedAsync() => LoadAsync();
 
@@ -83,13 +93,36 @@
         }
     }
 
-    private async Task Remove(string key)
+    private void StartUnset(string key)
     {
+        _unsetting = key;
+        _unsetError = null;
+    }
+
+    private void CancelUnset()
+    {
+        _unsetting = null;
+        _unsetError = null;
+    }
+
+    private async Task ConfirmUnset()
+    {
+        if (_unsetting is null)
+        {
+            return;
+        }
+
         _busy = true;
+        _unsetError = null;
         try
         {
-            await Sender.Send(new UnsetEnvVarHandler.Request(App, key));
+            await Sender.Send(new UnsetEnvVarHandler.Request(App, _unsetting));
+            _unsetting = null;
             await LoadAsync();
+        }
+        catch (LuffException exception)
+        {
+            _unsetError = exception.Message;
         }
         finally
         {

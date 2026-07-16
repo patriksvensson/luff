@@ -48,10 +48,18 @@
                             <span class="chip">read-only</span>
                         }
                         <span class="spacer"></span>
-                        <button class="vol-remove" @onclick="() => Remove(volume.Target)" disabled="@_busy">Remove</button>
+                        <button class="vol-remove" @onclick="() => StartRemove(volume.Target)" disabled="@_busy">Remove</button>
                     </div>
                 }
             </div>
+        }
+
+        @if (_removing is not null)
+        {
+            <ConfirmDelete Name="@_removing" Verb="Remove" Busy="_busy" Error="@_removeError"
+                           OnConfirm="ConfirmRemove" OnClose="CancelRemove">
+                Removes the mount at <span class="mono">@_removing</span>. Luff never deletes the volume's data; the container just won't mount it after the next deploy.
+            </ConfirmDelete>
         }
     }
 </div>
@@ -70,6 +78,8 @@
     private bool _readOnly;
     private bool _busy;
     private string? _error;
+    private string? _removing;
+    private string? _removeError;
 
     protected override async Task OnInitializedAsync()
     {
@@ -110,13 +120,36 @@
         }
     }
 
-    private async Task Remove(string target)
+    private void StartRemove(string target)
     {
+        _removing = target;
+        _removeError = null;
+    }
+
+    private void CancelRemove()
+    {
+        _removing = null;
+        _removeError = null;
+    }
+
+    private async Task ConfirmRemove()
+    {
+        if (_removing is null)
+        {
+            return;
+        }
+
         _busy = true;
+        _removeError = null;
         try
         {
-            await Sender.Send(new RemoveVolumeHandler.Request(App, target));
+            await Sender.Send(new RemoveVolumeHandler.Request(App, _removing));
+            _removing = null;
             await LoadAsync();
+        }
+        catch (LuffException exception)
+        {
+            _removeError = exception.Message;
         }
         finally
         {

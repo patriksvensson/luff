@@ -138,6 +138,11 @@ same-host only (no overlay network), so an app and its datastore must attach to 
 - Front door serves **self-signed HTTPS by default** (Caddy `tls internal`); real domains get Let's Encrypt.
   Volume sources denylisted; image tags grammar-validated; the agent keeps a validation backstop on the
   rendered compose (rejects `privileged`/host-mounts/host-net/etc.).
+- **No one-click destruction in the dashboard** — every destructive UI action (remove / delete / detach /
+  revoke / unset / reset-2FA / regenerate-codes) routes through the shared type-to-confirm `ConfirmDelete`
+  modal: the danger button stays disabled until the operator types the item's name (`Title` overrides the
+  heading for the odd non-`Verb Name?` cases). The REST API and CLI stay unguarded by design (automation
+  dogfoods the API). Wire any new destructive UI control through `ConfirmDelete`.
 
 ## Conventions & how we work
 

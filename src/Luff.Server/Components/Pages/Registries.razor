@@ -38,7 +38,7 @@ else
                         <div class="reg-top">
                             <span class="mono reg-host">@registry.Host</span>
                             <span class="spacer"></span>
-                            <button class="reg-remove" @onclick="() => Remove(registry.Host)" disabled="@_busy">Remove</button>
+                            <button class="reg-remove" @onclick="() => StartRemove(registry.Host)" disabled="@_busy">Remove</button>
                         </div>
                         <div class="reg-sub mono">
                             <span class="reg-user">@registry.Username</span>
@@ -76,6 +76,14 @@ else
             </div>
         }
     </div>
+
+    @if (_removing is not null)
+    {
+        <ConfirmDelete Name="@_removing" Verb="Remove" Busy="_busy" Error="@_removeError"
+                       OnConfirm="ConfirmRemove" OnClose="CancelRemove">
+            Removes the stored credentials for <span class="mono">@_removing</span>. Deploys that pull private images from it will fail until you add them again.
+        </ConfirmDelete>
+    }
 }
 
 @code {
@@ -90,6 +98,8 @@ else
     private string _password = string.Empty;
     private bool _busy;
     private string? _error;
+    private string? _removing;
+    private string? _removeError;
 
     protected override async Task OnInitializedAsync()
     {
@@ -137,13 +147,36 @@ else
         }
     }
 
-    private async Task Remove(string host)
+    private void StartRemove(string host)
     {
+        _removing = host;
+        _removeError = null;
+    }
+
+    private void CancelRemove()
+    {
+        _removing = null;
+        _removeError = null;
+    }
+
+    private async Task ConfirmRemove()
+    {
+        if (_removing is null)
+        {
+            return;
+        }
+
         _busy = true;
+        _removeError = null;
         try
         {
-            await Sender.Send(new RemoveRegistryHandler.Request(host));
+            await Sender.Send(new RemoveRegistryHandler.Request(_removing));
+            _removing = null;
             await LoadAsync();
+        }
+        catch (LuffException exception)
+        {
+            _removeError = exception.Message;
         }
         finally
         {

@@ -45,7 +45,7 @@
                     <div class="machine-sub">
                         <span class="mono machine-status">@status</span>
                         <span class="spacer"></span>
-                        <button class="machine-detach" @onclick="() => Detach(machine.Agent)" disabled="@_busy">Detach</button>
+                        <button class="machine-detach" @onclick="() => StartDetach(machine.Agent)" disabled="@_busy">Detach</button>
                     </div>
                 </div>
             }
@@ -96,6 +96,14 @@
     </Modal>
 }
 
+@if (_detaching is not null)
+{
+    <ConfirmDelete Name="@_detaching" Verb="Detach" Busy="_busy" Error="@_detachError"
+                   OnConfirm="ConfirmDetach" OnClose="CancelDetach">
+        Detaches <span class="mono">@Detail.Name</span> from <span class="mono">@_detaching</span> and tears down its container there. Re-attach and redeploy to bring it back.
+    </ConfirmDelete>
+}
+
 @code {
     [Parameter, EditorRequired]
     public AppDetail Detail { get; set; } = null!;
@@ -110,6 +118,8 @@
     private string _attachAgent = string.Empty;
     private bool _busy;
     private string? _error;
+    private string? _detaching;
+    private string? _detachError;
 
     private IEnumerable<string> Available() =>
         Registry.List()
@@ -144,13 +154,36 @@
         }
     }
 
-    private async Task Detach(string agent)
+    private void StartDetach(string agent)
     {
+        _detaching = agent;
+        _detachError = null;
+    }
+
+    private void CancelDetach()
+    {
+        _detaching = null;
+        _detachError = null;
+    }
+
+    private async Task ConfirmDetach()
+    {
+        if (_detaching is null)
+        {
+            return;
+        }
+
         _busy = true;
+        _detachError = null;
         try
         {
-            await Sender.Send(new DetachAppHandler.Request(agent, Detail.Name));
+            await Sender.Send(new DetachAppHandler.Request(_detaching, Detail.Name));
+            _detaching = null;
             await OnChanged.InvokeAsync();
+        }
+        catch (LuffException exception)
+        {
+            _detachError = exception.Message;
         }
         finally
         {

@@ -18,7 +18,7 @@
                         <span class="badge badge-neutral">@channel.Type</span>
                         <span class="spacer"></span>
                         <button class="btn btn-ghost btn-sm" @onclick="() => TestChannel(channel.Id)" disabled="@_busy">Send test</button>
-                        <button class="chan-remove" @onclick="() => RemoveChannel(channel.Id)" disabled="@_busy">Remove</button>
+                        <button class="chan-remove" @onclick="() => StartRemoveChannel(channel)" disabled="@_busy">Remove</button>
                     </div>
                 }
             </div>
@@ -72,6 +72,14 @@
     </Modal>
 }
 
+@if (_removingChannel is { } removeChannel)
+{
+    <ConfirmDelete Name="@removeChannel.Name" Verb="Remove" Busy="_busy" Error="@_removeChannelError"
+                   OnConfirm="ConfirmRemoveChannel" OnClose="CancelRemoveChannel">
+        Removes the <span class="mono">@removeChannel.Name</span> channel. You'll stop getting alerts there.
+    </ConfirmDelete>
+}
+
 @code {
     private IReadOnlyList<NotificationChannelResponse>? _channels;
     private string _chanName = string.Empty;
@@ -82,6 +90,8 @@
     private bool _addingChannel;
 
     private bool _busy;
+    private (Guid Id, string Name)? _removingChannel;
+    private string? _removeChannelError;
 
     protected override Task OnInitializedAsync() => LoadChannels();
 
@@ -127,19 +137,38 @@
         }
     }
 
-    private async Task RemoveChannel(Guid id)
+    private void StartRemoveChannel(NotificationChannelResponse channel)
     {
+        _removingChannel = (channel.Id, channel.Name);
+        _removeChannelError = null;
+        _chanNote = null;
+    }
+
+    private void CancelRemoveChannel()
+    {
+        _removingChannel = null;
+        _removeChannelError = null;
+    }
+
+    private async Task ConfirmRemoveChannel()
+    {
+        if (_removingChannel is not { } channel)
+        {
+            return;
+        }
+
         _busy = true;
-        _chanError = null;
+        _removeChannelError = null;
         _chanNote = null;
         try
         {
-            await Sender.Send(new RemoveNotificationChannelHandler.Request(id));
+            await Sender.Send(new RemoveNotificationChannelHandler.Request(channel.Id));
+            _removingChannel = null;
             await LoadChannels();
         }
         catch (LuffException exception)
         {
-            _chanError = exception.Message;
+            _removeChannelError = exception.Message;
         }
         finally
         {

@@ -135,7 +135,7 @@
             {
                 <div class="user-2fa-row">
                     <span class="user-2fa-label">Two-factor is <b>enabled</b> for this user.</span>
-                    <button class="btn btn-ghost btn-sm user-2fa-reset" @onclick="ResetEditTwoFactor" disabled="@_busy">Reset two-factor</button>
+                    <button class="btn btn-ghost btn-sm user-2fa-reset" @onclick="StartResetTwoFactor" disabled="@_busy">Reset two-factor</button>
                 </div>
             }
             @if (_userError is not null)
@@ -156,6 +156,14 @@
     <ConfirmDelete Name="@_removing" Verb="Remove" Busy="_busy" Error="@_removeError"
                    OnConfirm="ConfirmRemove" OnClose="CancelRemove">
         Removes <span class="mono">@_removing</span> and revokes their sessions. This can't be undone.
+    </ConfirmDelete>
+}
+
+@if (_resettingTwoFactor is not null)
+{
+    <ConfirmDelete Name="@_resettingTwoFactor" Verb="Reset" Title="Reset two-factor?" Busy="_busy" Error="@_resetError"
+                   OnConfirm="ConfirmResetTwoFactor" OnClose="CancelResetTwoFactor">
+        Resets two-factor for <span class="mono">@_resettingTwoFactor</span>. They'll sign in with just their password until they set it up again.
     </ConfirmDelete>
 }
 
@@ -181,6 +189,8 @@
     private string _editRole = "Operator";
     private string _editPassword = string.Empty;
     private bool _editTwoFactor;
+    private string? _resettingTwoFactor;
+    private string? _resetError;
 
     private string? _removing;
     private string? _removeError;
@@ -291,24 +301,37 @@
         }
     }
 
-    private async Task ResetEditTwoFactor()
+    private void StartResetTwoFactor()
     {
-        if (_editing is null)
+        _resettingTwoFactor = _editing;
+        _resetError = null;
+    }
+
+    private void CancelResetTwoFactor()
+    {
+        _resettingTwoFactor = null;
+        _resetError = null;
+    }
+
+    private async Task ConfirmResetTwoFactor()
+    {
+        if (_resettingTwoFactor is null)
         {
             return;
         }
 
         _busy = true;
-        _userError = null;
+        _resetError = null;
         try
         {
-            await Sender.Send(new ResetUserTwoFactorHandler.Request(_editing));
+            await Sender.Send(new ResetUserTwoFactorHandler.Request(_resettingTwoFactor));
             _editTwoFactor = false;
+            _resettingTwoFactor = null;
             await LoadUsers();
         }
         catch (LuffException exception)
         {
-            _userError = exception.Message;
+            _resetError = exception.Message;
         }
         finally
         {

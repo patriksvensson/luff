@@ -46,10 +46,18 @@
                         <span class="port-arrow mono">→</span>
                         <span class="mono port-tgt">@port.ContainerPort</span>
                         <span class="spacer"></span>
-                        <button class="port-remove" @onclick="() => Remove(port.HostPort)" disabled="@_busy">Remove</button>
+                        <button class="port-remove" @onclick="() => StartRemove(port.HostPort)" disabled="@_busy">Remove</button>
                     </div>
                 }
             </div>
+        }
+
+        @if (_removing is { } removePort)
+        {
+            <ConfirmDelete Name="@removePort.ToString()" Verb="Remove" Busy="_busy" Error="@_removeError"
+                           OnConfirm="ConfirmRemove" OnClose="CancelRemove">
+                Removes the published port <span class="mono">127.0.0.1:@removePort</span>. Applies on the next deploy.
+            </ConfirmDelete>
         }
     }
 </div>
@@ -67,6 +75,8 @@
     private string _container = string.Empty;
     private bool _busy;
     private string? _error;
+    private int? _removing;
+    private string? _removeError;
 
     protected override async Task OnInitializedAsync()
     {
@@ -112,13 +122,36 @@
         }
     }
 
-    private async Task Remove(int hostPort)
+    private void StartRemove(int hostPort)
     {
+        _removing = hostPort;
+        _removeError = null;
+    }
+
+    private void CancelRemove()
+    {
+        _removing = null;
+        _removeError = null;
+    }
+
+    private async Task ConfirmRemove()
+    {
+        if (_removing is not { } hostPort)
+        {
+            return;
+        }
+
         _busy = true;
+        _removeError = null;
         try
         {
             await Sender.Send(new RemovePortHandler.Request(App, hostPort));
+            _removing = null;
             await LoadAsync();
+        }
+        catch (LuffException exception)
+        {
+            _removeError = exception.Message;
         }
         finally
         {
