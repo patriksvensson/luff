@@ -3,7 +3,6 @@ namespace Luff.Server.Features;
 public sealed class CreateWebhookTokenHandler : IRequestHandler<CreateWebhookTokenHandler.Request, CreateTokenResponse>
 {
     private readonly LuffDbContext _database;
-    private readonly TimeProvider _timeProvider;
 
     public sealed class Request : IRequest<CreateTokenResponse>
     {
@@ -17,10 +16,9 @@ public sealed class CreateWebhookTokenHandler : IRequestHandler<CreateWebhookTok
         }
     }
 
-    public CreateWebhookTokenHandler(LuffDbContext database, TimeProvider timeProvider)
+    public CreateWebhookTokenHandler(LuffDbContext database)
     {
         _database = database ?? throw new ArgumentNullException(nameof(database));
-        _timeProvider = timeProvider ?? throw new ArgumentNullException(nameof(timeProvider));
     }
 
     public async Task<CreateTokenResponse> Handle(Request request, CancellationToken cancellationToken)
@@ -41,7 +39,6 @@ public sealed class CreateWebhookTokenHandler : IRequestHandler<CreateWebhookTok
             AppName = app.Name,
             Name = name,
             TokenHash = WebhookToken.Hash(token),
-            CreatedAt = _timeProvider.GetUtcNow(),
         };
 
         _database.WebhookTokens.Add(entity);

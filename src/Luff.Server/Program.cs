@@ -57,7 +57,10 @@ public static class Program
         builder.Services.ConfigureHttpJsonOptions(options =>
             options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 
-        builder.Services.AddDbContext<LuffDbContext>(options => options.UseSqlite(connectionString));
+        builder.Services.AddSingleton<AuditInterceptor>();
+        builder.Services.AddDbContext<LuffDbContext>((serviceProvider, options) => options
+            .UseSqlite(connectionString)
+            .AddInterceptors(serviceProvider.GetRequiredService<AuditInterceptor>()));
 
         builder.Services.AddDataProtection()
             .PersistKeysToFileSystem(new DirectoryInfo(keysDirectory))

@@ -22,9 +22,7 @@ public sealed class AuthenticateAgentFixture : IDisposable
         _connection = new SqliteConnection("Data Source=:memory:");
         _connection.Open();
 
-        _options = new DbContextOptionsBuilder<LuffDbContext>()
-            .UseSqlite(_connection)
-            .Options;
+        _options = TestOptions.For(_connection, _time);
 
         using var context = CreateContext();
         context.Database.EnsureCreated();

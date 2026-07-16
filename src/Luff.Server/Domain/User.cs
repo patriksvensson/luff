@@ -1,6 +1,6 @@
 namespace Luff.Server.Features;
 
-public sealed class User
+public sealed class User : Entity
 {
     public required string Username { get; init; }
     public required string PasswordHash { get; set; }

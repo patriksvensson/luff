@@ -8,12 +8,13 @@ namespace Luff.Server.Tests.Env;
 public sealed class ListEnvVarsHandlerTests
 {
     [Fact]
-    public async Task Should_List_Keys_In_Order()
+    public async Task Should_List_Vars_Oldest_First()
     {
         // Given
         using var fixture = new EnvFixture();
         await fixture.HasApp("web");
         await fixture.SetEnv(new SetEnvVarHandler.Request("web", "DATABASE_URL", "a"));
+        fixture.Time.Advance(TimeSpan.FromSeconds(1));
         await fixture.SetEnv(new SetEnvVarHandler.Request("web", "API_KEY", "b"));
 
         // When
@@ -22,7 +23,27 @@ public sealed class ListEnvVarsHandlerTests
 
         // Then
         result.Select(env => env.Key)
-            .ShouldBe(["API_KEY", "DATABASE_URL"]);
+            .ShouldBe(["DATABASE_URL", "API_KEY"]);
+    }
+
+    [Fact]
+    public async Task Should_Keep_Position_When_A_Var_Is_Updated()
+    {
+        // Given
+        using var fixture = new EnvFixture();
+        await fixture.HasApp("web");
+        await fixture.SetEnv(new SetEnvVarHandler.Request("web", "FIRST", "a"));
+        fixture.Time.Advance(TimeSpan.FromSeconds(1));
+        await fixture.SetEnv(new SetEnvVarHandler.Request("web", "SECOND", "b"));
+        fixture.Time.Advance(TimeSpan.FromSeconds(1));
+        await fixture.SetEnv(new SetEnvVarHandler.Request("web", "FIRST", "changed"));
+
+        // When
+        var result = await fixture.ListEnv(new ListEnvVarsHandler.Request("web"));
+
+        // Then
+        result.Select(env => env.Key)
+            .ShouldBe(["FIRST", "SECOND"]);
     }
 
     [Fact]

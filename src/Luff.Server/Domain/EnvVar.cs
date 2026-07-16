@@ -1,6 +1,6 @@
 namespace Luff.Server.Features;
 
-public sealed class EnvVar
+public sealed class EnvVar : Entity
 {
     public required string AppName { get; init; }
     public required string Key { get; init; }

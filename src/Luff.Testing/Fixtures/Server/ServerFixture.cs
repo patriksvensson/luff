@@ -32,9 +32,7 @@ public sealed class ServerFixture : IDisposable
         _connection = new SqliteConnection("Data Source=:memory:");
         _connection.Open();
 
-        _options = new DbContextOptionsBuilder<LuffDbContext>()
-            .UseSqlite(_connection)
-            .Options;
+        _options = TestOptions.For(_connection);
 
         Agents = new FakeAgentConnections();
         FrontDoor = new FrontDoorConfigurator(Agents, Registry, Options.Create(new FrontDoorOptions

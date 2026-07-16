@@ -31,10 +31,15 @@ public sealed class ListEnvVarsHandler : IRequestHandler<ListEnvVarsHandler.Requ
 
         var vars = await _database.EnvVars
             .Where(env => env.AppName == request.AppName)
-            .OrderBy(env => env.Key)
             .ToListAsync(cancellationToken);
 
-        return [.. vars.Select(env => env.ToResponse(_protector.Unprotect(env.Value)))];
+        return
+        [
+            .. vars
+                .OrderBy(env => env.CreatedAt)
+                .ThenBy(env => env.Key, StringComparer.Ordinal)
+                .Select(env => env.ToResponse(_protector.Unprotect(env.Value))),
+        ];
     }
 }
 

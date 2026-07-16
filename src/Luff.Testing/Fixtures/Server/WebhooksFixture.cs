@@ -22,9 +22,7 @@ public sealed class WebhooksFixture : IDisposable
         _connection = new SqliteConnection("Data Source=:memory:");
         _connection.Open();
 
-        _options = new DbContextOptionsBuilder<LuffDbContext>()
-            .UseSqlite(_connection)
-            .Options;
+        _options = TestOptions.For(_connection, _time);
 
         _time = new FakeTimeProvider(new DateTimeOffset(2026, 06, 29, 19, 55, 0, TimeSpan.Zero));
 
@@ -39,7 +37,7 @@ public sealed class WebhooksFixture : IDisposable
 
     public async Task<CreateTokenResponse> CreateToken(CreateWebhookTokenHandler.Request request)
     {
-        var handler = new CreateWebhookTokenHandler(CreateContext(), _time);
+        var handler = new CreateWebhookTokenHandler(CreateContext());
         return await handler.Handle(request, CancellationToken.None);
     }
 
@@ -59,7 +57,7 @@ public sealed class WebhooksFixture : IDisposable
     {
         await using var context = CreateContext();
         var engine = new DeployEngine(
-            context, Agents, new DockerComposeRenderer(), new FakeSecretProtector(), new FakeAlertPublisher(), _time);
+            context, Agents, new DockerComposeRenderer(), new FakeSecretProtector(), new FakeAlertPublisher());
         var handler = new TriggerWebhookHandler(context, _time, engine);
         return await handler.Handle(request, CancellationToken.None);
     }

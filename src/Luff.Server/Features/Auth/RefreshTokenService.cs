@@ -97,7 +97,6 @@ public sealed class RefreshTokenService
             FamilyId = familyId,
             TokenHash = RefreshToken.Hash(token),
             ExpiresAt = expiresAt,
-            CreatedAt = _timeProvider.GetUtcNow(),
         });
 
         await _database.SaveChangesAsync(cancellationToken);

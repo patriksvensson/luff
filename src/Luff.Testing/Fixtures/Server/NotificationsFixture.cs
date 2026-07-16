@@ -22,9 +22,7 @@ public sealed class NotificationsFixture : IDisposable
         _connection = new SqliteConnection("Data Source=:memory:");
         _connection.Open();
 
-        _options = new DbContextOptionsBuilder<LuffDbContext>()
-            .UseSqlite(_connection)
-            .Options;
+        _options = TestOptions.For(_connection, _time);
 
         _time = new FakeTimeProvider(new DateTimeOffset(2026, 07, 09, 12, 0, 0, TimeSpan.Zero));
 
@@ -39,7 +37,7 @@ public sealed class NotificationsFixture : IDisposable
 
     public async Task<NotificationChannelResponse> AddChannel(string name, string type, string url)
     {
-        var handler = new AddNotificationChannelHandler(CreateContext(), Protector, _time);
+        var handler = new AddNotificationChannelHandler(CreateContext(), Protector);
         return await handler.Handle(
             new AddNotificationChannelHandler.Request(name, type, url), CancellationToken.None);
     }

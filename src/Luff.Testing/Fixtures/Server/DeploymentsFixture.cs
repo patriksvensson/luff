@@ -23,9 +23,7 @@ public sealed class DeploymentsFixture : IDisposable
         _connection = new SqliteConnection("Data Source=:memory:");
         _connection.Open();
 
-        _options = new DbContextOptionsBuilder<LuffDbContext>()
-            .UseSqlite(_connection)
-            .Options;
+        _options = TestOptions.For(_connection, _time);
 
         _time = new FakeTimeProvider(new DateTimeOffset(2026, 6, 1, 12, 0, 0, TimeSpan.Zero));
 
@@ -44,8 +42,7 @@ public sealed class DeploymentsFixture : IDisposable
             Agents,
             new DockerComposeRenderer(),
             new FakeSecretProtector(),
-            Alerts,
-            _time);
+            Alerts);
     }
 
     public async Task<DeploymentResponse> TriggerDeployment(string name, string? tag)

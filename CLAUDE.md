@@ -88,6 +88,11 @@ same-host only (no overlay network), so an app and its datastore must attach to 
 
 ## Domain model
 
+Every persisted entity inherits the abstract `Entity` base — audit `CreatedAt` + `UpdatedAt`, stamped by a
+`SaveChangesInterceptor` (`AuditInterceptor`) on save (only when unset, so tests can still seed specific
+values); handlers never set them by hand. It is wired into the DbContext in `Program.cs` and, for the
+hermetic tests, through the shared `TestOptions.For` helper. Not every audit field is surfaced in the API.
+
 - **App** — the unit of deployment: a `kind` (`Web` | `Internal` | `Direct`), `image`, `internalPort`,
   encrypted, reveal-able `envVars`, `volumes`, a health check (`Docker`/`Http`/`Tcp`/`None`), a `stopped`
   desired run-state, current/previous tags. A **web** app also has a `domain` and `tlsMode` (route

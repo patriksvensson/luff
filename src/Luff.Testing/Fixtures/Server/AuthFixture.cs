@@ -23,9 +23,7 @@ public sealed class AuthFixture : IDisposable
         _connection = new SqliteConnection("Data Source=:memory:");
         _connection.Open();
 
-        _options = new DbContextOptionsBuilder<LuffDbContext>()
-            .UseSqlite(_connection)
-            .Options;
+        _options = TestOptions.For(_connection, Time);
 
         _signingKey = new([.. "0123456789abcdef0123456789abcdef"u8]);
         _protector = new FakeSecretProtector();

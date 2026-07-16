@@ -1,6 +1,6 @@
 namespace Luff.Server.Features;
 
-public sealed class App
+public sealed class App : Entity
 {
     public required string Name { get; init; }
     public AppKind Kind { get; set; } = AppKind.Web;

@@ -1,6 +1,6 @@
 namespace Luff.Server.Features;
 
-public sealed class PortMapping
+public sealed class PortMapping : Entity
 {
     public required string AppName { get; init; }
     public required int HostPort { get; init; }

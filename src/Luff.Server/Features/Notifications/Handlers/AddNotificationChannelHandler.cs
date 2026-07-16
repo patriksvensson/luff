@@ -5,7 +5,6 @@ public sealed class AddNotificationChannelHandler
 {
     private readonly LuffDbContext _database;
     private readonly ISecretProtector _protector;
-    private readonly TimeProvider _timeProvider;
 
     public sealed class Request : IRequest<NotificationChannelResponse>
     {
@@ -21,11 +20,10 @@ public sealed class AddNotificationChannelHandler
         }
     }
 
-    public AddNotificationChannelHandler(LuffDbContext database, ISecretProtector protector, TimeProvider timeProvider)
+    public AddNotificationChannelHandler(LuffDbContext database, ISecretProtector protector)
     {
         _database = database ?? throw new ArgumentNullException(nameof(database));
         _protector = protector ?? throw new ArgumentNullException(nameof(protector));
-        _timeProvider = timeProvider ?? throw new ArgumentNullException(nameof(timeProvider));
     }
 
     public async Task<NotificationChannelResponse> Handle(Request request, CancellationToken cancellationToken)
@@ -40,7 +38,6 @@ public sealed class AddNotificationChannelHandler
             Name = name,
             Type = type,
             Url = _protector.Protect(url),
-            CreatedAt = _timeProvider.GetUtcNow(),
         };
 
         _database.NotificationChannels.Add(channel);

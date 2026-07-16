@@ -1,6 +1,6 @@
 namespace Luff.Server.Features;
 
-public sealed class ServerSettings
+public sealed class ServerSettings : Entity
 {
     public const string SingletonId = "singleton";
 

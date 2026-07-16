@@ -19,9 +19,7 @@ public sealed class RegistriesFixture : IDisposable
         _connection = new SqliteConnection("Data Source=:memory:");
         _connection.Open();
 
-        _options = new DbContextOptionsBuilder<LuffDbContext>()
-            .UseSqlite(_connection)
-            .Options;
+        _options = TestOptions.For(_connection);
 
         using var context = CreateContext();
         context.Database.EnsureCreated();

@@ -1,6 +1,6 @@
 namespace Luff.Server.Features;
 
-public sealed class Agent
+public sealed class Agent : Entity
 {
     public required string Name { get; init; }
     public string? EnrollmentTokenHash { get; set; }

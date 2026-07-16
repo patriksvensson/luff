@@ -1,6 +1,6 @@
 namespace Luff.Server.Features;
 
-public sealed class Registry
+public sealed class Registry : Entity
 {
     public required string Host { get; init; }
     public required string Username { get; set; }

@@ -7,22 +7,19 @@ public sealed class DeployEngine
     private readonly DockerComposeRenderer _renderer;
     private readonly ISecretProtector _protector;
     private readonly IAlertPublisher _alerts;
-    private readonly TimeProvider _timeProvider;
 
     public DeployEngine(
         LuffDbContext database,
         IAgentConnections connections,
         DockerComposeRenderer renderer,
         ISecretProtector protector,
-        IAlertPublisher alerts,
-        TimeProvider timeProvider)
+        IAlertPublisher alerts)
     {
         _database = database ?? throw new ArgumentNullException(nameof(database));
         _connections = connections ?? throw new ArgumentNullException(nameof(connections));
         _renderer = renderer ?? throw new ArgumentNullException(nameof(renderer));
         _protector = protector ?? throw new ArgumentNullException(nameof(protector));
         _alerts = alerts ?? throw new ArgumentNullException(nameof(alerts));
-        _timeProvider = timeProvider ?? throw new ArgumentNullException(nameof(timeProvider));
     }
 
     public async Task<Deployment> QueueDeploymentAsync(App app, string tag, CancellationToken cancellationToken = default)
@@ -60,7 +57,6 @@ public sealed class DeployEngine
                 AppName = app.Name,
                 Tag = tag,
                 Status = DeploymentStatus.Pending,
-                CreatedAt = _timeProvider.GetUtcNow(),
             };
 
             _database.Deployments.Add(queued);
@@ -279,7 +275,6 @@ public sealed class DeployEngine
                 AppName = app.Name,
                 Tag = app.CurrentImageTag,
                 Status = DeploymentStatus.InProgress,
-                CreatedAt = _timeProvider.GetUtcNow(),
                 Agents = [agentName],
                 AgentCursor = 0,
             };

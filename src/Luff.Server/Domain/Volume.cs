@@ -1,6 +1,6 @@
 namespace Luff.Server.Features;
 
-public sealed class Volume
+public sealed class Volume : Entity
 {
     public required string AppName { get; init; }
     public required string Source { get; set; }

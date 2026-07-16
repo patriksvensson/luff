@@ -4,6 +4,7 @@ using Luff.Server.Persistence;
 using Luff.Server.Tests.Fakes;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Time.Testing;
 
 namespace Luff.Server.Tests.Env;
 
@@ -13,15 +14,14 @@ public sealed class EnvFixture : IDisposable
     private readonly DbContextOptions<LuffDbContext> _options;
 
     public ISecretProtector Protector { get; } = new FakeSecretProtector();
+    public FakeTimeProvider Time { get; } = new(new DateTimeOffset(2026, 07, 17, 12, 0, 0, TimeSpan.Zero));
 
     public EnvFixture()
     {
         _connection = new SqliteConnection("Data Source=:memory:");
         _connection.Open();
 
-        _options = new DbContextOptionsBuilder<LuffDbContext>()
-            .UseSqlite(_connection)
-            .Options;
+        _options = TestOptions.For(_connection, Time);
 
         using var context = CreateContext();
         context.Database.EnsureCreated();

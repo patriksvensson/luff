@@ -1,6 +1,6 @@
 namespace Luff.Server.Features;
 
-public sealed class AppAgent
+public sealed class AppAgent : Entity
 {
     public required string AppName { get; init; }
     public required string AgentName { get; init; }
