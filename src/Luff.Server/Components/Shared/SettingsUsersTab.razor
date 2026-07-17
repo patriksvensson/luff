@@ -228,7 +228,7 @@
         try
         {
             await Sender.Send(new CreateUserHandler.Request(
-                _newUserPassword, _newUserRole, _newUserEmail.Trim(),
+                _newUserPassword, _newUserRole, _newUserEmail.Trim(), _currentEmail ?? Actors.System,
                 _newUserFirstName, _newUserLastName));
             _creatingUser = false;
             await LoadUsers();
@@ -311,7 +311,7 @@
         _resetError = null;
         try
         {
-            await Sender.Send(new ResetUserTwoFactorHandler.Request(_resettingTwoFactor));
+            await Sender.Send(new ResetUserTwoFactorHandler.Request(_resettingTwoFactor, _currentEmail ?? Actors.System));
             _editTwoFactor = false;
             _resettingTwoFactor = null;
             await LoadUsers();
@@ -349,7 +349,7 @@
         _removeError = null;
         try
         {
-            await Sender.Send(new DeleteUserHandler.Request(_removing));
+            await Sender.Send(new DeleteUserHandler.Request(_removing, _currentEmail ?? Actors.System));
             _removing = null;
             await LoadUsers();
         }

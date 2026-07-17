@@ -4,29 +4,35 @@ public sealed class UpdateAppHandler : IRequestHandler<UpdateAppHandler.Request,
 {
     private readonly LuffDbContext _database;
     private readonly IAgentConnections _connections;
+    private readonly IEventPublisher _events;
 
     public sealed class Request : IRequest<AppResponse>
     {
         public string Name { get; }
         public string Image { get; }
         public int InternalPort { get; }
+        public string Actor { get; }
         public string? Domain { get; }
         public TlsMode? TlsMode { get; }
 
-        public Request(string name, string image, int internalPort, string? domain = null, TlsMode? tlsMode = null)
+        public Request(
+            string name, string image, int internalPort, string actor,
+            string? domain = null, TlsMode? tlsMode = null)
         {
             Name = name ?? throw new ArgumentNullException(nameof(name));
             Image = image ?? throw new ArgumentNullException(nameof(image));
             InternalPort = internalPort;
+            Actor = actor ?? throw new ArgumentNullException(nameof(actor));
             Domain = domain;
             TlsMode = tlsMode;
         }
     }
 
-    public UpdateAppHandler(LuffDbContext database, IAgentConnections connections)
+    public UpdateAppHandler(LuffDbContext database, IAgentConnections connections, IEventPublisher events)
     {
         _database = database ?? throw new ArgumentNullException(nameof(database));
         _connections = connections ?? throw new ArgumentNullException(nameof(connections));
+        _events = events ?? throw new ArgumentNullException(nameof(events));
     }
 
     public async Task<AppResponse> Handle(Request request, CancellationToken cancellationToken)
@@ -53,6 +59,7 @@ public sealed class UpdateAppHandler : IRequestHandler<UpdateAppHandler.Request,
             app.Image = request.Image;
             app.InternalPort = request.InternalPort;
             await _database.SaveChangesAsync(cancellationToken);
+            await PublishUpdatedAsync(app, request.Actor, cancellationToken);
             return app.ToResponse();
         }
 
@@ -77,7 +84,20 @@ public sealed class UpdateAppHandler : IRequestHandler<UpdateAppHandler.Request,
             await RerouteAsync(app, previousDomain, route, cancellationToken);
         }
 
+        await PublishUpdatedAsync(app, request.Actor, cancellationToken);
         return app.ToResponse();
+    }
+
+    private Task PublishUpdatedAsync(App app, string actor, CancellationToken cancellationToken)
+    {
+        return _events.PublishAsync(new AuditEvent
+        {
+            Kind = AuditEventKind.AppUpdated,
+            Actor = actor,
+            Title = $"App updated: {app.Name}",
+            Message = $"{app.Name} settings were updated.",
+            App = app.Name,
+        }, cancellationToken);
     }
 
     private async Task RerouteAsync(
@@ -107,11 +127,11 @@ public sealed class UpdateAppHandler : IRequestHandler<UpdateAppHandler.Request,
 public static class UpdateAppHandlerExtensions
 {
     public static async Task<AppResponse> UpdateApp(
-        this ISender sender, string name, string image, int internalPort,
+        this ISender sender, string name, string image, int internalPort, string actor,
         string? domain = null, TlsMode? tlsMode = null, CancellationToken cancellationToken = default)
     {
         return await sender.Send(
-            new UpdateAppHandler.Request(name, image, internalPort, domain, tlsMode),
+            new UpdateAppHandler.Request(name, image, internalPort, actor, domain, tlsMode),
             cancellationToken);
     }
 }

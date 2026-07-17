@@ -4,21 +4,25 @@ public sealed class EnrollAgentHandler : IRequestHandler<EnrollAgentHandler.Requ
 {
     private readonly LuffDbContext _database;
     private readonly TimeProvider _time;
+    private readonly IEventPublisher _events;
 
     public sealed class Request : IRequest<EnrollAgentResponse>
     {
         public string Name { get; }
+        public string Actor { get; }
 
-        public Request(string name)
+        public Request(string name, string actor)
         {
             Name = name ?? throw new ArgumentNullException(nameof(name));
+            Actor = actor ?? throw new ArgumentNullException(nameof(actor));
         }
     }
 
-    public EnrollAgentHandler(LuffDbContext database, TimeProvider time)
+    public EnrollAgentHandler(LuffDbContext database, TimeProvider time, IEventPublisher events)
     {
         _database = database ?? throw new ArgumentNullException(nameof(database));
         _time = time ?? throw new ArgumentNullException(nameof(time));
+        _events = events ?? throw new ArgumentNullException(nameof(events));
     }
 
     public async Task<EnrollAgentResponse> Handle(Request request, CancellationToken cancellationToken)
@@ -39,6 +43,15 @@ public sealed class EnrollAgentHandler : IRequestHandler<EnrollAgentHandler.Requ
         });
         await _database.SaveChangesAsync(cancellationToken);
 
+        await _events.PublishAsync(new AuditEvent
+        {
+            Kind = AuditEventKind.AgentEnrolled,
+            Actor = request.Actor,
+            Title = $"Machine enrolled: {name}",
+            Message = $"Agent '{name}' was enrolled and issued a token.",
+            Agent = name,
+        }, cancellationToken);
+
         return new EnrollAgentResponse(name, token);
     }
 }
@@ -46,8 +59,8 @@ public sealed class EnrollAgentHandler : IRequestHandler<EnrollAgentHandler.Requ
 public static class EnrollAgentHandlerExtensions
 {
     public static async Task<EnrollAgentResponse> EnrollAgent(
-        this ISender sender, string name, CancellationToken cancellationToken = default)
+        this ISender sender, string name, string actor, CancellationToken cancellationToken = default)
     {
-        return await sender.Send(new EnrollAgentHandler.Request(name), cancellationToken);
+        return await sender.Send(new EnrollAgentHandler.Request(name, actor), cancellationToken);
     }
 }

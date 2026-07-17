@@ -26,16 +26,19 @@ public static class DeploymentEndpoints
     }
 
     private static async Task<Accepted<DeploymentResponse>> TriggerDeployment(
-        string name, DeployRequest? request, ISender sender, CancellationToken cancellationToken)
+        string name, DeployRequest? request, ClaimsPrincipal principal, ISender sender,
+        CancellationToken cancellationToken)
     {
-        var deployment = await sender.TriggerDeployment(name, request?.Tag, cancellationToken);
+        var actor = principal.Identity?.Name ?? Actors.System;
+        var deployment = await sender.TriggerDeployment(name, request?.Tag, actor, cancellationToken);
         return TypedResults.Accepted($"/api/v1/apps/{name}/deployments", deployment);
     }
 
     private static async Task<Accepted<DeploymentResponse>> Rollback(
-        string name, ISender sender, CancellationToken cancellationToken)
+        string name, ClaimsPrincipal principal, ISender sender, CancellationToken cancellationToken)
     {
-        var deployment = await sender.Rollback(name, cancellationToken);
+        var actor = principal.Identity?.Name ?? Actors.System;
+        var deployment = await sender.Rollback(name, actor, cancellationToken);
         return TypedResults.Accepted($"/api/v1/apps/{name}/deployments", deployment);
     }
 

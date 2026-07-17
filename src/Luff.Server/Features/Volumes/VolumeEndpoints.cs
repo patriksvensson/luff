@@ -26,10 +26,12 @@ public static class VolumeEndpoints
     }
 
     private static async Task<Ok<VolumeResponse>> Add(
-        string name, AddVolumeRequest request, ISender sender, CancellationToken cancellationToken)
+        string name, AddVolumeRequest request, ClaimsPrincipal principal, ISender sender,
+        CancellationToken cancellationToken)
     {
+        var actor = principal.Identity?.Name ?? Actors.System;
         var volume = await sender.AddVolume(
-            name, request.Source, request.Target, request.ReadOnly, cancellationToken);
+            name, request.Source, request.Target, request.ReadOnly, actor, cancellationToken);
 
         return TypedResults.Ok(volume);
     }
@@ -42,9 +44,9 @@ public static class VolumeEndpoints
     }
 
     private static async Task<NoContent> Remove(
-        string name, string target, ISender sender, CancellationToken cancellationToken)
+        string name, string target, ClaimsPrincipal principal, ISender sender, CancellationToken cancellationToken)
     {
-        await sender.RemoveVolume(name, target, cancellationToken);
+        await sender.RemoveVolume(name, target, principal.Identity?.Name ?? Actors.System, cancellationToken);
         return TypedResults.NoContent();
     }
 }

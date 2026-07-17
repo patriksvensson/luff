@@ -107,18 +107,31 @@ hermetic tests, through the shared `TestOptions.For` helper. Not every audit fie
 - **AppAgent** - the app-agent attachment; carries the per-agent running tag (may lag, causing tag drift) plus
   the last agent-reported runtime health (healthy | unhealthy | starting | stopped | unknown). No per-agent
   config overrides.
-- **Deployment** — one rollout of a tag; ordered state pipeline; records failing agent on failure.
+- **Deployment** — one rollout of a tag; ordered state pipeline; records failing agent on failure, and
+  `TriggeredBy` (operator email / `ci` / `system`) so its deploy events can name who shipped.
 - **WebhookToken / Registry / User (`email` PK — usernames removed; login, the JWT `sub`, and the cookie
   identity are all the email, normalized lowercase and immutable in place; Admin | Operator; optional
   `firstName`/`lastName`; optional TOTP 2FA — `twoFactorEnabled` + encrypted `twoFactorSecret`) / RecoveryCode
   (hashed, single-use 2FA backup codes) / ServerSettings** (front-door domain singleton).
+- **AuditEvent** — the system-of-record for a notable event (`kind`, `actor`, `title`, `message`, optional
+  `app`/`agent`, timestamp). Everything worth remembering is raised once through the central `IEventPublisher`,
+  which stamps an id and fans it out best-effort to every registered `IEventListener` (one failing never breaks
+  the operation nor the other listeners): the `AuditLogListener` persists it — via its own scope, an isolated
+  unit of work — as the audit log the **Activity** view reads newest-first (`GET /api/v1/audit`, open to any
+  authenticated user), and the `NotificationListener` forwards it to channels. `actor` is a user email for a
+  user action, `ci` for a webhook deploy, `agent:<name>` for a link event, or `system`. The `kind` catalog:
+  deploy succeeded/failed, app created/updated/deleted/started/stopped/unhealthy, agent
+  connected/disconnected/enrolled/removed, registry added/removed, volume added/removed, user
+  created/deleted, 2FA enabled/disabled, server started.
+  `ServerStarted` fires once at boot (skipped while the OpenAPI document is generated, since that host applies
+  no migrations). A new listener (email, Slack, ...) is one class.
 - **NotificationChannel** — an Admin-managed alert target (`Discord` | `Generic`; webhook URL stored encrypted,
-  returned decrypted to Admins). An event — deploy failed, deploy succeeded, agent connected, agent disconnected, app went
-  unhealthy (on the transition into unhealthy only), app manually started, app manually stopped — is formatted
-  per type (Discord colour-coded embeds with a per-event icon / Generic structured JSON) and POSTed
-  **fire-and-forget** through a singleton background `NotificationDispatcher`, so a slow/down endpoint never
-  blocks or fails the triggering operation. Agent connect/disconnect fire on every link transition (no
-  debounce; a reconnect or control-plane restart alerts).
+  returned decrypted to Admins), fed by the `NotificationListener` — it forwards every `AuditEvent` kind above,
+  each formatted per type (Discord colour-coded embeds with a per-event icon / Generic structured JSON) and
+  POSTed **fire-and-forget** through a singleton background `NotificationDispatcher`, so a slow/down endpoint
+  never blocks or fails the triggering operation. App-unhealthy fires only on the transition into unhealthy;
+  agent connect/disconnect fire on every link transition (no debounce; a reconnect or control-plane restart
+  alerts). Per-channel event subscription (choosing which kinds a channel forwards) is not built yet.
 
 ## Security posture
 

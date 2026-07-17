@@ -46,7 +46,7 @@ public sealed class TriggerWebhookHandler : IRequestHandler<TriggerWebhookHandle
         var app = await _database.Apps.FindAsync([token.AppName], cancellationToken)
             ?? throw new AppNotFoundException(token.AppName);
 
-        var queued = await _engine.QueueDeploymentAsync(app, request.Tag, cancellationToken);
+        var queued = await _engine.QueueDeploymentAsync(app, request.Tag, Actors.Ci, cancellationToken);
 
         return queued.ToResponse();
     }

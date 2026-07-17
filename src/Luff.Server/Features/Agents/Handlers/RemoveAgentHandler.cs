@@ -5,22 +5,27 @@ public sealed class RemoveAgentHandler : IRequestHandler<RemoveAgentHandler.Requ
     private readonly LuffDbContext _database;
     private readonly IAgentConnections _connections;
     private readonly AgentRegistry _registry;
+    private readonly IEventPublisher _events;
 
     public sealed class Request : IRequest<Unit>
     {
         public string Name { get; }
+        public string Actor { get; }
 
-        public Request(string name)
+        public Request(string name, string actor)
         {
             Name = name ?? throw new ArgumentNullException(nameof(name));
+            Actor = actor ?? throw new ArgumentNullException(nameof(actor));
         }
     }
 
-    public RemoveAgentHandler(LuffDbContext database, IAgentConnections connections, AgentRegistry registry)
+    public RemoveAgentHandler(
+        LuffDbContext database, IAgentConnections connections, AgentRegistry registry, IEventPublisher events)
     {
         _database = database ?? throw new ArgumentNullException(nameof(database));
         _connections = connections ?? throw new ArgumentNullException(nameof(connections));
         _registry = registry ?? throw new ArgumentNullException(nameof(registry));
+        _events = events ?? throw new ArgumentNullException(nameof(events));
     }
 
     public async Task<Unit> Handle(Request request, CancellationToken cancellationToken)
@@ -54,6 +59,15 @@ public sealed class RemoveAgentHandler : IRequestHandler<RemoveAgentHandler.Requ
 
         _registry.Remove(request.Name);
 
+        await _events.PublishAsync(new AuditEvent
+        {
+            Kind = AuditEventKind.AgentRemoved,
+            Actor = request.Actor,
+            Title = $"Machine removed: {agent.Name}",
+            Message = $"Agent '{agent.Name}' was removed from the fleet.",
+            Agent = agent.Name,
+        }, cancellationToken);
+
         return Unit.Value;
     }
 }
@@ -61,8 +75,8 @@ public sealed class RemoveAgentHandler : IRequestHandler<RemoveAgentHandler.Requ
 public static class RemoveAgentHandlerExtensions
 {
     public static async Task RemoveAgent(
-        this ISender sender, string name, CancellationToken cancellationToken = default)
+        this ISender sender, string name, string actor, CancellationToken cancellationToken = default)
     {
-        await sender.Send(new RemoveAgentHandler.Request(name), cancellationToken);
+        await sender.Send(new RemoveAgentHandler.Request(name, actor), cancellationToken);
     }
 }

@@ -15,8 +15,7 @@ public sealed class RemoveRegistryHandlerTests
         await fixture.AddRegistry("ghcr.io", "user", "secret");
 
         // When
-        await fixture.RemoveRegistry(
-            new RemoveRegistryHandler.Request("ghcr.io"));
+        await fixture.RemoveRegistry("ghcr.io");
 
         // Then
         (await fixture.GetRegistries()).ShouldBeEmpty();
@@ -30,10 +29,27 @@ public sealed class RemoveRegistryHandlerTests
 
         // When
         var exception = await Record.ExceptionAsync(() =>
-            fixture.RemoveRegistry(
-                new RemoveRegistryHandler.Request("ghost.io")));
+            fixture.RemoveRegistry("ghost.io"));
 
         // Then
         exception.ShouldBeOfType<RegistryNotFoundException>();
+    }
+
+    [Fact]
+    public async Task Should_Publish_Registry_Added_And_Removed_Events()
+    {
+        // Given
+        using var fixture = new RegistriesFixture();
+
+        // When
+        await fixture.AddRegistry("ghcr.io", "user", "secret", actor: "admin@example.com");
+        await fixture.RemoveRegistry("ghcr.io", actor: "admin@example.com");
+
+        // Then
+        fixture.Events.Published.Select(evt => (evt.Kind, evt.Actor)).ShouldBe(
+        [
+            (AuditEventKind.RegistryAdded, "admin@example.com"),
+            (AuditEventKind.RegistryRemoved, "admin@example.com"),
+        ]);
     }
 }

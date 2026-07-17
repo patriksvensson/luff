@@ -17,6 +17,7 @@ public sealed class AuthFixture : IDisposable
     private readonly ISecretProtector _protector;
 
     public FakeTimeProvider Time { get; } = new(new DateTimeOffset(2026, 06, 30, 12, 0, 0, TimeSpan.Zero));
+    public FakeEventPublisher Events { get; } = new();
 
     public AuthFixture()
     {
@@ -68,22 +69,23 @@ public sealed class AuthFixture : IDisposable
 
     public async Task<RecoveryCodesResponse> ConfirmTwoFactorEnrollment(string email, string code)
     {
-        var handler =
-            new ConfirmTwoFactorEnrollmentHandler(CreateContext(), _protector, CreateRefreshTokenService(), Time);
+        var handler = new ConfirmTwoFactorEnrollmentHandler(
+            CreateContext(), _protector, CreateRefreshTokenService(), Time, Events);
         return await handler.Handle(
             new ConfirmTwoFactorEnrollmentHandler.Request(email, code), CancellationToken.None);
     }
 
     public async Task DisableTwoFactor(string email, string code)
     {
-        var handler = new DisableTwoFactorHandler(CreateContext(), CreateTwoFactorService(), CreateRefreshTokenService());
+        var handler = new DisableTwoFactorHandler(
+            CreateContext(), CreateTwoFactorService(), CreateRefreshTokenService(), Events);
         await handler.Handle(new DisableTwoFactorHandler.Request(email, code), CancellationToken.None);
     }
 
-    public async Task ResetUserTwoFactor(string email)
+    public async Task ResetUserTwoFactor(string email, string actor = "admin@example.com")
     {
-        var handler = new ResetUserTwoFactorHandler(CreateContext(), CreateRefreshTokenService());
-        await handler.Handle(new ResetUserTwoFactorHandler.Request(email), CancellationToken.None);
+        var handler = new ResetUserTwoFactorHandler(CreateContext(), CreateRefreshTokenService(), Events);
+        await handler.Handle(new ResetUserTwoFactorHandler.Request(email, actor), CancellationToken.None);
     }
 
     public async Task Logout(LogoutHandler.Request request)
@@ -100,7 +102,7 @@ public sealed class AuthFixture : IDisposable
 
     public async Task<UserResponse> CreateUser(CreateUserHandler.Request request)
     {
-        var handler = new CreateUserHandler(CreateContext());
+        var handler = new CreateUserHandler(CreateContext(), Events);
         return await handler.Handle(request, CancellationToken.None);
     }
 
@@ -118,7 +120,7 @@ public sealed class AuthFixture : IDisposable
 
     public async Task DeleteUser(DeleteUserHandler.Request request)
     {
-        var handler = new DeleteUserHandler(CreateContext());
+        var handler = new DeleteUserHandler(CreateContext(), Events);
         await handler.Handle(request, CancellationToken.None);
     }
 

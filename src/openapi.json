@@ -497,6 +497,29 @@
         }
       }
     },
+    "/api/v1/audit": {
+      "get": {
+        "tags": [
+          "Audit"
+        ],
+        "operationId": "Audit_List",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AuditEventResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/setup": {
       "post": {
         "tags": [
@@ -2473,6 +2496,75 @@
           }
         }
       },
+      "AuditEventKind": {
+        "enum": [
+          "DeploySucceeded",
+          "DeployFailed",
+          "AppCreated",
+          "AppUpdated",
+          "AppDeleted",
+          "AppStarted",
+          "AppStopped",
+          "AppUnhealthy",
+          "AgentConnected",
+          "AgentDisconnected",
+          "AgentEnrolled",
+          "AgentRemoved",
+          "RegistryAdded",
+          "RegistryRemoved",
+          "VolumeAdded",
+          "VolumeRemoved",
+          "UserCreated",
+          "UserDeleted",
+          "TwoFactorEnabled",
+          "TwoFactorDisabled",
+          "ServerStarted"
+        ],
+        "type": "string"
+      },
+      "AuditEventResponse": {
+        "required": [
+          "id",
+          "kind",
+          "actor",
+          "title",
+          "message",
+          "app",
+          "agent",
+          "createdAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/AuditEventKind"
+          },
+          "actor": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "app": {
+            "type": "string",
+            "nullable": true
+          },
+          "agent": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
       "AuthResponse": {
         "required": [
           "accessToken",
@@ -3218,6 +3310,9 @@
     },
     {
       "name": "Logs"
+    },
+    {
+      "name": "Audit"
     },
     {
       "name": "Setup"

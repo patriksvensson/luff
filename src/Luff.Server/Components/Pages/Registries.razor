@@ -100,6 +100,7 @@ else
     private string? _error;
     private string? _removing;
     private string? _removeError;
+    private string _actor = Actors.System;
 
     protected override async Task OnInitializedAsync()
     {
@@ -107,6 +108,7 @@ else
         {
             var state = await AuthState;
             _isAdmin = state.User.IsInRole("Admin");
+            _actor = state.User.Identity?.Name ?? Actors.System;
         }
 
         if (_isAdmin)
@@ -133,7 +135,7 @@ else
         _error = null;
         try
         {
-            await Sender.Send(new AddRegistryHandler.Request(_host.Trim(), _username.Trim(), _password));
+            await Sender.Send(new AddRegistryHandler.Request(_host.Trim(), _username.Trim(), _password, _actor));
             _adding = false;
             await LoadAsync();
         }
@@ -170,7 +172,7 @@ else
         _removeError = null;
         try
         {
-            await Sender.Send(new RemoveRegistryHandler.Request(_removing));
+            await Sender.Send(new RemoveRegistryHandler.Request(_removing, _actor));
             _removing = null;
             await LoadAsync();
         }

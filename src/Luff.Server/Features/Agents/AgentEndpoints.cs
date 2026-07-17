@@ -44,16 +44,17 @@ public static class AgentEndpoints
     }
 
     private static async Task<Created<EnrollAgentResponse>> Enroll(
-        EnrollAgentRequest request, ISender sender, CancellationToken cancellationToken)
+        EnrollAgentRequest request, ClaimsPrincipal principal, ISender sender, CancellationToken cancellationToken)
     {
-        var response = await sender.EnrollAgent(request.Name, cancellationToken);
+        var response = await sender.EnrollAgent(
+            request.Name, principal.Identity?.Name ?? Actors.System, cancellationToken);
         return TypedResults.Created($"/api/v1/agents/{response.Name}", response);
     }
 
     private static async Task<NoContent> Remove(
-        string name, ISender sender, CancellationToken cancellationToken)
+        string name, ClaimsPrincipal principal, ISender sender, CancellationToken cancellationToken)
     {
-        await sender.RemoveAgent(name, cancellationToken);
+        await sender.RemoveAgent(name, principal.Identity?.Name ?? Actors.System, cancellationToken);
         return TypedResults.NoContent();
     }
 

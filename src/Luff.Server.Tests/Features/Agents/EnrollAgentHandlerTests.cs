@@ -38,4 +38,20 @@ public sealed class EnrollAgentHandlerTests
         // Then
         exception.ShouldBeOfType<AgentAlreadyExistsException>();
     }
+
+    [Fact]
+    public async Task Should_Publish_A_Machine_Enrolled_Event()
+    {
+        // Given
+        using var fixture = new AgentsFixture();
+
+        // When
+        await fixture.Enroll("hetzner-fsn1", actor: "admin@example.com");
+
+        // Then
+        fixture.Events.Published.ShouldHaveSingleItem().ShouldSatisfyAllConditions(
+            evt => evt.Kind.ShouldBe(AuditEventKind.AgentEnrolled),
+            evt => evt.Actor.ShouldBe("admin@example.com"),
+            evt => evt.Agent.ShouldBe("hetzner-fsn1"));
+    }
 }

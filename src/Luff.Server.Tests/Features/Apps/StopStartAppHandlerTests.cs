@@ -70,10 +70,11 @@ public sealed class StopStartAppHandlerTests
         await fixture.HasApp("web");
 
         // When
-        await fixture.StopApp("web");
+        await fixture.StopApp("web", actor: "alice@example.com");
 
         // Then
-        fixture.Alerts.Published.ShouldContain(alert => alert.Kind == AlertKind.AppStopped && alert.App == "web");
+        fixture.Events.Published.ShouldContain(evt =>
+            evt.Kind == AuditEventKind.AppStopped && evt.App == "web" && evt.Actor == "alice@example.com");
     }
 
     [Fact]
@@ -84,9 +85,10 @@ public sealed class StopStartAppHandlerTests
         await fixture.HasApp("web");
 
         // When
-        await fixture.StartApp("web");
+        await fixture.StartApp("web", actor: "alice@example.com");
 
         // Then
-        fixture.Alerts.Published.ShouldContain(alert => alert.Kind == AlertKind.AppStarted && alert.App == "web");
+        fixture.Events.Published.ShouldContain(evt =>
+            evt.Kind == AuditEventKind.AppStarted && evt.App == "web" && evt.Actor == "alice@example.com");
     }
 }

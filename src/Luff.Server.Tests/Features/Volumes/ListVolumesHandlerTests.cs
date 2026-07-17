@@ -13,8 +13,8 @@ public sealed class ListVolumesHandlerTests
         // Given
         using var fixture = new VolumesFixture();
         await fixture.HasApp("web");
-        await fixture.AddVolume(new AddVolumeHandler.Request("web", "logs", "/var/log", false));
-        await fixture.AddVolume(new AddVolumeHandler.Request("web", "/srv/data", "/data", false));
+        await fixture.AddVolume(new AddVolumeHandler.Request("web", "logs", "/var/log", false, "admin@example.com"));
+        await fixture.AddVolume(new AddVolumeHandler.Request("web", "/srv/data", "/data", false, "admin@example.com"));
 
         // When
         var result = await fixture.ListVolumes(new ListVolumesHandler.Request("web"));

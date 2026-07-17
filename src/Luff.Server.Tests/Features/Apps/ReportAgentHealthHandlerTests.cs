@@ -38,10 +38,11 @@ public sealed class ReportAgentHealthHandlerTests
             [new AgentHealthEntry("web", AppRuntimeHealth.Unhealthy, "restart-looping")]);
 
         // Then
-        fixture.Alerts.Published.ShouldHaveSingleItem().ShouldSatisfyAllConditions(
-            alert => alert.Kind.ShouldBe(AlertKind.AppUnhealthy),
-            alert => alert.App.ShouldBe("web"),
-            alert => alert.Agent.ShouldBe("agent-1"));
+        fixture.Events.Published.ShouldHaveSingleItem().ShouldSatisfyAllConditions(
+            evt => evt.Kind.ShouldBe(AuditEventKind.AppUnhealthy),
+            evt => evt.Actor.ShouldBe(Actors.Agent("agent-1")),
+            evt => evt.App.ShouldBe("web"),
+            evt => evt.Agent.ShouldBe("agent-1"));
     }
 
     [Fact]
@@ -57,7 +58,7 @@ public sealed class ReportAgentHealthHandlerTests
         await fixture.ReportHealth("agent-1", [new AgentHealthEntry("web", AppRuntimeHealth.Unhealthy, "boom")]);
 
         // Then
-        fixture.Alerts.Published.Count.ShouldBe(1);
+        fixture.Events.Published.Count.ShouldBe(1);
     }
 
     [Fact]

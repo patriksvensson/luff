@@ -13,10 +13,10 @@ public sealed class RemoveVolumeHandlerTests
         // Given
         using var fixture = new VolumesFixture();
         await fixture.HasApp("web");
-        await fixture.AddVolume(new AddVolumeHandler.Request("web", "/srv/data", "/data", false));
+        await fixture.AddVolume(new AddVolumeHandler.Request("web", "/srv/data", "/data", false, "admin@example.com"));
 
         // When
-        await fixture.RemoveVolume(new RemoveVolumeHandler.Request("web", "/data"));
+        await fixture.RemoveVolume(new RemoveVolumeHandler.Request("web", "/data", "admin@example.com"));
 
         // Then
         (await fixture.GetVolumes("web")).ShouldBeEmpty();
@@ -31,9 +31,28 @@ public sealed class RemoveVolumeHandlerTests
 
         // When
         var exception = await Record.ExceptionAsync(() =>
-            fixture.RemoveVolume(new RemoveVolumeHandler.Request("web", "/missing")));
+            fixture.RemoveVolume(new RemoveVolumeHandler.Request("web", "/missing", "admin@example.com")));
 
         // Then
         exception.ShouldBeOfType<VolumeNotFoundException>();
+    }
+
+    [Fact]
+    public async Task Should_Publish_Volume_Added_And_Removed_Events()
+    {
+        // Given
+        using var fixture = new VolumesFixture();
+        await fixture.HasApp("web");
+
+        // When
+        await fixture.AddVolume(new AddVolumeHandler.Request("web", "/srv/data", "/data", false, "admin@example.com"));
+        await fixture.RemoveVolume(new RemoveVolumeHandler.Request("web", "/data", "admin@example.com"));
+
+        // Then
+        fixture.Events.Published.Select(evt => (evt.Kind, evt.App, evt.Actor)).ShouldBe(
+        [
+            (AuditEventKind.VolumeAdded, "web", "admin@example.com"),
+            (AuditEventKind.VolumeRemoved, "web", "admin@example.com"),
+        ]);
     }
 }

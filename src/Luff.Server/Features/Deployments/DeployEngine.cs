@@ -6,23 +6,24 @@ public sealed class DeployEngine
     private readonly IAgentConnections _connections;
     private readonly DockerComposeRenderer _renderer;
     private readonly ISecretProtector _protector;
-    private readonly IAlertPublisher _alerts;
+    private readonly IEventPublisher _events;
 
     public DeployEngine(
         LuffDbContext database,
         IAgentConnections connections,
         DockerComposeRenderer renderer,
         ISecretProtector protector,
-        IAlertPublisher alerts)
+        IEventPublisher events)
     {
         _database = database ?? throw new ArgumentNullException(nameof(database));
         _connections = connections ?? throw new ArgumentNullException(nameof(connections));
         _renderer = renderer ?? throw new ArgumentNullException(nameof(renderer));
         _protector = protector ?? throw new ArgumentNullException(nameof(protector));
-        _alerts = alerts ?? throw new ArgumentNullException(nameof(alerts));
+        _events = events ?? throw new ArgumentNullException(nameof(events));
     }
 
-    public async Task<Deployment> QueueDeploymentAsync(App app, string tag, CancellationToken cancellationToken = default)
+    public async Task<Deployment> QueueDeploymentAsync(
+        App app, string tag, string triggeredBy, CancellationToken cancellationToken = default)
     {
         if (app.Stopped)
         {
@@ -57,13 +58,16 @@ public sealed class DeployEngine
                 AppName = app.Name,
                 Tag = tag,
                 Status = DeploymentStatus.Pending,
+                TriggeredBy = triggeredBy,
             };
 
             _database.Deployments.Add(queued);
         }
         else
         {
+            // Coalescing onto an existing pending deploy: the latest trigger owns the resulting rollout.
             queued.Tag = tag;
+            queued.TriggeredBy = triggeredBy;
         }
 
         await _database.SaveChangesAsync(cancellationToken);
@@ -184,12 +188,15 @@ public sealed class DeployEngine
         }
 
         await _database.SaveChangesAsync(cancellationToken);
-        await _alerts.PublishAsync(new Alert(
-            AlertKind.DeploySucceeded,
-            $"Deploy succeeded: {deployment.AppName}",
-            $"{deployment.AppName} @ {deployment.Tag} is live across {deployment.Agents.Count} "
+        await _events.PublishAsync(new AuditEvent
+        {
+            Kind = AuditEventKind.DeploySucceeded,
+            Actor = deployment.TriggeredBy,
+            Title = $"Deploy succeeded: {deployment.AppName}",
+            Message = $"{deployment.AppName} @ {deployment.Tag} is live across {deployment.Agents.Count} "
                 + (deployment.Agents.Count == 1 ? "machine." : "machines."),
-            deployment.AppName), cancellationToken);
+            App = deployment.AppName,
+        }, cancellationToken);
         await TryStartNextDeploymentAsync(deployment.AppName, cancellationToken);
     }
 
@@ -440,11 +447,14 @@ public sealed class DeployEngine
         Deployment deployment, string? detail, string? agent, CancellationToken cancellationToken)
     {
         var suffix = agent is null ? string.Empty : $" on {agent}";
-        return _alerts.PublishAsync(new Alert(
-            AlertKind.DeployFailed,
-            $"Deploy failed: {deployment.AppName}",
-            $"{deployment.AppName} @ {deployment.Tag}{suffix}: {detail}",
-            deployment.AppName,
-            agent), cancellationToken);
+        return _events.PublishAsync(new AuditEvent
+        {
+            Kind = AuditEventKind.DeployFailed,
+            Actor = deployment.TriggeredBy,
+            Title = $"Deploy failed: {deployment.AppName}",
+            Message = $"{deployment.AppName} @ {deployment.Tag}{suffix}: {detail}",
+            App = deployment.AppName,
+            Agent = agent,
+        }, cancellationToken);
     }
 }

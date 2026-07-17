@@ -184,6 +184,7 @@ Agent__ServerPin=@_agentLinkPin</code></pre>
     private string? _removing;
     private bool _removingFrontDoor;
     private string? _removeError;
+    private string _actor = Actors.System;
 
     protected override async Task OnInitializedAsync()
     {
@@ -191,6 +192,7 @@ Agent__ServerPin=@_agentLinkPin</code></pre>
         {
             var state = await AuthState;
             _isAdmin = state.User.IsInRole("Admin");
+            _actor = state.User.Identity?.Name ?? Actors.System;
         }
 
         _serverHost = new Uri(Navigation.BaseUri).Host;
@@ -241,7 +243,7 @@ Agent__ServerPin=@_agentLinkPin</code></pre>
         _enrollError = null;
         try
         {
-            _minted = await Sender.Send(new EnrollAgentHandler.Request(_enrollName.Trim()));
+            _minted = await Sender.Send(new EnrollAgentHandler.Request(_enrollName.Trim(), _actor));
             _joinCommand = AgentJoin.BuildCommand(
                 Installer.Value.Repo, _minted.Name, _agentLinkAddress, _agentLinkPin, _minted.Token);
             await Reload();
@@ -292,7 +294,7 @@ Agent__ServerPin=@_agentLinkPin</code></pre>
         _removeError = null;
         try
         {
-            await Sender.Send(new RemoveAgentHandler.Request(_removing));
+            await Sender.Send(new RemoveAgentHandler.Request(_removing, _actor));
             _removing = null;
             await Reload();
         }

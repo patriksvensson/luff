@@ -13,6 +13,7 @@ public sealed class RegistriesFixture : IDisposable
     private readonly DbContextOptions<LuffDbContext> _options;
 
     public ISecretProtector Protector { get; } = new FakeSecretProtector();
+    public FakeEventPublisher Events { get; } = new();
 
     public RegistriesFixture()
     {
@@ -25,11 +26,12 @@ public sealed class RegistriesFixture : IDisposable
         context.Database.EnsureCreated();
     }
 
-    public async Task<RegistryResponse> AddRegistry(string host, string username, string password)
+    public async Task<RegistryResponse> AddRegistry(
+        string host, string username, string password, string actor = "admin@example.com")
     {
-        var handler = new AddRegistryHandler(CreateContext(), Protector);
+        var handler = new AddRegistryHandler(CreateContext(), Protector, Events);
         return await handler.Handle(
-            new AddRegistryHandler.Request(host, username, password),
+            new AddRegistryHandler.Request(host, username, password, actor),
             CancellationToken.None);
     }
 
@@ -39,10 +41,10 @@ public sealed class RegistriesFixture : IDisposable
         return await handler.Handle(new ListRegistriesHandler.Request(), CancellationToken.None);
     }
 
-    public async Task RemoveRegistry(RemoveRegistryHandler.Request request)
+    public async Task RemoveRegistry(string host, string actor = "admin@example.com")
     {
-        var handler = new RemoveRegistryHandler(CreateContext());
-        await handler.Handle(request, CancellationToken.None);
+        var handler = new RemoveRegistryHandler(CreateContext(), Events);
+        await handler.Handle(new RemoveRegistryHandler.Request(host, actor), CancellationToken.None);
     }
 
     public async Task<IReadOnlyList<Registry>> GetRegistries()

@@ -1,3 +1,4 @@
+using Luff.Server.Features;
 using Luff.Server.Infrastructure;
 using Shouldly;
 using Xunit;
@@ -32,5 +33,22 @@ public sealed class DeleteAppHandlerTests
 
         // Then
         exception.ShouldBeOfType<AppNotFoundException>();
+    }
+
+    [Fact]
+    public async Task Should_Publish_An_App_Deleted_Event()
+    {
+        // Given
+        using var fixture = new AppsFixture();
+        await fixture.HasApp("web");
+
+        // When
+        await fixture.DeleteApp("web", actor: "operator@example.com");
+
+        // Then
+        fixture.Events.Published.ShouldHaveSingleItem().ShouldSatisfyAllConditions(
+            evt => evt.Kind.ShouldBe(AuditEventKind.AppDeleted),
+            evt => evt.Actor.ShouldBe("operator@example.com"),
+            evt => evt.App.ShouldBe("web"));
     }
 }

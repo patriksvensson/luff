@@ -156,7 +156,8 @@ public sealed class UpdateAppHandlerTests
         var reader = fixture.Agents.Register("agent-1");
 
         // When
-        var result = await fixture.UpdateApp(new UpdateAppHandler.Request("postgres", "postgres:17", 5432));
+        var result = await fixture.UpdateApp(
+            new UpdateAppHandler.Request("postgres", "postgres:17", 5432, "operator@example.com"));
 
         // Then
         result.Image.ShouldBe("postgres:17");
@@ -172,9 +173,27 @@ public sealed class UpdateAppHandlerTests
 
         // When
         var exception = await Record.ExceptionAsync(() =>
-            fixture.UpdateApp(new UpdateAppHandler.Request("postgres", "postgres", 5432, domain: "db.example.com")));
+            fixture.UpdateApp(new UpdateAppHandler.Request(
+                "postgres", "postgres", 5432, "operator@example.com", domain: "db.example.com")));
 
         // Then
         exception.ShouldBeOfType<InternalServiceDomainException>();
+    }
+
+    [Fact]
+    public async Task Should_Publish_An_App_Updated_Event()
+    {
+        // Given
+        using var fixture = new AppsFixture();
+        await fixture.HasApp("web");
+
+        // When
+        await fixture.UpdateApp("web", "nginx:2", "web.example.com", 80, actor: "operator@example.com");
+
+        // Then
+        fixture.Events.Published.ShouldHaveSingleItem().ShouldSatisfyAllConditions(
+            evt => evt.Kind.ShouldBe(AuditEventKind.AppUpdated),
+            evt => evt.Actor.ShouldBe("operator@example.com"),
+            evt => evt.App.ShouldBe("web"));
     }
 }

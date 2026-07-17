@@ -33,10 +33,11 @@ public static class UserEndpoints
     }
 
     private static async Task<Created<UserResponse>> Create(
-        CreateUserRequest request, ISender sender, CancellationToken cancellationToken)
+        CreateUserRequest request, ClaimsPrincipal principal, ISender sender, CancellationToken cancellationToken)
     {
+        var actor = principal.Identity?.Name ?? Actors.System;
         var user = await sender.CreateUser(
-            request.Password, request.Role, request.Email,
+            request.Password, request.Role, request.Email, actor,
             request.FirstName, request.LastName, cancellationToken);
         return TypedResults.Created($"/api/v1/users/{user.Email}", user);
     }
@@ -51,16 +52,16 @@ public static class UserEndpoints
     }
 
     private static async Task<NoContent> Delete(
-        string email, ISender sender, CancellationToken cancellationToken)
+        string email, ClaimsPrincipal principal, ISender sender, CancellationToken cancellationToken)
     {
-        await sender.DeleteUser(email, cancellationToken);
+        await sender.DeleteUser(email, principal.Identity?.Name ?? Actors.System, cancellationToken);
         return TypedResults.NoContent();
     }
 
     private static async Task<NoContent> ResetTwoFactor(
-        string email, ISender sender, CancellationToken cancellationToken)
+        string email, ClaimsPrincipal principal, ISender sender, CancellationToken cancellationToken)
     {
-        await sender.ResetUserTwoFactor(email, cancellationToken);
+        await sender.ResetUserTwoFactor(email, principal.Identity?.Name ?? Actors.System, cancellationToken);
         return TypedResults.NoContent();
     }
 }

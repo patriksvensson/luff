@@ -15,7 +15,7 @@ public sealed class DeploymentsFixture : IDisposable
     private int _attachOrder;
 
     public FakeAgentConnections Agents { get; }
-    public FakeAlertPublisher Alerts { get; } = new();
+    public FakeEventPublisher Events { get; } = new();
     public DeployEngine DeployEngine { get; }
 
     public DeploymentsFixture()
@@ -42,21 +42,21 @@ public sealed class DeploymentsFixture : IDisposable
             Agents,
             new DockerComposeRenderer(),
             new FakeSecretProtector(),
-            Alerts);
+            Events);
     }
 
-    public async Task<DeploymentResponse> TriggerDeployment(string name, string? tag)
+    public async Task<DeploymentResponse> TriggerDeployment(string name, string? tag, string actor = "operator@example.com")
     {
         await using var context = CreateContext();
         var handler = new TriggerDeploymentHandler(context, CreateEngine(context));
-        return await handler.Handle(new TriggerDeploymentHandler.Request(name, tag), CancellationToken.None);
+        return await handler.Handle(new TriggerDeploymentHandler.Request(name, tag, actor), CancellationToken.None);
     }
 
-    public async Task<DeploymentResponse> Rollback(string name)
+    public async Task<DeploymentResponse> Rollback(string name, string actor = "operator@example.com")
     {
         await using var context = CreateContext();
         var handler = new RollbackHandler(context, CreateEngine(context));
-        return await handler.Handle(new RollbackHandler.Request(name), CancellationToken.None);
+        return await handler.Handle(new RollbackHandler.Request(name, actor), CancellationToken.None);
     }
 
     public async Task<IReadOnlyList<DeploymentResponse>> ListDeployments(string name)

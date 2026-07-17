@@ -23,9 +23,11 @@ public static class RegistryEndpoints
     }
 
     private static async Task<Ok<RegistryResponse>> Add(
-        AddRegistryRequest request, ISender sender, CancellationToken cancellationToken)
+        AddRegistryRequest request, ClaimsPrincipal principal, ISender sender, CancellationToken cancellationToken)
     {
-        var registry = await sender.AddRegistry(request.Host, request.Username, request.Password, cancellationToken);
+        var actor = principal.Identity?.Name ?? Actors.System;
+        var registry = await sender.AddRegistry(
+            request.Host, request.Username, request.Password, actor, cancellationToken);
         return TypedResults.Ok(registry);
     }
 
@@ -37,9 +39,9 @@ public static class RegistryEndpoints
     }
 
     private static async Task<NoContent> Remove(
-        string host, ISender sender, CancellationToken cancellationToken)
+        string host, ClaimsPrincipal principal, ISender sender, CancellationToken cancellationToken)
     {
-        await sender.RemoveRegistry(host, cancellationToken: cancellationToken);
+        await sender.RemoveRegistry(host, principal.Identity?.Name ?? Actors.System, cancellationToken);
         return TypedResults.NoContent();
     }
 }

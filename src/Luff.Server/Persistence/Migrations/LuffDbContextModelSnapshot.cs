@@ -131,6 +131,45 @@ namespace Luff.Server.Persistence.Migrations
                     b.ToTable("AppAgents");
                 });
 
+            modelBuilder.Entity("Luff.Server.Features.AuditEvent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Actor")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Agent")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("App")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("AuditEvents");
+                });
+
             modelBuilder.Entity("Luff.Server.Features.Deployment", b =>
                 {
                     b.Property<Guid>("Id")
@@ -161,6 +200,12 @@ namespace Luff.Server.Persistence.Migrations
                     b.Property<string>("Tag")
                         .IsRequired()
                         .HasColumnType("TEXT");
+
+                    b.Property<string>("TriggeredBy")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT")
+                        .HasDefaultValue("system");
 
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("TEXT");

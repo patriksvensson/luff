@@ -17,6 +17,7 @@ public sealed class AgentsFixture : IDisposable
     public FakeAgentConnections Agents { get; } = new();
     public AgentRegistry Registry { get; } = new();
     public FakeLogStream Logs { get; } = new();
+    public FakeEventPublisher Events { get; } = new();
 
     public AgentsFixture()
     {
@@ -82,22 +83,16 @@ public sealed class AgentsFixture : IDisposable
         return await handler.Handle(new AppDetailHandler.Request(name), CancellationToken.None);
     }
 
-    public async Task<IReadOnlyList<ActivityRow>> Activity()
+    public async Task<EnrollAgentResponse> Enroll(string name, string actor = "admin@example.com")
     {
-        var handler = new ActivityHandler(CreateContext(), _time);
-        return await handler.Handle(new ActivityHandler.Request(), CancellationToken.None);
+        var handler = new EnrollAgentHandler(CreateContext(), _time, Events);
+        return await handler.Handle(new EnrollAgentHandler.Request(name, actor), CancellationToken.None);
     }
 
-    public async Task<EnrollAgentResponse> Enroll(string name)
+    public async Task RemoveAgent(string name, string actor = "admin@example.com")
     {
-        var handler = new EnrollAgentHandler(CreateContext(), _time);
-        return await handler.Handle(new EnrollAgentHandler.Request(name), CancellationToken.None);
-    }
-
-    public async Task RemoveAgent(string name)
-    {
-        var handler = new RemoveAgentHandler(CreateContext(), Agents, Registry);
-        await handler.Handle(new RemoveAgentHandler.Request(name), CancellationToken.None);
+        var handler = new RemoveAgentHandler(CreateContext(), Agents, Registry, Events);
+        await handler.Handle(new RemoveAgentHandler.Request(name, actor), CancellationToken.None);
     }
 
     public async Task<IReadOnlyList<FleetAgent>> Fleet()

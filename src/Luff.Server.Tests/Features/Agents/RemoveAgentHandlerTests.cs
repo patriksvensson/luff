@@ -1,3 +1,4 @@
+using Luff.Server.Features;
 using Luff.Server.Infrastructure;
 using Shouldly;
 using Xunit;
@@ -50,5 +51,22 @@ public sealed class RemoveAgentHandlerTests
 
         // Then
         exception.ShouldBeOfType<AgentNotFoundException>();
+    }
+
+    [Fact]
+    public async Task Should_Publish_A_Machine_Removed_Event()
+    {
+        // Given
+        using var fixture = new AgentsFixture();
+        await fixture.HasAgent("host1", lastSeenAt: fixture.Time.GetUtcNow());
+
+        // When
+        await fixture.RemoveAgent("host1", actor: "admin@example.com");
+
+        // Then
+        fixture.Events.Published.ShouldHaveSingleItem().ShouldSatisfyAllConditions(
+            evt => evt.Kind.ShouldBe(AuditEventKind.AgentRemoved),
+            evt => evt.Actor.ShouldBe("admin@example.com"),
+            evt => evt.Agent.ShouldBe("host1"));
     }
 }

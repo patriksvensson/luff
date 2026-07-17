@@ -574,9 +574,10 @@ public sealed class DeployEngineTests
             "agent-1", deploymentId, healthy: false, "the container exited with code 1");
 
         // Then
-        var alert = fixture.Alerts.Published.ShouldHaveSingleItem();
-        alert.ShouldSatisfyAllConditions(
-            a => a.Kind.ShouldBe(AlertKind.DeployFailed),
+        var evt = fixture.Events.Published.ShouldHaveSingleItem();
+        evt.ShouldSatisfyAllConditions(
+            a => a.Kind.ShouldBe(AuditEventKind.DeployFailed),
+            a => a.Actor.ShouldBe(Actors.System),
             a => a.App.ShouldBe("web"),
             a => a.Agent.ShouldBe("agent-1"),
             a => a.Message.ShouldContain("exited with code 1"));
@@ -596,11 +597,31 @@ public sealed class DeployEngineTests
         await fixture.DeployEngine.HandleDeployResultAsync("agent-1", deploymentId, healthy: true, null);
 
         // Then
-        var alert = fixture.Alerts.Published.ShouldHaveSingleItem();
-        alert.ShouldSatisfyAllConditions(
-            a => a.Kind.ShouldBe(AlertKind.DeploySucceeded),
+        var evt = fixture.Events.Published.ShouldHaveSingleItem();
+        evt.ShouldSatisfyAllConditions(
+            a => a.Kind.ShouldBe(AuditEventKind.DeploySucceeded),
+            a => a.Actor.ShouldBe(Actors.System),
             a => a.App.ShouldBe("web"),
             a => a.Message.ShouldContain("v1"));
+    }
+
+    [Fact]
+    public async Task Should_Attribute_A_Deploy_Event_To_The_Triggering_Actor()
+    {
+        // Given
+        using var fixture = new DeploymentsFixture();
+        await fixture.HasApp("web", currentImageTag: "v1");
+        await fixture.HasAttachment("web", "agent-1");
+        var deployment = await fixture.TriggerDeployment("web", "v2", actor: "alice@example.com");
+
+        // When
+        await fixture.DeployEngine.HandleDeployResultAsync("agent-1", deployment.Id, healthy: true, null);
+
+        // Then
+        var evt = fixture.Events.Published.ShouldHaveSingleItem();
+        evt.ShouldSatisfyAllConditions(
+            a => a.Kind.ShouldBe(AuditEventKind.DeploySucceeded),
+            a => a.Actor.ShouldBe("alice@example.com"));
     }
 
     [Fact]
@@ -613,7 +634,7 @@ public sealed class DeployEngineTests
 
         // When
         var exception = await Record.ExceptionAsync(() =>
-            fixture.DeployEngine.QueueDeploymentAsync(app!, "v1"));
+            fixture.DeployEngine.QueueDeploymentAsync(app!, "v1", Actors.System));
 
         // Then
         exception.ShouldBeOfType<AppStoppedException>();

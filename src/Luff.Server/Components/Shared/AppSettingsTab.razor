@@ -112,6 +112,10 @@
     private bool _confirming;
     private string? _deleteError;
     private string? _error;
+    private string _actor = Actors.System;
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthState { get; set; }
 
     private string PortLabel => _frontless ? (_direct ? "Container port" : "Service port") : "Internal port";
 
@@ -123,6 +127,12 @@
 
     protected override async Task OnInitializedAsync()
     {
+        if (AuthState is not null)
+        {
+            var state = await AuthState;
+            _actor = state.User.Identity?.Name ?? Actors.System;
+        }
+
         var app = await Sender.Send(new GetAppHandler.Request(App));
         _image = app.Image;
         _internal = app.Kind == AppKind.Internal;
@@ -140,7 +150,7 @@
         try
         {
             await Sender.Send(new UpdateAppHandler.Request(
-                App, _image!, _port,
+                App, _image!, _port, _actor,
                 domain: _frontless ? null : _domain.Trim(),
                 tlsMode: _frontless ? null : _tlsMode));
             _saved = true;
@@ -174,7 +184,7 @@
         _deleteError = null;
         try
         {
-            await Sender.Send(new DeleteAppHandler.Request(App));
+            await Sender.Send(new DeleteAppHandler.Request(App, _actor));
             Navigation.NavigateTo("apps");
         }
         catch (LuffException exception)

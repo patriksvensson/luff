@@ -1,5 +1,6 @@
 using Luff.Server.Features;
 using Luff.Server.Persistence;
+using Luff.Server.Tests.Fakes;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 
@@ -26,9 +27,11 @@ public sealed class VolumesFixture : IDisposable
         return new LuffDbContext(_options);
     }
 
+    public FakeEventPublisher Events { get; } = new();
+
     public async Task<VolumeResponse> AddVolume(AddVolumeHandler.Request request)
     {
-        var handler = new AddVolumeHandler(CreateContext());
+        var handler = new AddVolumeHandler(CreateContext(), Events);
         return await handler.Handle(request, CancellationToken.None);
     }
 
@@ -40,7 +43,7 @@ public sealed class VolumesFixture : IDisposable
 
     public async Task RemoveVolume(RemoveVolumeHandler.Request request)
     {
-        var handler = new RemoveVolumeHandler(CreateContext());
+        var handler = new RemoveVolumeHandler(CreateContext(), Events);
         await handler.Handle(request, CancellationToken.None);
     }
 

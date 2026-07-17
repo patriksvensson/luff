@@ -80,6 +80,7 @@
     private string? _error;
     private string? _removing;
     private string? _removeError;
+    private string _actor = Actors.System;
 
     protected override async Task OnInitializedAsync()
     {
@@ -87,6 +88,7 @@
         {
             var state = await AuthState;
             _isAdmin = state.User.IsInRole("Admin");
+            _actor = state.User.Identity?.Name ?? Actors.System;
         }
 
         if (_isAdmin)
@@ -104,7 +106,7 @@
         _error = null;
         try
         {
-            await Sender.Send(new AddVolumeHandler.Request(App, _source.Trim(), _target.Trim(), _readOnly));
+            await Sender.Send(new AddVolumeHandler.Request(App, _source.Trim(), _target.Trim(), _readOnly, _actor));
             _source = string.Empty;
             _target = string.Empty;
             _readOnly = false;
@@ -143,7 +145,7 @@
         _removeError = null;
         try
         {
-            await Sender.Send(new RemoveVolumeHandler.Request(App, _removing));
+            await Sender.Send(new RemoveVolumeHandler.Request(App, _removing, _actor));
             _removing = null;
             await LoadAsync();
         }

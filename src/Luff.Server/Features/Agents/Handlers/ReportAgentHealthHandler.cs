@@ -5,7 +5,7 @@ public sealed record AgentHealthEntry(string App, AppRuntimeHealth Status, strin
 public sealed class ReportAgentHealthHandler : IRequestHandler<ReportAgentHealthHandler.Request, Unit>
 {
     private readonly LuffDbContext _database;
-    private readonly IAlertPublisher _alerts;
+    private readonly IEventPublisher _events;
     private readonly TimeProvider _timeProvider;
 
     public sealed class Request : IRequest<Unit>
@@ -20,10 +20,10 @@ public sealed class ReportAgentHealthHandler : IRequestHandler<ReportAgentHealth
         }
     }
 
-    public ReportAgentHealthHandler(LuffDbContext database, IAlertPublisher alerts, TimeProvider timeProvider)
+    public ReportAgentHealthHandler(LuffDbContext database, IEventPublisher events, TimeProvider timeProvider)
     {
         _database = database ?? throw new ArgumentNullException(nameof(database));
-        _alerts = alerts ?? throw new ArgumentNullException(nameof(alerts));
+        _events = events ?? throw new ArgumentNullException(nameof(events));
         _timeProvider = timeProvider ?? throw new ArgumentNullException(nameof(timeProvider));
     }
 
@@ -69,13 +69,16 @@ public sealed class ReportAgentHealthHandler : IRequestHandler<ReportAgentHealth
 
         foreach (var entry in newlyUnhealthy)
         {
-            await _alerts.PublishAsync(new Alert(
-                AlertKind.AppUnhealthy,
-                $"App unhealthy: {entry.App}",
-                $"{entry.App} on {request.AgentName} reported unhealthy"
+            await _events.PublishAsync(new AuditEvent
+            {
+                Kind = AuditEventKind.AppUnhealthy,
+                Actor = Actors.Agent(request.AgentName),
+                Title = $"App unhealthy: {entry.App}",
+                Message = $"{entry.App} on {request.AgentName} reported unhealthy"
                     + (string.IsNullOrEmpty(entry.Detail) ? "." : $": {entry.Detail}."),
-                entry.App,
-                request.AgentName), cancellationToken);
+                App = entry.App,
+                Agent = request.AgentName,
+            }, cancellationToken);
         }
 
         return Unit.Value;

@@ -5,6 +5,7 @@ public sealed class DisableTwoFactorHandler : IRequestHandler<DisableTwoFactorHa
     private readonly LuffDbContext _database;
     private readonly TwoFactorService _twoFactor;
     private readonly RefreshTokenService _refreshTokens;
+    private readonly IEventPublisher _events;
 
     public sealed class Request : IRequest<Unit>
     {
@@ -19,11 +20,13 @@ public sealed class DisableTwoFactorHandler : IRequestHandler<DisableTwoFactorHa
     }
 
     public DisableTwoFactorHandler(
-        LuffDbContext database, TwoFactorService twoFactor, RefreshTokenService refreshTokens)
+        LuffDbContext database, TwoFactorService twoFactor, RefreshTokenService refreshTokens,
+        IEventPublisher events)
     {
         _database = database ?? throw new ArgumentNullException(nameof(database));
         _twoFactor = twoFactor ?? throw new ArgumentNullException(nameof(twoFactor));
         _refreshTokens = refreshTokens ?? throw new ArgumentNullException(nameof(refreshTokens));
+        _events = events ?? throw new ArgumentNullException(nameof(events));
     }
 
     public async Task<Unit> Handle(Request request, CancellationToken cancellationToken)
@@ -51,6 +54,14 @@ public sealed class DisableTwoFactorHandler : IRequestHandler<DisableTwoFactorHa
 
         await _database.SaveChangesAsync(cancellationToken);
         await _refreshTokens.RevokeAllAsync(user.Email, cancellationToken);
+
+        await _events.PublishAsync(new AuditEvent
+        {
+            Kind = AuditEventKind.TwoFactorDisabled,
+            Actor = user.Email,
+            Title = $"2FA disabled: {user.Email}",
+            Message = $"{user.Email} turned off two-factor authentication.",
+        }, cancellationToken);
 
         return Unit.Value;
     }

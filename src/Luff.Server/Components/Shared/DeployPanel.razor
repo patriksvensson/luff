@@ -104,6 +104,9 @@
     public bool Https { get; set; }
 
     [Parameter]
+    public string Actor { get; set; } = Actors.System;
+
+    [Parameter]
     public EventCallback OnClose { get; set; }
 
     private PanelMode _mode = PanelMode.Trigger;
@@ -140,8 +143,8 @@
         try
         {
             var deployment = Kind == DeployKind.Rollback
-                ? await Sender.Send(new RollbackHandler.Request(App))
-                : await Sender.Send(new TriggerDeploymentHandler.Request(App, tag));
+                ? await Sender.Send(new RollbackHandler.Request(App, Actor))
+                : await Sender.Send(new TriggerDeploymentHandler.Request(App, tag, Actor));
 
             _toTag = deployment.Tag;
 

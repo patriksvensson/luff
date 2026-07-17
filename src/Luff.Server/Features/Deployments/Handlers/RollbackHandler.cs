@@ -8,10 +8,12 @@ public sealed class RollbackHandler : IRequestHandler<RollbackHandler.Request, D
     public sealed class Request : IRequest<DeploymentResponse>
     {
         public string Name { get; }
+        public string Actor { get; }
 
-        public Request(string name)
+        public Request(string name, string actor)
         {
             Name = name ?? throw new ArgumentNullException(nameof(name));
+            Actor = actor ?? throw new ArgumentNullException(nameof(actor));
         }
     }
 
@@ -31,7 +33,7 @@ public sealed class RollbackHandler : IRequestHandler<RollbackHandler.Request, D
 
         app.Stopped = false;
 
-        var queued = await _engine.QueueDeploymentAsync(app, tag, cancellationToken);
+        var queued = await _engine.QueueDeploymentAsync(app, tag, request.Actor, cancellationToken);
 
         return queued.ToResponse();
     }
@@ -40,8 +42,8 @@ public sealed class RollbackHandler : IRequestHandler<RollbackHandler.Request, D
 public static class RollbackHandlerExtensions
 {
     public static async Task<DeploymentResponse> Rollback(
-        this ISender sender, string name, CancellationToken cancellationToken = default)
+        this ISender sender, string name, string actor, CancellationToken cancellationToken = default)
     {
-        return await sender.Send(new RollbackHandler.Request(name), cancellationToken);
+        return await sender.Send(new RollbackHandler.Request(name, actor), cancellationToken);
     }
 }

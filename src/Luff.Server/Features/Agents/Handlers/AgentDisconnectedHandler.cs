@@ -4,7 +4,7 @@ public sealed class AgentDisconnectedHandler : IRequestHandler<AgentDisconnected
 {
     private readonly LuffDbContext _database;
     private readonly DeployEngine _engine;
-    private readonly IAlertPublisher _alerts;
+    private readonly IEventPublisher _events;
 
     public sealed class Request : IRequest<Unit>
     {
@@ -16,21 +16,23 @@ public sealed class AgentDisconnectedHandler : IRequestHandler<AgentDisconnected
         }
     }
 
-    public AgentDisconnectedHandler(LuffDbContext database, DeployEngine engine, IAlertPublisher alerts)
+    public AgentDisconnectedHandler(LuffDbContext database, DeployEngine engine, IEventPublisher events)
     {
         _database = database ?? throw new ArgumentNullException(nameof(database));
         _engine = engine ?? throw new ArgumentNullException(nameof(engine));
-        _alerts = alerts ?? throw new ArgumentNullException(nameof(alerts));
+        _events = events ?? throw new ArgumentNullException(nameof(events));
     }
 
     public async Task<Unit> Handle(Request request, CancellationToken cancellationToken)
     {
-        await _alerts.PublishAsync(new Alert(
-            AlertKind.AgentDisconnected,
-            $"Agent disconnected: {request.AgentName}",
-            $"Agent '{request.AgentName}' lost its link to the control plane.",
-            null,
-            request.AgentName), cancellationToken);
+        await _events.PublishAsync(new AuditEvent
+        {
+            Kind = AuditEventKind.AgentDisconnected,
+            Actor = Actors.Agent(request.AgentName),
+            Title = $"Agent disconnected: {request.AgentName}",
+            Message = $"Agent '{request.AgentName}' lost its link to the control plane.",
+            Agent = request.AgentName,
+        }, cancellationToken);
 
         // A disconnected agent can no longer vouch for its containers; its reported health is now stale.
         var attachments = await _database.AppAgents

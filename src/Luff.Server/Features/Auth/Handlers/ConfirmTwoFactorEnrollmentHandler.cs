@@ -7,6 +7,7 @@ public sealed class ConfirmTwoFactorEnrollmentHandler
     private readonly ISecretProtector _protector;
     private readonly RefreshTokenService _refreshTokens;
     private readonly TimeProvider _timeProvider;
+    private readonly IEventPublisher _events;
 
     public sealed class Request : IRequest<RecoveryCodesResponse>
     {
@@ -22,12 +23,13 @@ public sealed class ConfirmTwoFactorEnrollmentHandler
 
     public ConfirmTwoFactorEnrollmentHandler(
         LuffDbContext database, ISecretProtector protector, RefreshTokenService refreshTokens,
-        TimeProvider timeProvider)
+        TimeProvider timeProvider, IEventPublisher events)
     {
         _database = database ?? throw new ArgumentNullException(nameof(database));
         _protector = protector ?? throw new ArgumentNullException(nameof(protector));
         _refreshTokens = refreshTokens ?? throw new ArgumentNullException(nameof(refreshTokens));
         _timeProvider = timeProvider ?? throw new ArgumentNullException(nameof(timeProvider));
+        _events = events ?? throw new ArgumentNullException(nameof(events));
     }
 
     public async Task<RecoveryCodesResponse> Handle(Request request, CancellationToken cancellationToken)
@@ -71,6 +73,14 @@ public sealed class ConfirmTwoFactorEnrollmentHandler
 
         await _database.SaveChangesAsync(cancellationToken);
         await _refreshTokens.RevokeAllAsync(user.Email, cancellationToken);
+
+        await _events.PublishAsync(new AuditEvent
+        {
+            Kind = AuditEventKind.TwoFactorEnabled,
+            Actor = user.Email,
+            Title = $"2FA enabled: {user.Email}",
+            Message = $"{user.Email} turned on two-factor authentication.",
+        }, cancellationToken);
 
         return new RecoveryCodesResponse(codes);
     }

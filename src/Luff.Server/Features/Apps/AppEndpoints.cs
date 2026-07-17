@@ -21,15 +21,17 @@ public static class AppEndpoints
         return group;
     }
 
-    private static async Task<Ok<AppResponse>> StopApp(string name, ISender sender, CancellationToken cancellationToken)
+    private static async Task<Ok<AppResponse>> StopApp(
+        string name, ClaimsPrincipal principal, ISender sender, CancellationToken cancellationToken)
     {
-        var app = await sender.StopApp(name, cancellationToken);
+        var app = await sender.StopApp(name, principal.Identity?.Name ?? Actors.System, cancellationToken);
         return TypedResults.Ok(app);
     }
 
-    private static async Task<Ok<AppResponse>> StartApp(string name, ISender sender, CancellationToken cancellationToken)
+    private static async Task<Ok<AppResponse>> StartApp(
+        string name, ClaimsPrincipal principal, ISender sender, CancellationToken cancellationToken)
     {
-        var app = await sender.StartApp(name, cancellationToken);
+        var app = await sender.StartApp(name, principal.Identity?.Name ?? Actors.System, cancellationToken);
         return TypedResults.Ok(app);
     }
 
@@ -46,22 +48,23 @@ public static class AppEndpoints
         return TypedResults.Ok(app);
     }
 
-    private static async Task<Created<AppResponse>> CreateApp(CreateAppRequest request, ISender sender,
-        CancellationToken cancellationToken)
+    private static async Task<Created<AppResponse>> CreateApp(CreateAppRequest request, ClaimsPrincipal principal,
+        ISender sender, CancellationToken cancellationToken)
     {
         var app = await sender.CreateApp(
-            request.Name, request.Image, request.InternalPort,
+            request.Name, request.Image, request.InternalPort, principal.Identity?.Name ?? Actors.System,
             request.Kind, request.Domain, request.TlsMode,
             cancellationToken);
 
         return TypedResults.Created($"/api/v1/apps/{app.Name}", app);
     }
 
-    private static async Task<Ok<AppResponse>> UpdateApp(string name, UpdateAppRequest request, ISender sender,
-        CancellationToken cancellationToken)
+    private static async Task<Ok<AppResponse>> UpdateApp(string name, UpdateAppRequest request,
+        ClaimsPrincipal principal, ISender sender, CancellationToken cancellationToken)
     {
         var app = await sender.UpdateApp(
-            name, request.Image, request.InternalPort, request.Domain, request.TlsMode,
+            name, request.Image, request.InternalPort, principal.Identity?.Name ?? Actors.System,
+            request.Domain, request.TlsMode,
             cancellationToken);
 
         return TypedResults.Ok(app);
@@ -77,9 +80,10 @@ public static class AppEndpoints
         return TypedResults.Ok(app);
     }
 
-    private static async Task<NoContent> DeleteApp(string name, ISender sender, CancellationToken cancellationToken)
+    private static async Task<NoContent> DeleteApp(
+        string name, ClaimsPrincipal principal, ISender sender, CancellationToken cancellationToken)
     {
-        await sender.DeleteApp(name, cancellationToken);
+        await sender.DeleteApp(name, principal.Identity?.Name ?? Actors.System, cancellationToken);
         return TypedResults.NoContent();
     }
 }

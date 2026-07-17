@@ -121,7 +121,7 @@ else
         <DeployPanel Kind="@(_modal.Value)" App="@_detail.Name" CurrentTag="@_detail.CurrentTag"
                      PreviousTag="@_detail.PreviousTag"
                      Machines="_detail.Machines.Select(machine => machine.Agent).ToList()"
-                     AppDomain="@_detail.Domain" Https="_detail.Https" OnClose="CloseModal" />
+                     AppDomain="@_detail.Domain" Https="_detail.Https" Actor="@_actor" OnClose="CloseModal" />
     }
 }
 
@@ -135,12 +135,25 @@ else
     [SupplyParameterFromQuery(Name = "deploy")]
     public bool DeployRequested { get; set; }
 
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthState { get; set; }
+
     private AppDetail? _detail;
     private bool _notFound;
     private string? _loadedName;
     private bool _deployOpened;
     private DeployKind? _modal;
     private bool _busy;
+    private string _actor = Actors.System;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (AuthState is not null)
+        {
+            var state = await AuthState;
+            _actor = state.User.Identity?.Name ?? Actors.System;
+        }
+    }
 
     private string ActiveTab => Tab?.ToLowerInvariant() switch
     {
@@ -176,7 +189,7 @@ else
         _busy = true;
         try
         {
-            await Sender.Send(new StopAppHandler.Request(Name));
+            await Sender.Send(new StopAppHandler.Request(Name, _actor));
             await LoadAsync();
         }
         finally
@@ -190,7 +203,7 @@ else
         _busy = true;
         try
         {
-            await Sender.Send(new StartAppHandler.Request(Name));
+            await Sender.Send(new StartAppHandler.Request(Name, _actor));
             await LoadAsync();
         }
         finally

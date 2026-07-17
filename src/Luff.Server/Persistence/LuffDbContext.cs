@@ -16,6 +16,7 @@ public sealed class LuffDbContext : DbContext
     public DbSet<Agent> Agents => Set<Agent>();
     public DbSet<ServerSettings> ServerSettings => Set<ServerSettings>();
     public DbSet<NotificationChannel> NotificationChannels => Set<NotificationChannel>();
+    public DbSet<AuditEvent> AuditEvents => Set<AuditEvent>();
 
     public LuffDbContext(DbContextOptions<LuffDbContext> options)
         : base(options)
@@ -34,6 +35,7 @@ public sealed class LuffDbContext : DbContext
         {
             deployment.HasKey(entity => entity.Id);
             deployment.Property(entity => entity.Status).HasConversion<string>();
+            deployment.Property(entity => entity.TriggeredBy).HasDefaultValue(Actors.System);
             deployment.HasOne<App>().WithMany().HasForeignKey(entity => entity.AppName);
         });
 
@@ -100,6 +102,12 @@ public sealed class LuffDbContext : DbContext
         {
             channel.HasKey(entity => entity.Id);
             channel.Property(entity => entity.Type).HasConversion<string>();
+        });
+
+        modelBuilder.Entity<AuditEvent>(auditEvent =>
+        {
+            auditEvent.HasKey(entity => entity.Id);
+            auditEvent.Property(entity => entity.Kind).HasConversion<string>();
         });
     }
 }

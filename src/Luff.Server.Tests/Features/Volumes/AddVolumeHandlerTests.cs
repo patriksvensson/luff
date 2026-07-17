@@ -15,7 +15,7 @@ public sealed class AddVolumeHandlerTests
         await fixture.HasApp("web");
 
         // When
-        await fixture.AddVolume(new AddVolumeHandler.Request("web", "/srv/data", "/data", false));
+        await fixture.AddVolume(new AddVolumeHandler.Request("web", "/srv/data", "/data", false, "admin@example.com"));
 
         // Then
         var stored = await fixture.GetVolumes("web");
@@ -31,10 +31,10 @@ public sealed class AddVolumeHandlerTests
         // Given
         using var fixture = new VolumesFixture();
         await fixture.HasApp("web");
-        await fixture.AddVolume(new AddVolumeHandler.Request("web", "/srv/old", "/data", false));
+        await fixture.AddVolume(new AddVolumeHandler.Request("web", "/srv/old", "/data", false, "admin@example.com"));
 
         // When
-        await fixture.AddVolume(new AddVolumeHandler.Request("web", "/srv/new", "/data", true));
+        await fixture.AddVolume(new AddVolumeHandler.Request("web", "/srv/new", "/data", true, "admin@example.com"));
 
         // Then
         var stored = await fixture.GetVolumes("web");
@@ -52,7 +52,7 @@ public sealed class AddVolumeHandlerTests
 
         // When
         var exception = await Record.ExceptionAsync(() =>
-            fixture.AddVolume(new AddVolumeHandler.Request("web", "/var/run/docker.sock", "/sock", false)));
+            fixture.AddVolume(new AddVolumeHandler.Request("web", "/var/run/docker.sock", "/sock", false, "admin@example.com")));
 
         // Then
         exception.ShouldBeOfType<InvalidVolumeException>();
@@ -66,7 +66,7 @@ public sealed class AddVolumeHandlerTests
 
         // When
         var exception = await Record.ExceptionAsync(() =>
-            fixture.AddVolume(new AddVolumeHandler.Request("ghost", "/srv/data", "/data", false)));
+            fixture.AddVolume(new AddVolumeHandler.Request("ghost", "/srv/data", "/data", false, "admin@example.com")));
 
         // Then
         exception.ShouldBeOfType<AppNotFoundException>();

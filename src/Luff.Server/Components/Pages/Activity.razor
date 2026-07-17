@@ -1,6 +1,7 @@
 @page "/activity"
 @attribute [Authorize]
 @inject IScopedSender Sender
+@inject TimeProvider Time
 
 <PageTitle>Activity - Luff</PageTitle>
 
@@ -17,24 +18,31 @@
 }
 else if (_rows.Count == 0)
 {
-    <div class="cfg-empty">No deployments yet.</div>
+    <div class="cfg-empty">No activity yet.</div>
 }
 else
 {
     <div class="act-list">
         @foreach (var row in _rows)
         {
-            <div class="card act-card @CardClass(row)">
+            <div class="card act-card">
                 <div class="act-top">
-                    <span class="dot @Dot(row)"></span>
-                    <a class="app-link" href="apps/@row.App/activity">@row.App</a>
-                    <span class="mono act-tag">@row.Tag</span>
+                    <span class="dot @Dot(row.Kind)"></span>
+                    @if (row.App is not null)
+                    {
+                        <a class="app-link" href="apps/@row.App/activity">@row.Title</a>
+                    }
+                    else
+                    {
+                        <span class="act-title">@row.Title</span>
+                    }
                     <span class="spacer"></span>
-                    <span class="act-when">@row.When</span>
+                    <span class="act-when">@When(row)</span>
                 </div>
                 <div class="act-foot">
+                    <span class="act-detail">@row.Message</span>
                     <span class="spacer"></span>
-                    <span class="mono act-status @StatusClass(row)">@StatusText(row)</span>
+                    <span class="act-actor mono">@row.Actor</span>
                 </div>
             </div>
         }
@@ -42,40 +50,24 @@ else
 }
 
 @code {
-    private IReadOnlyList<ActivityRow>? _rows;
+    private IReadOnlyList<AuditEventResponse>? _rows;
 
     protected override async Task OnInitializedAsync()
     {
-        _rows = await Sender.Send(new ActivityHandler.Request());
+        _rows = await Sender.Send(new ListAuditHandler.Request());
     }
 
-    private static string Dot(ActivityRow row)
-    {
-        return row.Failed ? "dot-red" : row.Succeeded ? "dot-green" : "dot-amber";
-    }
+    private string When(AuditEventResponse row) => AppHealth.Relative(Time.GetUtcNow() - row.CreatedAt);
 
-    private static string StatusClass(ActivityRow row)
+    private static string Dot(AuditEventKind kind)
     {
-        return row.Failed ? "is-failed" : row.Succeeded ? "is-ok" : "is-progress";
-    }
-
-    private static string StatusText(ActivityRow row)
-    {
-        if (row is { Failed: true, FailureReason: not null })
+        return kind switch
         {
-            return $"{row.Status} | {row.FailureReason}";
-        }
-
-        if (row.MachineCount > 0)
-        {
-            return $"{row.Status} | {row.MachineCount} {(row.MachineCount == 1 ? "machine" : "machines")}";
-        }
-
-        return row.Status;
-    }
-
-    private static string? CardClass(ActivityRow row)
-    {
-        return row is { Succeeded: false, Failed: false } ? "is-progress" : null;
+            AuditEventKind.DeploySucceeded or AuditEventKind.AgentConnected or AuditEventKind.AppStarted
+                or AuditEventKind.ServerStarted or AuditEventKind.TwoFactorEnabled => "dot-green",
+            AuditEventKind.DeployFailed or AuditEventKind.AgentDisconnected => "dot-red",
+            AuditEventKind.AppUnhealthy or AuditEventKind.TwoFactorDisabled => "dot-amber",
+            _ => "dot-neutral",
+        };
     }
 }

@@ -16,11 +16,6 @@
     padding: 16px 20px;
 }
 
-.act-card.is-progress {
-    border-color: var(--amber-border);
-    box-shadow: inset 0 1px 0 var(--amber);
-}
-
 .act-top {
     display: flex;
     align-items: center;
@@ -28,20 +23,19 @@
     min-width: 0;
 }
 
-.app-link {
+.app-link,
+.act-title {
     font-size: 15px;
     font-weight: 600;
     color: var(--text);
+}
+
+.app-link {
     transition: color 120ms ease;
 }
 
 .app-link:hover {
     color: var(--green);
-}
-
-.act-tag {
-    font-size: 13.5px;
-    color: var(--text-dim);
 }
 
 .act-when {
@@ -53,21 +47,20 @@
 .act-foot {
     display: flex;
     align-items: center;
+    gap: 12px;
 }
 
-.act-status {
+.act-detail {
     font-size: 13px;
     color: var(--text-muted);
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
-.act-status.is-ok {
-    color: var(--green-dim);
-}
-
-.act-status.is-failed {
-    color: var(--red);
-}
-
-.act-status.is-progress {
-    color: var(--amber);
+.act-actor {
+    flex: none;
+    font-size: 12.5px;
+    color: var(--text-dim);
 }

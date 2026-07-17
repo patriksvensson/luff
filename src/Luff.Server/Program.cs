@@ -14,8 +14,27 @@ public static class Program
         await DatabaseMigrator.MigrateAsync(app.Services);
         await InitialAdmin.SeedAsync(app.Services);
         await DeploymentReconciler.ReconcileAsync(app.Services);
+        await PublishServerStartedAsync(app.Services);
 
         await app.RunAsync();
+    }
+
+    private static async Task PublishServerStartedAsync(IServiceProvider services)
+    {
+        if (OpenApiDocumentGeneration.InProgress)
+        {
+            return;
+        }
+
+        await using var scope = services.CreateAsyncScope();
+        var events = scope.ServiceProvider.GetRequiredService<IEventPublisher>();
+        await events.PublishAsync(new AuditEvent
+        {
+            Kind = AuditEventKind.ServerStarted,
+            Actor = Actors.System,
+            Title = "Server started",
+            Message = "The Luff control plane started.",
+        });
     }
 
     private static WebApplicationBuilder Configure(string[] args)
@@ -155,7 +174,9 @@ public static class Program
         builder.Services.AddSingleton<NotificationDispatcher>();
         builder.Services.AddSingleton<INotificationDispatcher>(sp => sp.GetRequiredService<NotificationDispatcher>());
         builder.Services.AddHostedService(sp => sp.GetRequiredService<NotificationDispatcher>());
-        builder.Services.AddScoped<IAlertPublisher, AlertPublisher>();
+        builder.Services.AddScoped<IEventPublisher, EventPublisher>();
+        builder.Services.AddScoped<IEventListener, AuditLogListener>();
+        builder.Services.AddScoped<IEventListener, NotificationListener>();
         builder.Services.AddSingleton<ILogStream, LogStream>();
         builder.Services.AddSingleton<FrontDoorConfigurator>();
         builder.Services.AddSingleton<DockerComposeRenderer>();
@@ -207,6 +228,7 @@ public static class Program
             .MapEnvEndpoints()
             .MapRegistryEndpoints()
             .MapNotificationEndpoints()
+            .MapAuditEndpoints()
             .MapVolumeEndpoints()
             .MapPortEndpoints()
             .MapAgentEndpoints()

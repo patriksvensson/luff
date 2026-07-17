@@ -10,6 +10,10 @@ public sealed class Deployment : Entity
     public List<string> Agents { get; set; } = [];
     public int AgentCursor { get; set; }
 
+    // Who set this rollout in motion: an operator's email, "ci" for a webhook, or "system" for an automatic
+    // catch-up. Stamped on the deploy-succeeded / deploy-failed audit events so the log answers "who shipped".
+    public string TriggeredBy { get; set; } = Actors.System;
+
     public DeploymentResponse ToResponse()
     {
         return new DeploymentResponse(

@@ -2,10 +2,13 @@ namespace Luff.Server.Features;
 
 public sealed class TestNotificationChannelHandler : IRequestHandler<TestNotificationChannelHandler.Request, Unit>
 {
-    private static readonly Alert TestAlert = new(
-        AlertKind.DeployFailed,
-        "Test notification from Luff",
-        "If you can read this, this channel is wired up correctly.");
+    private static readonly AuditEvent TestEvent = new()
+    {
+        Kind = AuditEventKind.DeployFailed,
+        Actor = Actors.System,
+        Title = "Test notification from Luff",
+        Message = "If you can read this, this channel is wired up correctly.",
+    };
 
     private readonly LuffDbContext _database;
     private readonly INotificationDispatcher _dispatcher;
@@ -36,7 +39,7 @@ public sealed class TestNotificationChannelHandler : IRequestHandler<TestNotific
             ?? throw new NotificationChannelNotFoundException(request.Id);
 
         var url = _protector.Unprotect(channel.Url);
-        _dispatcher.Enqueue(new NotificationDelivery(url, NotificationFormat.Build(channel.Type, TestAlert)));
+        _dispatcher.Enqueue(new NotificationDelivery(url, NotificationFormat.Build(channel.Type, TestEvent)));
 
         return Unit.Value;
     }

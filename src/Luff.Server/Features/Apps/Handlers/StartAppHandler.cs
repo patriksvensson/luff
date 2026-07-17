@@ -4,23 +4,25 @@ public sealed class StartAppHandler : IRequestHandler<StartAppHandler.Request, A
 {
     private readonly LuffDbContext _database;
     private readonly IAgentConnections _connections;
-    private readonly IAlertPublisher _alerts;
+    private readonly IEventPublisher _events;
 
     public sealed class Request : IRequest<AppResponse>
     {
         public string Name { get; }
+        public string Actor { get; }
 
-        public Request(string name)
+        public Request(string name, string actor)
         {
             Name = name ?? throw new ArgumentNullException(nameof(name));
+            Actor = actor ?? throw new ArgumentNullException(nameof(actor));
         }
     }
 
-    public StartAppHandler(LuffDbContext database, IAgentConnections connections, IAlertPublisher alerts)
+    public StartAppHandler(LuffDbContext database, IAgentConnections connections, IEventPublisher events)
     {
         _database = database ?? throw new ArgumentNullException(nameof(database));
         _connections = connections ?? throw new ArgumentNullException(nameof(connections));
-        _alerts = alerts ?? throw new ArgumentNullException(nameof(alerts));
+        _events = events ?? throw new ArgumentNullException(nameof(events));
     }
 
     public async Task<AppResponse> Handle(Request request, CancellationToken cancellationToken)
@@ -47,11 +49,14 @@ public sealed class StartAppHandler : IRequestHandler<StartAppHandler.Request, A
 
         await _database.SaveChangesAsync(cancellationToken);
 
-        await _alerts.PublishAsync(new Alert(
-            AlertKind.AppStarted,
-            $"App started: {app.Name}",
-            $"{app.Name} was manually started.",
-            app.Name), cancellationToken);
+        await _events.PublishAsync(new AuditEvent
+        {
+            Kind = AuditEventKind.AppStarted,
+            Actor = request.Actor,
+            Title = $"App started: {app.Name}",
+            Message = $"{app.Name} was manually started.",
+            App = app.Name,
+        }, cancellationToken);
 
         return app.ToResponse();
     }
@@ -60,8 +65,8 @@ public sealed class StartAppHandler : IRequestHandler<StartAppHandler.Request, A
 public static class StartAppHandlerExtensions
 {
     public static async Task<AppResponse> StartApp(
-        this ISender sender, string name, CancellationToken cancellationToken = default)
+        this ISender sender, string name, string actor, CancellationToken cancellationToken = default)
     {
-        return await sender.Send(new StartAppHandler.Request(name), cancellationToken);
+        return await sender.Send(new StartAppHandler.Request(name, actor), cancellationToken);
     }
 }

@@ -3,7 +3,6 @@ using Luff.Server.Persistence;
 using Luff.Server.Tests.Fakes;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Time.Testing;
 
 namespace Luff.Server.Tests.Notifications;
@@ -60,11 +59,10 @@ public sealed class NotificationsFixture : IDisposable
         await handler.Handle(new TestNotificationChannelHandler.Request(id), CancellationToken.None);
     }
 
-    public async Task Publish(Alert alert)
+    public async Task Publish(AuditEvent auditEvent)
     {
-        var publisher = new AlertPublisher(
-            CreateContext(), Dispatcher, Protector, NullLogger<AlertPublisher>.Instance);
-        await publisher.PublishAsync(alert);
+        var listener = new NotificationListener(CreateContext(), Dispatcher, Protector);
+        await listener.OnEventAsync(auditEvent, CancellationToken.None);
     }
 
     public async Task DisableChannel(Guid id)

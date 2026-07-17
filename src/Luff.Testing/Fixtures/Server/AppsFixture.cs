@@ -27,25 +27,26 @@ public sealed class AppsFixture : IDisposable
     }
 
     public async Task<AppResponse> CreateApp(
-        string name, string image, string domain, int internalPort, TlsMode? tlsMode = null)
+        string name, string image, string domain, int internalPort, TlsMode? tlsMode = null,
+        string actor = "operator@example.com")
     {
-        var handler = new CreateAppHandler(CreateContext());
+        var handler = new CreateAppHandler(CreateContext(), Events);
         return await handler.Handle(
-            new CreateAppHandler.Request(name, image, internalPort, domain: domain, tlsMode: tlsMode),
+            new CreateAppHandler.Request(name, image, internalPort, actor, domain: domain, tlsMode: tlsMode),
             CancellationToken.None);
     }
 
     public async Task<AppResponse> CreateApp(CreateAppHandler.Request request)
     {
-        var handler = new CreateAppHandler(CreateContext());
+        var handler = new CreateAppHandler(CreateContext(), Events);
         return await handler.Handle(request, CancellationToken.None);
     }
 
-    public async Task DeleteApp(string name)
+    public async Task DeleteApp(string name, string actor = "operator@example.com")
     {
-        var handler = new DeleteAppHandler(CreateContext());
+        var handler = new DeleteAppHandler(CreateContext(), Events);
         await handler.Handle(
-            new DeleteAppHandler.Request(name),
+            new DeleteAppHandler.Request(name, actor),
             CancellationToken.None);
     }
 
@@ -74,30 +75,31 @@ public sealed class AppsFixture : IDisposable
     }
 
     public async Task<AppResponse> UpdateApp(
-        string name, string image, string domain, int internalPort, TlsMode? tlsMode = null)
+        string name, string image, string domain, int internalPort, TlsMode? tlsMode = null,
+        string actor = "operator@example.com")
     {
-        var handler = new UpdateAppHandler(CreateContext(), Agents);
+        var handler = new UpdateAppHandler(CreateContext(), Agents, Events);
         return await handler.Handle(
-            new UpdateAppHandler.Request(name, image, internalPort, domain: domain, tlsMode: tlsMode),
+            new UpdateAppHandler.Request(name, image, internalPort, actor, domain: domain, tlsMode: tlsMode),
             CancellationToken.None);
     }
 
     public async Task<AppResponse> UpdateApp(UpdateAppHandler.Request request)
     {
-        var handler = new UpdateAppHandler(CreateContext(), Agents);
+        var handler = new UpdateAppHandler(CreateContext(), Agents, Events);
         return await handler.Handle(request, CancellationToken.None);
     }
 
-    public async Task<AppResponse> StopApp(string name)
+    public async Task<AppResponse> StopApp(string name, string actor = "operator@example.com")
     {
-        var handler = new StopAppHandler(CreateContext(), Agents, Alerts);
-        return await handler.Handle(new StopAppHandler.Request(name), CancellationToken.None);
+        var handler = new StopAppHandler(CreateContext(), Agents, Events);
+        return await handler.Handle(new StopAppHandler.Request(name, actor), CancellationToken.None);
     }
 
-    public async Task<AppResponse> StartApp(string name)
+    public async Task<AppResponse> StartApp(string name, string actor = "operator@example.com")
     {
-        var handler = new StartAppHandler(CreateContext(), Agents, Alerts);
-        return await handler.Handle(new StartAppHandler.Request(name), CancellationToken.None);
+        var handler = new StartAppHandler(CreateContext(), Agents, Events);
+        return await handler.Handle(new StartAppHandler.Request(name, actor), CancellationToken.None);
     }
 
     public async Task<AppAgent?> GetAttachment(string appName, string agentName)
@@ -106,11 +108,11 @@ public sealed class AppsFixture : IDisposable
         return await context.AppAgents.FindAsync(appName, agentName);
     }
 
-    public FakeAlertPublisher Alerts { get; } = new();
+    public FakeEventPublisher Events { get; } = new();
 
     public async Task ReportHealth(string agentName, IReadOnlyList<AgentHealthEntry> entries)
     {
-        var handler = new ReportAgentHealthHandler(CreateContext(), Alerts, TimeProvider.System);
+        var handler = new ReportAgentHealthHandler(CreateContext(), Events, TimeProvider.System);
         await handler.Handle(new ReportAgentHealthHandler.Request(agentName, entries), CancellationToken.None);
     }
 

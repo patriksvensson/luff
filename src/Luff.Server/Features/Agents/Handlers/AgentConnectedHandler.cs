@@ -6,7 +6,7 @@ public sealed class AgentConnectedHandler : IRequestHandler<AgentConnectedHandle
     private readonly DeployEngine _engine;
     private readonly FrontDoorConfigurator _frontDoor;
     private readonly FrontDoorOptions _frontDoorOptions;
-    private readonly IAlertPublisher _alerts;
+    private readonly IEventPublisher _events;
 
     public sealed class Request : IRequest<Unit>
     {
@@ -23,13 +23,13 @@ public sealed class AgentConnectedHandler : IRequestHandler<AgentConnectedHandle
         DeployEngine engine,
         FrontDoorConfigurator frontDoor,
         IOptions<FrontDoorOptions> frontDoorOptions,
-        IAlertPublisher alerts)
+        IEventPublisher events)
     {
         _database = database ?? throw new ArgumentNullException(nameof(database));
         _engine = engine ?? throw new ArgumentNullException(nameof(engine));
         _frontDoor = frontDoor ?? throw new ArgumentNullException(nameof(frontDoor));
         _frontDoorOptions = frontDoorOptions?.Value ?? throw new ArgumentNullException(nameof(frontDoorOptions));
-        _alerts = alerts ?? throw new ArgumentNullException(nameof(alerts));
+        _events = events ?? throw new ArgumentNullException(nameof(events));
     }
 
     public async Task<Unit> Handle(Request request, CancellationToken cancellationToken)
@@ -40,12 +40,14 @@ public sealed class AgentConnectedHandler : IRequestHandler<AgentConnectedHandle
         await _engine.CatchUpAgentAsync(request.AgentName, cancellationToken);
         await _engine.ReassertRoutesAsync(request.AgentName, cancellationToken);
 
-        await _alerts.PublishAsync(new Alert(
-            AlertKind.AgentConnected,
-            $"Agent connected: {request.AgentName}",
-            $"Agent '{request.AgentName}' dialed in to the control plane.",
-            null,
-            request.AgentName), cancellationToken);
+        await _events.PublishAsync(new AuditEvent
+        {
+            Kind = AuditEventKind.AgentConnected,
+            Actor = Actors.Agent(request.AgentName),
+            Title = $"Agent connected: {request.AgentName}",
+            Message = $"Agent '{request.AgentName}' dialed in to the control plane.",
+            Agent = request.AgentName,
+        }, cancellationToken);
 
         return Unit.Value;
     }

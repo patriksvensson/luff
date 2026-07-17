@@ -225,6 +225,10 @@ else
     private TlsMode _tlsMode = TlsMode.Managed;
     private bool _busy;
     private string? _error;
+    private string _actor = Actors.System;
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthState { get; set; }
 
     private bool Internal => _kind == AppKind.Internal;
     private bool Direct => _kind == AppKind.Direct;
@@ -238,6 +242,12 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        if (AuthState is not null)
+        {
+            var state = await AuthState;
+            _actor = state.User.Identity?.Name ?? Actors.System;
+        }
+
         _overview = await Sender.Send(new AppsOverviewHandler.Request());
     }
 
@@ -301,7 +311,7 @@ else
         try
         {
             var created = await Sender.Send(new CreateAppHandler.Request(
-                _name.Trim(), _image.Trim(), int.Parse(_port),
+                _name.Trim(), _image.Trim(), int.Parse(_port), _actor,
                 kind: _kind,
                 domain: Frontless ? null : _domain.Trim(),
                 tlsMode: Frontless ? null : _tlsMode));

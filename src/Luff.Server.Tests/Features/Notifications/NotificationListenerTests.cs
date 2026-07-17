@@ -4,7 +4,7 @@ using Xunit;
 
 namespace Luff.Server.Tests.Notifications;
 
-public sealed class AlertPublisherTests
+public sealed class NotificationListenerTests
 {
     private const string Webhook = "https://discord.com/api/webhooks/1/2";
 
@@ -16,7 +16,13 @@ public sealed class AlertPublisherTests
         await fixture.AddChannel("team-discord", "discord", Webhook);
 
         // When
-        await fixture.Publish(new Alert(AlertKind.DeployFailed, "Deploy failed: web", "web @ v2 on agent-1: boom"));
+        await fixture.Publish(new AuditEvent
+        {
+            Kind = AuditEventKind.DeployFailed,
+            Actor = Actors.System,
+            Title = "Deploy failed: web",
+            Message = "web @ v2 on agent-1: boom",
+        });
 
         // Then
         var delivery = fixture.Dispatcher.Deliveries.ShouldHaveSingleItem();
@@ -45,7 +51,13 @@ public sealed class AlertPublisherTests
         await fixture.DisableChannel(channel.Id);
 
         // When
-        await fixture.Publish(new Alert(AlertKind.AgentDisconnected, "Agent disconnected: agent-1", "gone"));
+        await fixture.Publish(new AuditEvent
+        {
+            Kind = AuditEventKind.AgentDisconnected,
+            Actor = Actors.Agent("agent-1"),
+            Title = "Agent disconnected: agent-1",
+            Message = "gone",
+        });
 
         // Then
         fixture.Dispatcher.Deliveries.ShouldBeEmpty();
@@ -55,11 +67,18 @@ public sealed class AlertPublisherTests
     public void Should_Format_Discord_As_A_Coloured_Embed()
     {
         // Given
-        var alert = new Alert(
-            AlertKind.AppUnhealthy, "App unhealthy: web", "web on agent-1 reported unhealthy.", "web", "agent-1");
+        var auditEvent = new AuditEvent
+        {
+            Kind = AuditEventKind.AppUnhealthy,
+            Actor = Actors.Agent("agent-1"),
+            Title = "App unhealthy: web",
+            Message = "web on agent-1 reported unhealthy.",
+            App = "web",
+            Agent = "agent-1",
+        };
 
         // When
-        var body = NotificationFormat.Build(NotificationChannelType.Discord, alert);
+        var body = NotificationFormat.Build(NotificationChannelType.Discord, auditEvent);
 
         // Then
         body.ShouldBe(
@@ -92,10 +111,18 @@ public sealed class AlertPublisherTests
     public void Should_Format_Generic_As_A_Structured_Event()
     {
         // Given
-        var alert = new Alert(AlertKind.AppUnhealthy, "App unhealthy: web", "reported unhealthy.", "web", "agent-1");
+        var auditEvent = new AuditEvent
+        {
+            Kind = AuditEventKind.AppUnhealthy,
+            Actor = Actors.Agent("agent-1"),
+            Title = "App unhealthy: web",
+            Message = "reported unhealthy.",
+            App = "web",
+            Agent = "agent-1",
+        };
 
         // When
-        var body = NotificationFormat.Build(NotificationChannelType.Generic, alert);
+        var body = NotificationFormat.Build(NotificationChannelType.Generic, auditEvent);
 
         // Then
         body.ShouldBe(

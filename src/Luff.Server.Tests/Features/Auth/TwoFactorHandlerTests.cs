@@ -210,4 +210,57 @@ public sealed class TwoFactorHandlerTests
         user.TwoFactorEnabled.ShouldBeFalse();
         (await fixture.GetRecoveryCodes("bob@example.com")).ShouldBeEmpty();
     }
+
+    [Fact]
+    public async Task Should_Publish_A_Two_Factor_Enabled_Event_On_Confirm()
+    {
+        // Given
+        using var fixture = new AuthFixture();
+        await fixture.HasUser("admin@example.com", "secret", UserRole.Admin);
+        var enrollment = await fixture.BeginTwoFactorEnrollment("admin@example.com");
+
+        // When
+        await fixture.ConfirmTwoFactorEnrollment(
+            "admin@example.com", Totp.Generate(enrollment.Secret, fixture.Time.GetUtcNow()));
+
+        // Then
+        fixture.Events.Published.ShouldHaveSingleItem().ShouldSatisfyAllConditions(
+            evt => evt.Kind.ShouldBe(AuditEventKind.TwoFactorEnabled),
+            evt => evt.Actor.ShouldBe("admin@example.com"));
+    }
+
+    [Fact]
+    public async Task Should_Publish_A_Two_Factor_Disabled_Event_On_Self_Disable()
+    {
+        // Given
+        using var fixture = new AuthFixture();
+        var secret = Totp.GenerateSecret();
+        await fixture.HasUserWithTwoFactor("admin@example.com", "secret", UserRole.Admin, secret);
+
+        // When
+        await fixture.DisableTwoFactor("admin@example.com", Totp.Generate(secret, fixture.Time.GetUtcNow()));
+
+        // Then
+        fixture.Events.Published.ShouldHaveSingleItem().ShouldSatisfyAllConditions(
+            evt => evt.Kind.ShouldBe(AuditEventKind.TwoFactorDisabled),
+            evt => evt.Actor.ShouldBe("admin@example.com"));
+    }
+
+    [Fact]
+    public async Task Should_Attribute_A_Two_Factor_Reset_To_The_Admin()
+    {
+        // Given
+        using var fixture = new AuthFixture();
+        var secret = Totp.GenerateSecret();
+        await fixture.HasUserWithTwoFactor("bob@example.com", "secret", UserRole.Operator, secret);
+
+        // When
+        await fixture.ResetUserTwoFactor("bob@example.com", actor: "admin@example.com");
+
+        // Then
+        fixture.Events.Published.ShouldHaveSingleItem().ShouldSatisfyAllConditions(
+            evt => evt.Kind.ShouldBe(AuditEventKind.TwoFactorDisabled),
+            evt => evt.Actor.ShouldBe("admin@example.com"),
+            evt => evt.Title.ShouldContain("bob@example.com"));
+    }
 }

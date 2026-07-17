@@ -3,20 +3,24 @@ namespace Luff.Server.Features;
 public sealed class DeleteUserHandler : IRequestHandler<DeleteUserHandler.Request, Unit>
 {
     private readonly LuffDbContext _database;
+    private readonly IEventPublisher _events;
 
     public sealed class Request : IRequest<Unit>
     {
         public string Email { get; }
+        public string Actor { get; }
 
-        public Request(string email)
+        public Request(string email, string actor)
         {
             Email = email ?? throw new ArgumentNullException(nameof(email));
+            Actor = actor ?? throw new ArgumentNullException(nameof(actor));
         }
     }
 
-    public DeleteUserHandler(LuffDbContext database)
+    public DeleteUserHandler(LuffDbContext database, IEventPublisher events)
     {
         _database = database ?? throw new ArgumentNullException(nameof(database));
+        _events = events ?? throw new ArgumentNullException(nameof(events));
     }
 
     public async Task<Unit> Handle(Request request, CancellationToken cancellationToken)
@@ -43,6 +47,14 @@ public sealed class DeleteUserHandler : IRequestHandler<DeleteUserHandler.Reques
         _database.Users.Remove(user);
         await _database.SaveChangesAsync(cancellationToken);
 
+        await _events.PublishAsync(new AuditEvent
+        {
+            Kind = AuditEventKind.UserDeleted,
+            Actor = request.Actor,
+            Title = $"User deleted: {user.Email}",
+            Message = $"{user.Email} was removed.",
+        }, cancellationToken);
+
         return Unit.Value;
     }
 }
@@ -50,8 +62,8 @@ public sealed class DeleteUserHandler : IRequestHandler<DeleteUserHandler.Reques
 public static class DeleteUserHandlerExtensions
 {
     public static async Task DeleteUser(
-        this ISender sender, string email, CancellationToken cancellationToken = default)
+        this ISender sender, string email, string actor, CancellationToken cancellationToken = default)
     {
-        await sender.Send(new DeleteUserHandler.Request(email), cancellationToken);
+        await sender.Send(new DeleteUserHandler.Request(email, actor), cancellationToken);
     }
 }
