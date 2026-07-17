@@ -53,7 +53,7 @@ else
     <div class="app-list">
         @foreach (var app in _overview.Apps)
         {
-            var action = Action(app.State);
+            var action = Action(app);
             var domainUrl = (app.Https ? "https://" : "http://") + app.Domain;
             <div class="app-card @CardStateClass(app.State)">
                 <div class="app-card-head">
@@ -248,9 +248,11 @@ else
         _ => null,
     };
 
-    private static (string Label, bool Primary) Action(AppHealthState state) => state switch
+    private static (string Label, bool Primary) Action(AppOverviewRow app) => app.State switch
     {
-        AppHealthState.Dormant => ("Attach to a machine", true),
+        AppHealthState.Dormant => app.MachineCount == 0
+            ? ("Attach to a machine", true)
+            : ("Deploy", true),
         AppHealthState.Deploying => ("Watch", false),
         AppHealthState.Stopped => ("Start", true),
         AppHealthState.Unhealthy => ("View", false),
@@ -259,6 +261,7 @@ else
 
     private static string ActionHref(AppOverviewRow app) => app.State switch
     {
+        AppHealthState.Dormant when app.MachineCount > 0 => $"apps/{app.Name}?deploy=true",
         AppHealthState.Deploying or AppHealthState.Dormant
             or AppHealthState.Stopped or AppHealthState.Unhealthy => $"apps/{app.Name}",
         _ => $"apps/{app.Name}?deploy=true",
