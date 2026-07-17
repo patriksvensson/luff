@@ -2,9 +2,25 @@
 
 <AuthorizeView>
     <Authorized>
+        @{
+            var first = context.User.FindFirst(ClaimTypes.GivenName)?.Value;
+            var last = context.User.FindFirst(ClaimTypes.Surname)?.Value;
+            var email = context.User.Identity?.Name;
+            var label = TriggerName(first, last);
+            var fullName = FullName(first, last);
+        }
         <div class="avatarmenu @Class">
-            <button class="avatar-btn" @onclick="Toggle" aria-label="Account" aria-haspopup="menu" aria-expanded="@(_open ? "true" : "false")">
-                @Initial(context.User.Identity?.Name)
+            <button class="avatar-btn" @onclick="Toggle"
+                    aria-label="Account" aria-haspopup="menu" aria-expanded="@(_open ? "true" : "false")">
+                <span class="avatar-badge">@Initials(first, last, email)</span>
+                @if (label is not null)
+                {
+                    <span class="avatar-name">@label</span>
+                }
+                <svg class="avatar-chevron" viewBox="0 0 24 24" width="16" height="16" fill="none"
+                     stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M6 9l6 6 6-6" />
+                </svg>
             </button>
 
             @if (_open)
@@ -12,9 +28,13 @@
                 <div class="avatar-backdrop" @onclick="Close"></div>
                 <div class="avatar-pop" role="menu">
                     <div class="avatar-pop-head">
-                        <div class="avatar-pop-avatar">@Initial(context.User.Identity?.Name)</div>
+                        <div class="avatar-pop-avatar">@Initials(first, last, email)</div>
                         <div class="avatar-pop-id">
-                            <span class="avatar-pop-name">@context.User.Identity?.Name</span>
+                            <span class="avatar-pop-name">@(fullName ?? email)</span>
+                            @if (fullName is not null && !string.IsNullOrEmpty(email))
+                            {
+                                <span class="avatar-pop-email mono">@email</span>
+                            }
                             <span class="avatar-pop-role mono">@Role(context.User)</span>
                         </div>
                     </div>
@@ -58,9 +78,40 @@
         _open = false;
     }
 
-    private static string Initial(string? name)
+    private static string Initials(string? first, string? last, string? email)
     {
-        return string.IsNullOrEmpty(name) ? "?" : name[..1].ToUpperInvariant();
+        var f = first?.Trim();
+        var l = last?.Trim();
+        if (!string.IsNullOrEmpty(f) && !string.IsNullOrEmpty(l))
+        {
+            return $"{char.ToUpperInvariant(f[0])}{char.ToUpperInvariant(l[0])}";
+        }
+        if (!string.IsNullOrEmpty(f))
+        {
+            return char.ToUpperInvariant(f[0]).ToString();
+        }
+        if (!string.IsNullOrEmpty(l))
+        {
+            return char.ToUpperInvariant(l[0]).ToString();
+        }
+        return string.IsNullOrEmpty(email) ? "?" : char.ToUpperInvariant(email[0]).ToString();
+    }
+
+    private static string? TriggerName(string? first, string? last)
+    {
+        var f = first?.Trim();
+        if (!string.IsNullOrEmpty(f))
+        {
+            return f;
+        }
+        var l = last?.Trim();
+        return string.IsNullOrEmpty(l) ? null : l;
+    }
+
+    private static string? FullName(string? first, string? last)
+    {
+        var name = $"{first?.Trim()} {last?.Trim()}".Trim();
+        return string.IsNullOrEmpty(name) ? null : name;
     }
 
     private static string Role(ClaimsPrincipal user)

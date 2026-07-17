@@ -89,14 +89,8 @@
                 return;
             }
 
-            var claims = new List<Claim>
-            {
-                new(ClaimTypes.Name, user.Email),
-                new(ClaimTypes.Role, user.Role.ToString()),
-            };
-            var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
             await HttpContext.SignInAsync(
-                CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(identity));
+                CookieAuthenticationDefaults.AuthenticationScheme, JwtAuth.CookiePrincipal(user));
 
             Navigation.NavigateTo(SafeReturnUrl(), forceLoad: true);
         }
