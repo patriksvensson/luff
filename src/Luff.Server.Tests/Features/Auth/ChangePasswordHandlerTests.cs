@@ -12,14 +12,14 @@ public sealed class ChangePasswordHandlerTests
     {
         // Given
         using var fixture = new AuthFixture();
-        await fixture.HasUser("admin", "old", UserRole.Admin);
+        await fixture.HasUser("admin@example.com", "old", UserRole.Admin);
 
         // When
         await fixture.ChangePassword(
-            new ChangePasswordHandler.Request("admin", "old", "new"));
+            new ChangePasswordHandler.Request("admin@example.com", "old", "new"));
 
         // Then
-        var user = await fixture.FindUser("admin");
+        var user = await fixture.FindUser("admin@example.com");
         PasswordHasher.Verify("new", user!.PasswordHash).ShouldBeTrue();
     }
 
@@ -28,15 +28,15 @@ public sealed class ChangePasswordHandlerTests
     {
         // Given
         using var fixture = new AuthFixture();
-        await fixture.HasUser("admin", "old", UserRole.Admin);
-        await fixture.CreateRefreshTokenService().IssueAsync("admin", CancellationToken.None);
+        await fixture.HasUser("admin@example.com", "old", UserRole.Admin);
+        await fixture.CreateRefreshTokenService().IssueAsync("admin@example.com", CancellationToken.None);
 
         // When
         await fixture.ChangePassword(
-            new ChangePasswordHandler.Request("admin", "old", "new"));
+            new ChangePasswordHandler.Request("admin@example.com", "old", "new"));
 
         // Then
-        (await fixture.GetRefreshTokens("admin"))
+        (await fixture.GetRefreshTokens("admin@example.com"))
             .ShouldAllBe(entry => entry.RevokedAt != null);
     }
 
@@ -45,12 +45,12 @@ public sealed class ChangePasswordHandlerTests
     {
         // Given
         using var fixture = new AuthFixture();
-        await fixture.HasUser("admin", "old", UserRole.Admin);
+        await fixture.HasUser("admin@example.com", "old", UserRole.Admin);
 
         // When
         var exception = await Record.ExceptionAsync(() =>
             fixture.ChangePassword(
-                new ChangePasswordHandler.Request("admin", "wrong", "new")));
+                new ChangePasswordHandler.Request("admin@example.com", "wrong", "new")));
 
         // Then
         exception.ShouldBeOfType<InvalidCredentialsException>();

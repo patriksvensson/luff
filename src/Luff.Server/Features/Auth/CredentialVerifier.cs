@@ -9,9 +9,11 @@ public sealed class CredentialVerifier
         _database = database ?? throw new ArgumentNullException(nameof(database));
     }
 
-    public async Task<User> VerifyAsync(string username, string password, CancellationToken cancellationToken)
+    public async Task<User> VerifyAsync(string email, string password, CancellationToken cancellationToken)
     {
-        var user = await _database.Users.FindAsync([username], cancellationToken);
+        var user = EmailAddress.TryNormalize(email, out var normalized)
+            ? await _database.Users.FindAsync([normalized], cancellationToken)
+            : null;
 
         var valid = PasswordHasher.Verify(password, user?.PasswordHash ?? PasswordHasher.Dummy);
         if (user is null || !valid)

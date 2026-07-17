@@ -12,11 +12,11 @@ public sealed class LoginHandlerTests
     {
         // Given
         using var fixture = new AuthFixture();
-        await fixture.HasUser("admin", "secret", UserRole.Admin);
+        await fixture.HasUser("admin@example.com", "secret", UserRole.Admin);
 
         // When
         var result = await fixture.Login(
-            new LoginHandler.Request("admin", "secret"));
+            new LoginHandler.Request("admin@example.com", "secret"));
 
         // Then
         result.TwoFactorRequired.ShouldBeFalse();
@@ -29,11 +29,11 @@ public sealed class LoginHandlerTests
     {
         // Given
         using var fixture = new AuthFixture();
-        await fixture.HasUser("admin", "secret", UserRole.Admin);
+        await fixture.HasUser("admin@example.com", "secret", UserRole.Admin);
 
         // When
         var exception = await Record.ExceptionAsync(() =>
-            fixture.Login(new LoginHandler.Request("admin", "wrong")));
+            fixture.Login(new LoginHandler.Request("admin@example.com", "wrong")));
 
         // Then
         exception.ShouldBeOfType<InvalidCredentialsException>();
@@ -47,7 +47,7 @@ public sealed class LoginHandlerTests
 
         // When
         var exception = await Record.ExceptionAsync(() =>
-            fixture.Login(new LoginHandler.Request("ghost", "secret")));
+            fixture.Login(new LoginHandler.Request("ghost@example.com", "secret")));
 
         // Then
         exception.ShouldBeOfType<InvalidCredentialsException>();

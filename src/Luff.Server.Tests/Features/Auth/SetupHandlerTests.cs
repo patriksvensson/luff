@@ -14,10 +14,10 @@ public sealed class SetupHandlerTests
         using var fixture = new AuthFixture();
 
         // When
-        await fixture.Setup(new SetupHandler.Request("root", "secret", "Root@Example.com", "Ada", "Lovelace"));
+        await fixture.Setup(new SetupHandler.Request("secret", "Root@Example.com", "Ada", "Lovelace"));
 
         // Then
-        var user = await fixture.FindUser("root");
+        var user = await fixture.FindUser("root@example.com");
         user.ShouldNotBeNull().ShouldSatisfyAllConditions(
             entry => entry.Role.ShouldBe(UserRole.Admin),
             entry => entry.Email.ShouldBe("root@example.com"),
@@ -31,11 +31,11 @@ public sealed class SetupHandlerTests
     {
         // Given
         using var fixture = new AuthFixture();
-        await fixture.HasUser("existing", "secret", UserRole.Operator);
+        await fixture.HasUser("existing@example.com", "secret", UserRole.Operator);
 
         // When
         var exception = await Record.ExceptionAsync(() =>
-            fixture.Setup(new SetupHandler.Request("root", "secret", "root@example.com")));
+            fixture.Setup(new SetupHandler.Request("secret", "root@example.com")));
 
         // Then
         exception.ShouldBeOfType<SetupAlreadyCompleteException>();
@@ -49,7 +49,7 @@ public sealed class SetupHandlerTests
 
         // When
         var exception = await Record.ExceptionAsync(() =>
-            fixture.Setup(new SetupHandler.Request("root", "secret", "not-an-email")));
+            fixture.Setup(new SetupHandler.Request("secret", "not-an-email")));
 
         // Then
         exception.ShouldBeOfType<InvalidEmailException>();

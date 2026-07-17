@@ -6,11 +6,11 @@ public sealed class DeleteUserHandler : IRequestHandler<DeleteUserHandler.Reques
 
     public sealed class Request : IRequest<Unit>
     {
-        public string Username { get; }
+        public string Email { get; }
 
-        public Request(string username)
+        public Request(string email)
         {
-            Username = username ?? throw new ArgumentNullException(nameof(username));
+            Email = email ?? throw new ArgumentNullException(nameof(email));
         }
     }
 
@@ -21,8 +21,8 @@ public sealed class DeleteUserHandler : IRequestHandler<DeleteUserHandler.Reques
 
     public async Task<Unit> Handle(Request request, CancellationToken cancellationToken)
     {
-        var user = await _database.Users.FindAsync([request.Username], cancellationToken)
-            ?? throw new UserNotFoundException(request.Username);
+        var user = await _database.Users.FindAsync([request.Email], cancellationToken)
+            ?? throw new UserNotFoundException(request.Email);
 
         if (user.Role == UserRole.Admin
             && await _database.Users.CountAsync(entry => entry.Role == UserRole.Admin, cancellationToken) <= 1)
@@ -31,12 +31,12 @@ public sealed class DeleteUserHandler : IRequestHandler<DeleteUserHandler.Reques
         }
 
         var recoveryCodes = await _database.RecoveryCodes
-            .Where(code => code.Username == user.Username)
+            .Where(code => code.Email == user.Email)
             .ToListAsync(cancellationToken);
         _database.RecoveryCodes.RemoveRange(recoveryCodes);
 
         var refreshTokens = await _database.RefreshTokens
-            .Where(token => token.Username == user.Username)
+            .Where(token => token.Email == user.Email)
             .ToListAsync(cancellationToken);
         _database.RefreshTokens.RemoveRange(refreshTokens);
 
@@ -50,8 +50,8 @@ public sealed class DeleteUserHandler : IRequestHandler<DeleteUserHandler.Reques
 public static class DeleteUserHandlerExtensions
 {
     public static async Task DeleteUser(
-        this ISender sender, string username, CancellationToken cancellationToken = default)
+        this ISender sender, string email, CancellationToken cancellationToken = default)
     {
-        await sender.Send(new DeleteUserHandler.Request(username), cancellationToken);
+        await sender.Send(new DeleteUserHandler.Request(email), cancellationToken);
     }
 }

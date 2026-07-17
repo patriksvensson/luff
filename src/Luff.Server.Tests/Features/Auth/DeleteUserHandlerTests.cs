@@ -12,14 +12,14 @@ public sealed class DeleteUserHandlerTests
     {
         // Given
         using var fixture = new AuthFixture();
-        await fixture.HasUser("admin", "secret", UserRole.Admin, "admin@example.com");
-        await fixture.HasUser("alice", "secret", UserRole.Operator, "alice@example.com");
+        await fixture.HasUser("admin@example.com", "secret", UserRole.Admin);
+        await fixture.HasUser("alice@example.com", "secret", UserRole.Operator);
 
         // When
-        await fixture.DeleteUser(new DeleteUserHandler.Request("alice"));
+        await fixture.DeleteUser(new DeleteUserHandler.Request("alice@example.com"));
 
         // Then
-        (await fixture.FindUser("alice")).ShouldBeNull();
+        (await fixture.FindUser("alice@example.com")).ShouldBeNull();
     }
 
     [Fact]
@@ -27,15 +27,15 @@ public sealed class DeleteUserHandlerTests
     {
         // Given
         using var fixture = new AuthFixture();
-        await fixture.HasUser("admin", "secret", UserRole.Admin, "admin@example.com");
-        await fixture.HasUser("alice", "secret", UserRole.Operator, "alice@example.com");
-        await fixture.CreateRefreshTokenService().IssueAsync("alice", CancellationToken.None);
+        await fixture.HasUser("admin@example.com", "secret", UserRole.Admin);
+        await fixture.HasUser("alice@example.com", "secret", UserRole.Operator);
+        await fixture.CreateRefreshTokenService().IssueAsync("alice@example.com", CancellationToken.None);
 
         // When
-        await fixture.DeleteUser(new DeleteUserHandler.Request("alice"));
+        await fixture.DeleteUser(new DeleteUserHandler.Request("alice@example.com"));
 
         // Then
-        (await fixture.GetRefreshTokens("alice")).ShouldBeEmpty();
+        (await fixture.GetRefreshTokens("alice@example.com")).ShouldBeEmpty();
     }
 
     [Fact]
@@ -43,11 +43,11 @@ public sealed class DeleteUserHandlerTests
     {
         // Given
         using var fixture = new AuthFixture();
-        await fixture.HasUser("admin", "secret", UserRole.Admin);
+        await fixture.HasUser("admin@example.com", "secret", UserRole.Admin);
 
         // When
         var exception = await Record.ExceptionAsync(() =>
-            fixture.DeleteUser(new DeleteUserHandler.Request("admin")));
+            fixture.DeleteUser(new DeleteUserHandler.Request("admin@example.com")));
 
         // Then
         exception.ShouldBeOfType<LastAdminException>();
@@ -58,14 +58,14 @@ public sealed class DeleteUserHandlerTests
     {
         // Given
         using var fixture = new AuthFixture();
-        await fixture.HasUser("admin", "secret", UserRole.Admin, "admin@example.com");
-        await fixture.HasUser("second", "secret", UserRole.Admin, "second@example.com");
+        await fixture.HasUser("admin@example.com", "secret", UserRole.Admin);
+        await fixture.HasUser("second@example.com", "secret", UserRole.Admin);
 
         // When
-        await fixture.DeleteUser(new DeleteUserHandler.Request("second"));
+        await fixture.DeleteUser(new DeleteUserHandler.Request("second@example.com"));
 
         // Then
-        (await fixture.FindUser("second")).ShouldBeNull();
+        (await fixture.FindUser("second@example.com")).ShouldBeNull();
     }
 
     [Fact]
@@ -76,7 +76,7 @@ public sealed class DeleteUserHandlerTests
 
         // When
         var exception = await Record.ExceptionAsync(() =>
-            fixture.DeleteUser(new DeleteUserHandler.Request("ghost")));
+            fixture.DeleteUser(new DeleteUserHandler.Request("ghost@example.com")));
 
         // Then
         exception.ShouldBeOfType<UserNotFoundException>();

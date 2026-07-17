@@ -8,20 +8,20 @@ namespace Luff.Server.Tests.Auth;
 public sealed class UpdateUserHandlerTests
 {
     [Fact]
-    public async Task Should_Update_Role_Email_And_Name()
+    public async Task Should_Update_Role_And_Name()
     {
         // Given
         using var fixture = new AuthFixture();
-        await fixture.HasUser("alice", "secret", UserRole.Operator, "alice@example.com");
+        await fixture.HasUser("alice@example.com", "secret", UserRole.Operator);
 
         // When
         var result = await fixture.UpdateUser(
-            new UpdateUserHandler.Request("alice", "Admin", "alice.new@example.com", "Ada", "Lovelace"));
+            new UpdateUserHandler.Request("alice@example.com", "Admin", "Ada", "Lovelace"));
 
         // Then
         result.ShouldSatisfyAllConditions(
             response => response.Role.ShouldBe("Admin"),
-            response => response.Email.ShouldBe("alice.new@example.com"),
+            response => response.Email.ShouldBe("alice@example.com"),
             response => response.FirstName.ShouldBe("Ada"),
             response => response.LastName.ShouldBe("Lovelace"));
     }
@@ -31,30 +31,30 @@ public sealed class UpdateUserHandlerTests
     {
         // Given
         using var fixture = new AuthFixture();
-        await fixture.HasUser("alice", "secret", UserRole.Operator, "alice@example.com");
+        await fixture.HasUser("alice@example.com", "secret", UserRole.Operator);
 
         // When
         var result = await fixture.UpdateUser(
-            new UpdateUserHandler.Request("alice", "Operator", "Alice@Example.com"));
+            new UpdateUserHandler.Request("alice@example.com", "Operator"));
 
         // Then
         result.Email.ShouldBe("alice@example.com");
     }
 
     [Fact]
-    public async Task Should_Reject_An_Email_Used_By_Another_User()
+    public async Task Should_Not_Change_Emails_When_Updating_A_User()
     {
         // Given
         using var fixture = new AuthFixture();
-        await fixture.HasUser("alice", "secret", UserRole.Operator, "alice@example.com");
-        await fixture.HasUser("bob", "secret", UserRole.Operator, "bob@example.com");
+        await fixture.HasUser("alice@example.com", "secret", UserRole.Operator);
+        await fixture.HasUser("bob@example.com", "secret", UserRole.Operator);
 
         // When
-        var exception = await Record.ExceptionAsync(() =>
-            fixture.UpdateUser(new UpdateUserHandler.Request("bob", "Operator", "alice@example.com")));
+        var result = await fixture.UpdateUser(new UpdateUserHandler.Request("bob@example.com", "Admin"));
 
         // Then
-        exception.ShouldBeOfType<EmailAlreadyExistsException>();
+        result.Email.ShouldBe("bob@example.com");
+        (await fixture.FindUser("alice@example.com")).ShouldNotBeNull().Email.ShouldBe("alice@example.com");
     }
 
     [Fact]
@@ -62,17 +62,17 @@ public sealed class UpdateUserHandlerTests
     {
         // Given
         using var fixture = new AuthFixture();
-        await fixture.HasUser("alice", "old", UserRole.Operator);
-        await fixture.CreateRefreshTokenService().IssueAsync("alice", CancellationToken.None);
+        await fixture.HasUser("alice@example.com", "old", UserRole.Operator);
+        await fixture.CreateRefreshTokenService().IssueAsync("alice@example.com", CancellationToken.None);
 
         // When
         await fixture.UpdateUser(
-            new UpdateUserHandler.Request("alice", "Operator", "alice@example.com", newPassword: "new"));
+            new UpdateUserHandler.Request("alice@example.com", "Operator", newPassword: "new"));
 
         // Then
-        var user = await fixture.FindUser("alice");
+        var user = await fixture.FindUser("alice@example.com");
         PasswordHasher.Verify("new", user!.PasswordHash).ShouldBeTrue();
-        (await fixture.GetRefreshTokens("alice")).ShouldAllBe(entry => entry.RevokedAt != null);
+        (await fixture.GetRefreshTokens("alice@example.com")).ShouldAllBe(entry => entry.RevokedAt != null);
     }
 
     [Fact]
@@ -80,13 +80,13 @@ public sealed class UpdateUserHandlerTests
     {
         // Given
         using var fixture = new AuthFixture();
-        await fixture.HasUser("alice", "keep", UserRole.Operator);
+        await fixture.HasUser("alice@example.com", "keep", UserRole.Operator);
 
         // When
-        await fixture.UpdateUser(new UpdateUserHandler.Request("alice", "Operator", "alice@example.com"));
+        await fixture.UpdateUser(new UpdateUserHandler.Request("alice@example.com", "Operator"));
 
         // Then
-        var user = await fixture.FindUser("alice");
+        var user = await fixture.FindUser("alice@example.com");
         PasswordHasher.Verify("keep", user!.PasswordHash).ShouldBeTrue();
     }
 
@@ -95,11 +95,11 @@ public sealed class UpdateUserHandlerTests
     {
         // Given
         using var fixture = new AuthFixture();
-        await fixture.HasUser("admin", "secret", UserRole.Admin);
+        await fixture.HasUser("admin@example.com", "secret", UserRole.Admin);
 
         // When
         var exception = await Record.ExceptionAsync(() =>
-            fixture.UpdateUser(new UpdateUserHandler.Request("admin", "Operator", "admin@example.com")));
+            fixture.UpdateUser(new UpdateUserHandler.Request("admin@example.com", "Operator")));
 
         // Then
         exception.ShouldBeOfType<LastAdminException>();
@@ -110,12 +110,12 @@ public sealed class UpdateUserHandlerTests
     {
         // Given
         using var fixture = new AuthFixture();
-        await fixture.HasUser("admin", "secret", UserRole.Admin, "admin@example.com");
-        await fixture.HasUser("second", "secret", UserRole.Admin, "second@example.com");
+        await fixture.HasUser("admin@example.com", "secret", UserRole.Admin);
+        await fixture.HasUser("second@example.com", "secret", UserRole.Admin);
 
         // When
         var result = await fixture.UpdateUser(
-            new UpdateUserHandler.Request("admin", "Operator", "admin@example.com"));
+            new UpdateUserHandler.Request("admin@example.com", "Operator"));
 
         // Then
         result.Role.ShouldBe("Operator");
@@ -129,7 +129,7 @@ public sealed class UpdateUserHandlerTests
 
         // When
         var exception = await Record.ExceptionAsync(() =>
-            fixture.UpdateUser(new UpdateUserHandler.Request("ghost", "Operator", "ghost@example.com")));
+            fixture.UpdateUser(new UpdateUserHandler.Request("ghost@example.com", "Operator")));
 
         // Then
         exception.ShouldBeOfType<UserNotFoundException>();

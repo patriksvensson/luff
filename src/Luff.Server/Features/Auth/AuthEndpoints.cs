@@ -62,7 +62,7 @@ public static class AuthEndpoints
     private static async Task<Ok<LoginResponse>> Login(
         LoginRequest request, ISender sender, CancellationToken cancellationToken)
     {
-        var response = await sender.Login(request.Username, request.Password, cancellationToken);
+        var response = await sender.Login(request.Email, request.Password, cancellationToken);
         return TypedResults.Ok(response);
     }
 
@@ -90,48 +90,48 @@ public static class AuthEndpoints
     private static async Task<NoContent> ChangePassword(
         ChangePasswordRequest request, ClaimsPrincipal principal, ISender sender, CancellationToken cancellationToken)
     {
-        var username = principal.Identity?.Name ?? throw new InvalidCredentialsException();
-        await sender.ChangePassword(username, request.CurrentPassword, request.NewPassword, cancellationToken);
+        var email = principal.Identity?.Name ?? throw new InvalidCredentialsException();
+        await sender.ChangePassword(email, request.CurrentPassword, request.NewPassword, cancellationToken);
         return TypedResults.NoContent();
     }
 
     private static async Task<Ok<TwoFactorStatusResponse>> TwoFactorStatus(
         ClaimsPrincipal principal, ISender sender, CancellationToken cancellationToken)
     {
-        var username = principal.Identity?.Name ?? throw new InvalidCredentialsException();
-        var status = await sender.GetTwoFactorStatus(username, cancellationToken);
+        var email = principal.Identity?.Name ?? throw new InvalidCredentialsException();
+        var status = await sender.GetTwoFactorStatus(email, cancellationToken);
         return TypedResults.Ok(status);
     }
 
     private static async Task<Ok<TwoFactorEnrollmentResponse>> BeginTwoFactorEnrollment(
         ClaimsPrincipal principal, ISender sender, CancellationToken cancellationToken)
     {
-        var username = principal.Identity?.Name ?? throw new InvalidCredentialsException();
-        var enrollment = await sender.BeginTwoFactorEnrollment(username, cancellationToken);
+        var email = principal.Identity?.Name ?? throw new InvalidCredentialsException();
+        var enrollment = await sender.BeginTwoFactorEnrollment(email, cancellationToken);
         return TypedResults.Ok(enrollment);
     }
 
     private static async Task<Ok<RecoveryCodesResponse>> ConfirmTwoFactor(
         ConfirmTwoFactorRequest request, ClaimsPrincipal principal, ISender sender, CancellationToken cancellationToken)
     {
-        var username = principal.Identity?.Name ?? throw new InvalidCredentialsException();
-        var codes = await sender.ConfirmTwoFactorEnrollment(username, request.Code, cancellationToken);
+        var email = principal.Identity?.Name ?? throw new InvalidCredentialsException();
+        var codes = await sender.ConfirmTwoFactorEnrollment(email, request.Code, cancellationToken);
         return TypedResults.Ok(codes);
     }
 
     private static async Task<NoContent> DisableTwoFactor(
         DisableTwoFactorRequest request, ClaimsPrincipal principal, ISender sender, CancellationToken cancellationToken)
     {
-        var username = principal.Identity?.Name ?? throw new InvalidCredentialsException();
-        await sender.DisableTwoFactor(username, request.Code, cancellationToken);
+        var email = principal.Identity?.Name ?? throw new InvalidCredentialsException();
+        await sender.DisableTwoFactor(email, request.Code, cancellationToken);
         return TypedResults.NoContent();
     }
 
     private static async Task<Ok<RecoveryCodesResponse>> RegenerateRecoveryCodes(
         ClaimsPrincipal principal, ISender sender, CancellationToken cancellationToken)
     {
-        var username = principal.Identity?.Name ?? throw new InvalidCredentialsException();
-        var codes = await sender.RegenerateRecoveryCodes(username, cancellationToken);
+        var email = principal.Identity?.Name ?? throw new InvalidCredentialsException();
+        var codes = await sender.RegenerateRecoveryCodes(email, cancellationToken);
         return TypedResults.Ok(codes);
     }
 }

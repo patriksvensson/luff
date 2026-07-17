@@ -19,7 +19,7 @@ public static class SetupEndpoints
         SetupRequest request, ISender sender, CancellationToken cancellationToken)
     {
         await sender.Setup(
-            request.Username, request.Password, request.Email,
+            request.Password, request.Email,
             request.FirstName, request.LastName, cancellationToken);
         return TypedResults.NoContent();
     }

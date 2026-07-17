@@ -7,11 +7,11 @@ public sealed class RegenerateRecoveryCodesHandler
 
     public sealed class Request : IRequest<RecoveryCodesResponse>
     {
-        public string Username { get; }
+        public string Email { get; }
 
-        public Request(string username)
+        public Request(string email)
         {
-            Username = username ?? throw new ArgumentNullException(nameof(username));
+            Email = email ?? throw new ArgumentNullException(nameof(email));
         }
     }
 
@@ -22,8 +22,8 @@ public sealed class RegenerateRecoveryCodesHandler
 
     public async Task<RecoveryCodesResponse> Handle(Request request, CancellationToken cancellationToken)
     {
-        var user = await _database.Users.FindAsync([request.Username], cancellationToken)
-            ?? throw new UserNotFoundException(request.Username);
+        var user = await _database.Users.FindAsync([request.Email], cancellationToken)
+            ?? throw new UserNotFoundException(request.Email);
 
         if (!user.TwoFactorEnabled)
         {
@@ -31,7 +31,7 @@ public sealed class RegenerateRecoveryCodesHandler
         }
 
         var stale = await _database.RecoveryCodes
-            .Where(code => code.Username == user.Username)
+            .Where(code => code.Email == user.Email)
             .ToListAsync(cancellationToken);
         _database.RecoveryCodes.RemoveRange(stale);
 
@@ -41,7 +41,7 @@ public sealed class RegenerateRecoveryCodesHandler
             _database.RecoveryCodes.Add(new RecoveryCode
             {
                 Id = Guid.NewGuid(),
-                Username = user.Username,
+                Email = user.Email,
                 CodeHash = RecoveryCode.Hash(code),
             });
         }
@@ -55,8 +55,8 @@ public sealed class RegenerateRecoveryCodesHandler
 public static class RegenerateRecoveryCodesHandlerExtensions
 {
     public static async Task<RecoveryCodesResponse> RegenerateRecoveryCodes(
-        this ISender sender, string username, CancellationToken cancellationToken = default)
+        this ISender sender, string email, CancellationToken cancellationToken = default)
     {
-        return await sender.Send(new RegenerateRecoveryCodesHandler.Request(username), cancellationToken);
+        return await sender.Send(new RegenerateRecoveryCodesHandler.Request(email), cancellationToken);
     }
 }

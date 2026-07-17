@@ -92,7 +92,7 @@ public static class Program
             })
             .AddCookie(JwtAuth.TwoFactorPendingScheme, options =>
             {
-                // Holds only the username between the password step and the code step: short-lived, and
+                // Holds only the email between the password step and the code step: short-lived, and
                 // carries no role claim, so it is useless for anything but completing 2FA.
                 options.Cookie.Name = "luff_2fa";
                 options.Cookie.HttpOnly = true;

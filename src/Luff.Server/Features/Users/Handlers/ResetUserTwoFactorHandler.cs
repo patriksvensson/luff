@@ -7,11 +7,11 @@ public sealed class ResetUserTwoFactorHandler : IRequestHandler<ResetUserTwoFact
 
     public sealed class Request : IRequest<Unit>
     {
-        public string Username { get; }
+        public string Email { get; }
 
-        public Request(string username)
+        public Request(string email)
         {
-            Username = username ?? throw new ArgumentNullException(nameof(username));
+            Email = email ?? throw new ArgumentNullException(nameof(email));
         }
     }
 
@@ -23,19 +23,19 @@ public sealed class ResetUserTwoFactorHandler : IRequestHandler<ResetUserTwoFact
 
     public async Task<Unit> Handle(Request request, CancellationToken cancellationToken)
     {
-        var user = await _database.Users.FindAsync([request.Username], cancellationToken)
-            ?? throw new UserNotFoundException(request.Username);
+        var user = await _database.Users.FindAsync([request.Email], cancellationToken)
+            ?? throw new UserNotFoundException(request.Email);
 
         user.TwoFactorEnabled = false;
         user.TwoFactorSecret = null;
 
         var codes = await _database.RecoveryCodes
-            .Where(code => code.Username == user.Username)
+            .Where(code => code.Email == user.Email)
             .ToListAsync(cancellationToken);
         _database.RecoveryCodes.RemoveRange(codes);
 
         await _database.SaveChangesAsync(cancellationToken);
-        await _refreshTokens.RevokeAllAsync(user.Username, cancellationToken);
+        await _refreshTokens.RevokeAllAsync(user.Email, cancellationToken);
 
         return Unit.Value;
     }
@@ -44,8 +44,8 @@ public sealed class ResetUserTwoFactorHandler : IRequestHandler<ResetUserTwoFact
 public static class ResetUserTwoFactorHandlerExtensions
 {
     public static async Task ResetUserTwoFactor(
-        this ISender sender, string username, CancellationToken cancellationToken = default)
+        this ISender sender, string email, CancellationToken cancellationToken = default)
     {
-        await sender.Send(new ResetUserTwoFactorHandler.Request(username), cancellationToken);
+        await sender.Send(new ResetUserTwoFactorHandler.Request(email), cancellationToken);
     }
 }

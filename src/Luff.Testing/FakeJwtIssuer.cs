@@ -6,6 +6,6 @@ public sealed class FakeJwtIssuer : IJwtIssuer
 {
     public string Issue(User user)
     {
-        return $"access-token-for-{user.Username}";
+        return $"access-token-for-{user.Email}";
     }
 }

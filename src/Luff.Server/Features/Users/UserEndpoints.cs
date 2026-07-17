@@ -14,18 +14,18 @@ public static class UserEndpoints
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status409Conflict);
 
-        users.MapPut("/{username}", Update)
+        users.MapPut("/{email}", Update)
             .WithName("Users_Update")
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict);
 
-        users.MapDelete("/{username}", Delete)
+        users.MapDelete("/{email}", Delete)
             .WithName("Users_Delete")
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict);
 
-        users.MapPost("/{username}/2fa/reset", ResetTwoFactor)
+        users.MapPost("/{email}/2fa/reset", ResetTwoFactor)
             .WithName("Users_ResetTwoFactor")
             .ProducesProblem(StatusCodes.Status404NotFound);
 
@@ -36,31 +36,31 @@ public static class UserEndpoints
         CreateUserRequest request, ISender sender, CancellationToken cancellationToken)
     {
         var user = await sender.CreateUser(
-            request.Username, request.Password, request.Role, request.Email,
+            request.Password, request.Role, request.Email,
             request.FirstName, request.LastName, cancellationToken);
-        return TypedResults.Created($"/api/v1/users/{user.Username}", user);
+        return TypedResults.Created($"/api/v1/users/{user.Email}", user);
     }
 
     private static async Task<Ok<UserResponse>> Update(
-        string username, UpdateUserRequest request, ISender sender, CancellationToken cancellationToken)
+        string email, UpdateUserRequest request, ISender sender, CancellationToken cancellationToken)
     {
         var user = await sender.UpdateUser(
-            username, request.Role, request.Email, request.FirstName, request.LastName, request.NewPassword,
+            email, request.Role, request.FirstName, request.LastName, request.NewPassword,
             cancellationToken);
         return TypedResults.Ok(user);
     }
 
     private static async Task<NoContent> Delete(
-        string username, ISender sender, CancellationToken cancellationToken)
+        string email, ISender sender, CancellationToken cancellationToken)
     {
-        await sender.DeleteUser(username, cancellationToken);
+        await sender.DeleteUser(email, cancellationToken);
         return TypedResults.NoContent();
     }
 
     private static async Task<NoContent> ResetTwoFactor(
-        string username, ISender sender, CancellationToken cancellationToken)
+        string email, ISender sender, CancellationToken cancellationToken)
     {
-        await sender.ResetUserTwoFactor(username, cancellationToken);
+        await sender.ResetUserTwoFactor(email, cancellationToken);
         return TypedResults.NoContent();
     }
 }

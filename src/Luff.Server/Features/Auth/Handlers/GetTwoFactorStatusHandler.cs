@@ -7,11 +7,11 @@ public sealed class GetTwoFactorStatusHandler
 
     public sealed class Request : IRequest<TwoFactorStatusResponse>
     {
-        public string Username { get; }
+        public string Email { get; }
 
-        public Request(string username)
+        public Request(string email)
         {
-            Username = username ?? throw new ArgumentNullException(nameof(username));
+            Email = email ?? throw new ArgumentNullException(nameof(email));
         }
     }
 
@@ -22,11 +22,11 @@ public sealed class GetTwoFactorStatusHandler
 
     public async Task<TwoFactorStatusResponse> Handle(Request request, CancellationToken cancellationToken)
     {
-        var user = await _database.Users.FindAsync([request.Username], cancellationToken)
-            ?? throw new UserNotFoundException(request.Username);
+        var user = await _database.Users.FindAsync([request.Email], cancellationToken)
+            ?? throw new UserNotFoundException(request.Email);
 
         var remaining = await _database.RecoveryCodes
-            .CountAsync(code => code.Username == user.Username && code.ConsumedAt == null, cancellationToken);
+            .CountAsync(code => code.Email == user.Email && code.ConsumedAt == null, cancellationToken);
 
         return new TwoFactorStatusResponse(user.TwoFactorEnabled, remaining);
     }
@@ -35,8 +35,8 @@ public sealed class GetTwoFactorStatusHandler
 public static class GetTwoFactorStatusHandlerExtensions
 {
     public static async Task<TwoFactorStatusResponse> GetTwoFactorStatus(
-        this ISender sender, string username, CancellationToken cancellationToken = default)
+        this ISender sender, string email, CancellationToken cancellationToken = default)
     {
-        return await sender.Send(new GetTwoFactorStatusHandler.Request(username), cancellationToken);
+        return await sender.Send(new GetTwoFactorStatusHandler.Request(email), cancellationToken);
     }
 }

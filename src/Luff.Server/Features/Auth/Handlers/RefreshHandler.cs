@@ -25,9 +25,9 @@ public sealed class RefreshHandler : IRequestHandler<RefreshHandler.Request, Aut
 
     public async Task<AuthResponse> Handle(Request request, CancellationToken cancellationToken)
     {
-        var (refresh, username) = await _refreshTokens.RotateAsync(request.RefreshToken, cancellationToken);
+        var (refresh, email) = await _refreshTokens.RotateAsync(request.RefreshToken, cancellationToken);
 
-        var user = await _database.Users.FindAsync([username], cancellationToken)
+        var user = await _database.Users.FindAsync([email], cancellationToken)
             ?? throw new InvalidCredentialsException();
 
         return new AuthResponse(_jwt.Issue(user), refresh);

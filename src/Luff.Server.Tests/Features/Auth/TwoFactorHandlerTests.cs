@@ -12,15 +12,15 @@ public sealed class TwoFactorHandlerTests
     {
         // Given
         using var fixture = new AuthFixture();
-        await fixture.HasUser("admin", "secret", UserRole.Admin);
+        await fixture.HasUser("admin@example.com", "secret", UserRole.Admin);
 
         // When
-        var enrollment = await fixture.BeginTwoFactorEnrollment("admin");
+        var enrollment = await fixture.BeginTwoFactorEnrollment("admin@example.com");
 
         // Then
         enrollment.Secret.ShouldNotBeNullOrEmpty();
         enrollment.QrSvg.ShouldContain("<svg");
-        var user = await fixture.FindUser("admin");
+        var user = await fixture.FindUser("admin@example.com");
         user.ShouldNotBeNull();
         user.TwoFactorEnabled.ShouldBeFalse();
         user.TwoFactorSecret.ShouldNotBeNull();
@@ -31,16 +31,16 @@ public sealed class TwoFactorHandlerTests
     {
         // Given
         using var fixture = new AuthFixture();
-        await fixture.HasUser("admin", "secret", UserRole.Admin);
-        var enrollment = await fixture.BeginTwoFactorEnrollment("admin");
+        await fixture.HasUser("admin@example.com", "secret", UserRole.Admin);
+        var enrollment = await fixture.BeginTwoFactorEnrollment("admin@example.com");
         var code = Totp.Generate(enrollment.Secret, fixture.Time.GetUtcNow());
 
         // When
-        var result = await fixture.ConfirmTwoFactorEnrollment("admin", code);
+        var result = await fixture.ConfirmTwoFactorEnrollment("admin@example.com", code);
 
         // Then
         result.Codes.Count.ShouldBe(10);
-        (await fixture.FindUser("admin")).ShouldNotBeNull()
+        (await fixture.FindUser("admin@example.com")).ShouldNotBeNull()
             .TwoFactorEnabled.ShouldBeTrue();
     }
 
@@ -49,11 +49,11 @@ public sealed class TwoFactorHandlerTests
     {
         // Given
         using var fixture = new AuthFixture();
-        await fixture.HasUser("admin", "secret", UserRole.Admin);
-        await fixture.BeginTwoFactorEnrollment("admin");
+        await fixture.HasUser("admin@example.com", "secret", UserRole.Admin);
+        await fixture.BeginTwoFactorEnrollment("admin@example.com");
 
         // When
-        var exception = await Record.ExceptionAsync(() => fixture.ConfirmTwoFactorEnrollment("admin", "000000"));
+        var exception = await Record.ExceptionAsync(() => fixture.ConfirmTwoFactorEnrollment("admin@example.com", "000000"));
 
         // Then
         exception.ShouldBeOfType<InvalidTwoFactorCodeException>();
@@ -65,11 +65,11 @@ public sealed class TwoFactorHandlerTests
         // Given
         using var fixture = new AuthFixture();
         var secret = Totp.GenerateSecret();
-        await fixture.HasUserWithTwoFactor("admin", "secret", UserRole.Admin, secret);
+        await fixture.HasUserWithTwoFactor("admin@example.com", "secret", UserRole.Admin, secret);
 
         // When
         var result = await fixture.Login(
-            new LoginHandler.Request("admin", "secret"));
+            new LoginHandler.Request("admin@example.com", "secret"));
 
         // Then
         result.TwoFactorRequired.ShouldBeTrue();
@@ -82,14 +82,14 @@ public sealed class TwoFactorHandlerTests
     {
         // Given
         using var fixture = new AuthFixture();
-        await fixture.HasUser("admin", "secret", UserRole.Admin);
-        var enrollment = await fixture.BeginTwoFactorEnrollment("admin");
+        await fixture.HasUser("admin@example.com", "secret", UserRole.Admin);
+        var enrollment = await fixture.BeginTwoFactorEnrollment("admin@example.com");
         await fixture.ConfirmTwoFactorEnrollment(
-            "admin", Totp.Generate(enrollment.Secret, fixture.Time.GetUtcNow()));
+            "admin@example.com", Totp.Generate(enrollment.Secret, fixture.Time.GetUtcNow()));
 
         // When
         var login = await fixture.Login(
-            new LoginHandler.Request("admin", "secret"));
+            new LoginHandler.Request("admin@example.com", "secret"));
 
         // Then
         login.TwoFactorRequired.ShouldBeTrue();
@@ -102,8 +102,8 @@ public sealed class TwoFactorHandlerTests
         // Given
         using var fixture = new AuthFixture();
         var secret = Totp.GenerateSecret();
-        await fixture.HasUserWithTwoFactor("admin", "secret", UserRole.Admin, secret);
-        var login = await fixture.Login(new LoginHandler.Request("admin", "secret"));
+        await fixture.HasUserWithTwoFactor("admin@example.com", "secret", UserRole.Admin, secret);
+        var login = await fixture.Login(new LoginHandler.Request("admin@example.com", "secret"));
         var code = Totp.Generate(secret, fixture.Time.GetUtcNow());
 
         // When
@@ -122,8 +122,8 @@ public sealed class TwoFactorHandlerTests
         // Given
         using var fixture = new AuthFixture();
         var secret = Totp.GenerateSecret();
-        await fixture.HasUserWithTwoFactor("admin", "secret", UserRole.Admin, secret);
-        var login = await fixture.Login(new LoginHandler.Request("admin", "secret"));
+        await fixture.HasUserWithTwoFactor("admin@example.com", "secret", UserRole.Admin, secret);
+        var login = await fixture.Login(new LoginHandler.Request("admin@example.com", "secret"));
 
         // When
         var exception = await Record.ExceptionAsync(() =>
@@ -156,17 +156,17 @@ public sealed class TwoFactorHandlerTests
     {
         // Given
         using var fixture = new AuthFixture();
-        await fixture.HasUser("admin", "secret", UserRole.Admin);
-        var enrollment = await fixture.BeginTwoFactorEnrollment("admin");
+        await fixture.HasUser("admin@example.com", "secret", UserRole.Admin);
+        var enrollment = await fixture.BeginTwoFactorEnrollment("admin@example.com");
         var setup = await fixture.ConfirmTwoFactorEnrollment(
-            "admin", Totp.Generate(enrollment.Secret, fixture.Time.GetUtcNow()));
+            "admin@example.com", Totp.Generate(enrollment.Secret, fixture.Time.GetUtcNow()));
         var backup = setup.Codes[0];
 
-        var first = await fixture.Login(new LoginHandler.Request("admin", "secret"));
+        var first = await fixture.Login(new LoginHandler.Request("admin@example.com", "secret"));
         await fixture.VerifyTwoFactorLogin(new VerifyTwoFactorLoginHandler.Request(first.ChallengeToken!, backup));
 
         // When
-        var second = await fixture.Login(new LoginHandler.Request("admin", "secret"));
+        var second = await fixture.Login(new LoginHandler.Request("admin@example.com", "secret"));
         var exception = await Record.ExceptionAsync(() =>
             fixture.VerifyTwoFactorLogin(new VerifyTwoFactorLoginHandler.Request(second.ChallengeToken!, backup)));
 
@@ -180,14 +180,14 @@ public sealed class TwoFactorHandlerTests
         // Given
         using var fixture = new AuthFixture();
         var secret = Totp.GenerateSecret();
-        await fixture.HasUserWithTwoFactor("admin", "secret", UserRole.Admin, secret);
+        await fixture.HasUserWithTwoFactor("admin@example.com", "secret", UserRole.Admin, secret);
 
         // When
         await fixture.DisableTwoFactor(
-            "admin", Totp.Generate(secret, fixture.Time.GetUtcNow()));
+            "admin@example.com", Totp.Generate(secret, fixture.Time.GetUtcNow()));
 
         // Then
-        var user = await fixture.FindUser("admin");
+        var user = await fixture.FindUser("admin@example.com");
         user.ShouldNotBeNull();
         user.TwoFactorEnabled.ShouldBeFalse();
         user.TwoFactorSecret.ShouldBeNull();
@@ -199,15 +199,15 @@ public sealed class TwoFactorHandlerTests
         // Given
         using var fixture = new AuthFixture();
         var secret = Totp.GenerateSecret();
-        await fixture.HasUserWithTwoFactor("bob", "secret", UserRole.Operator, secret);
+        await fixture.HasUserWithTwoFactor("bob@example.com", "secret", UserRole.Operator, secret);
 
         // When
-        await fixture.ResetUserTwoFactor("bob");
+        await fixture.ResetUserTwoFactor("bob@example.com");
 
         // Then
-        var user = await fixture.FindUser("bob");
+        var user = await fixture.FindUser("bob@example.com");
         user.ShouldNotBeNull();
         user.TwoFactorEnabled.ShouldBeFalse();
-        (await fixture.GetRecoveryCodes("bob")).ShouldBeEmpty();
+        (await fixture.GetRecoveryCodes("bob@example.com")).ShouldBeEmpty();
     }
 }

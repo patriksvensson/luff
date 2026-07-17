@@ -108,7 +108,8 @@ hermetic tests, through the shared `TestOptions.For` helper. Not every audit fie
   the last agent-reported runtime health (healthy | unhealthy | starting | stopped | unknown). No per-agent
   config overrides.
 - **Deployment** — one rollout of a tag; ordered state pipeline; records failing agent on failure.
-- **WebhookToken / Registry / User (username PK; Admin | Operator; required unique `email`, optional
+- **WebhookToken / Registry / User (`email` PK — usernames removed; login, the JWT `sub`, and the cookie
+  identity are all the email, normalized lowercase and immutable in place; Admin | Operator; optional
   `firstName`/`lastName`; optional TOTP 2FA — `twoFactorEnabled` + encrypted `twoFactorSecret`) / RecoveryCode
   (hashed, single-use 2FA backup codes) / ServerSettings** (front-door domain singleton).
 - **NotificationChannel** — an Admin-managed alert target (`Discord` | `Generic`; webhook URL stored encrypted,
@@ -126,11 +127,10 @@ hermetic tests, through the shared `TestOptions.For` helper. Not every audit fie
 - Passwords PBKDF2-SHA256 (per-user salt, constant-time, enumeration-safe login). Short-lived JWT access +
   rotating single-use hashed refresh tokens. Webhook/enrollment tokens CSPRNG, stored hashed only.
 - **First-run setup wizard** — with no accounts yet, the login page and an `[AllowAnonymous]` `/setup` page hand
-  off to a one-time wizard where the operator picks the first admin's username/password/email (`POST
+  off to a one-time wizard where the operator picks the first admin's email/password (`POST
   /api/v1/setup`, gated to an empty user table inside a transaction; closes once any account exists). The
-  config seed (`Auth:InitialAdmin`) is the opt-in headless alternative — username + password + a valid
-  **required** email, or it fails fast at startup; blank by default so a fresh install lands on the wizard.
-  No default `admin`/`changeme`.
+  config seed (`Auth:InitialAdmin`) is the opt-in headless alternative — a valid **required** email + password,
+  or it fails fast at startup; blank by default so a fresh install lands on the wizard. No default credentials.
 - **Optional TOTP two-factor** (RFC 6238, hand-rolled over the BCL; QR via QRCoder). Per-user opt-in from
   Settings; the shared secret is encrypted at rest, backup codes are stored hash-only (single-use), an Admin
   can reset a locked-out user. Login is two-step on both surfaces — the API returns a short-lived signed

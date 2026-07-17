@@ -14,7 +14,7 @@ public sealed class ListUsersHandler : IRequestHandler<ListUsersHandler.Request,
     public async Task<IReadOnlyList<UserResponse>> Handle(Request request, CancellationToken cancellationToken)
     {
         var users = await _database.Users
-            .OrderBy(user => user.Username)
+            .OrderBy(user => user.Email)
             .ToListAsync(cancellationToken);
 
         return [.. users.Select(user => user.ToResponse())];

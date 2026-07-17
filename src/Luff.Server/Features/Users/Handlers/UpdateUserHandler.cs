@@ -7,20 +7,18 @@ public sealed class UpdateUserHandler : IRequestHandler<UpdateUserHandler.Reques
 
     public sealed class Request : IRequest<UserResponse>
     {
-        public string Username { get; }
-        public string Role { get; }
         public string Email { get; }
+        public string Role { get; }
         public string? FirstName { get; }
         public string? LastName { get; }
         public string? NewPassword { get; }
 
         public Request(
-            string username, string role, string email,
+            string email, string role,
             string? firstName = null, string? lastName = null, string? newPassword = null)
         {
-            Username = username ?? throw new ArgumentNullException(nameof(username));
-            Role = role ?? throw new ArgumentNullException(nameof(role));
             Email = email ?? throw new ArgumentNullException(nameof(email));
+            Role = role ?? throw new ArgumentNullException(nameof(role));
             FirstName = firstName;
             LastName = lastName;
             NewPassword = newPassword;
@@ -40,20 +38,8 @@ public sealed class UpdateUserHandler : IRequestHandler<UpdateUserHandler.Reques
             throw new InvalidUserRoleException(request.Role);
         }
 
-        if (!EmailAddress.TryNormalize(request.Email, out var email))
-        {
-            throw new InvalidEmailException(request.Email);
-        }
-
-        var user = await _database.Users.FindAsync([request.Username], cancellationToken)
-            ?? throw new UserNotFoundException(request.Username);
-
-        var emailTaken = await _database.Users
-            .AnyAsync(other => other.Email == email && other.Username != user.Username, cancellationToken);
-        if (emailTaken)
-        {
-            throw new EmailAlreadyExistsException(email);
-        }
+        var user = await _database.Users.FindAsync([request.Email], cancellationToken)
+            ?? throw new UserNotFoundException(request.Email);
 
         if (user.Role == UserRole.Admin && role != UserRole.Admin && await IsLastAdmin(cancellationToken))
         {
@@ -61,7 +47,6 @@ public sealed class UpdateUserHandler : IRequestHandler<UpdateUserHandler.Reques
         }
 
         user.Role = role;
-        user.Email = email;
         user.FirstName = Clean(request.FirstName);
         user.LastName = Clean(request.LastName);
 
@@ -76,7 +61,7 @@ public sealed class UpdateUserHandler : IRequestHandler<UpdateUserHandler.Reques
         // A password change invalidates the user's live sessions, forcing a fresh sign-in with the new one.
         if (resetPassword)
         {
-            await _refreshTokens.RevokeAllAsync(user.Username, cancellationToken);
+            await _refreshTokens.RevokeAllAsync(user.Email, cancellationToken);
         }
 
         return user.ToResponse();
@@ -92,12 +77,12 @@ public sealed class UpdateUserHandler : IRequestHandler<UpdateUserHandler.Reques
 public static class UpdateUserHandlerExtensions
 {
     public static async Task<UserResponse> UpdateUser(
-        this ISender sender, string username, string role, string email,
+        this ISender sender, string email, string role,
         string? firstName = null, string? lastName = null, string? newPassword = null,
         CancellationToken cancellationToken = default)
     {
         return await sender.Send(
-            new UpdateUserHandler.Request(username, role, email, firstName, lastName, newPassword),
+            new UpdateUserHandler.Request(email, role, firstName, lastName, newPassword),
             cancellationToken);
     }
 }

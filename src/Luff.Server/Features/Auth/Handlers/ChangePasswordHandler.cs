@@ -7,13 +7,13 @@ public sealed class ChangePasswordHandler : IRequestHandler<ChangePasswordHandle
 
     public sealed class Request : IRequest<Unit>
     {
-        public string Username { get; }
+        public string Email { get; }
         public string CurrentPassword { get; }
         public string NewPassword { get; }
 
-        public Request(string username, string currentPassword, string newPassword)
+        public Request(string email, string currentPassword, string newPassword)
         {
-            Username = username ?? throw new ArgumentNullException(nameof(username));
+            Email = email ?? throw new ArgumentNullException(nameof(email));
             CurrentPassword = currentPassword ?? throw new ArgumentNullException(nameof(currentPassword));
             NewPassword = newPassword ?? throw new ArgumentNullException(nameof(newPassword));
         }
@@ -27,7 +27,7 @@ public sealed class ChangePasswordHandler : IRequestHandler<ChangePasswordHandle
 
     public async Task<Unit> Handle(Request request, CancellationToken cancellationToken)
     {
-        var user = await _database.Users.FindAsync([request.Username], cancellationToken)
+        var user = await _database.Users.FindAsync([request.Email], cancellationToken)
             ?? throw new InvalidCredentialsException();
 
         if (!PasswordHasher.Verify(request.CurrentPassword, user.PasswordHash))
@@ -38,7 +38,7 @@ public sealed class ChangePasswordHandler : IRequestHandler<ChangePasswordHandle
         user.PasswordHash = PasswordHasher.Hash(request.NewPassword);
         await _database.SaveChangesAsync(cancellationToken);
 
-        await _refreshTokens.RevokeAllAsync(user.Username, cancellationToken);
+        await _refreshTokens.RevokeAllAsync(user.Email, cancellationToken);
 
         return Unit.Value;
     }
@@ -47,10 +47,10 @@ public sealed class ChangePasswordHandler : IRequestHandler<ChangePasswordHandle
 public static class ChangePasswordHandlerExtensions
 {
     public static async Task ChangePassword(
-        this ISender sender, string username, string currentPassword, string newPassword,
+        this ISender sender, string email, string currentPassword, string newPassword,
         CancellationToken cancellationToken = default)
     {
         await sender.Send(
-            new ChangePasswordHandler.Request(username, currentPassword, newPassword), cancellationToken);
+            new ChangePasswordHandler.Request(email, currentPassword, newPassword), cancellationToken);
     }
 }

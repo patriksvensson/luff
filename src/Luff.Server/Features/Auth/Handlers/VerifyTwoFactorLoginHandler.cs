@@ -33,9 +33,9 @@ public sealed class VerifyTwoFactorLoginHandler : IRequestHandler<VerifyTwoFacto
 
     public async Task<AuthResponse> Handle(Request request, CancellationToken cancellationToken)
     {
-        var username = await _challenge.ValidateAsync(request.ChallengeToken);
+        var email = await _challenge.ValidateAsync(request.ChallengeToken);
 
-        var user = await _database.Users.FindAsync([username], cancellationToken)
+        var user = await _database.Users.FindAsync([email], cancellationToken)
             ?? throw new InvalidCredentialsException();
 
         if (!user.TwoFactorEnabled)
@@ -48,7 +48,7 @@ public sealed class VerifyTwoFactorLoginHandler : IRequestHandler<VerifyTwoFacto
             throw new InvalidTwoFactorCodeException();
         }
 
-        var refresh = await _refreshTokens.IssueAsync(user.Username, cancellationToken);
+        var refresh = await _refreshTokens.IssueAsync(user.Email, cancellationToken);
         return new AuthResponse(_jwt.Issue(user), refresh);
     }
 }

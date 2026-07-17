@@ -6,17 +6,15 @@ public sealed class SetupHandler : IRequestHandler<SetupHandler.Request, Unit>
 
     public sealed class Request : IRequest<Unit>
     {
-        public string Username { get; }
         public string Password { get; }
         public string Email { get; }
         public string? FirstName { get; }
         public string? LastName { get; }
 
         public Request(
-            string username, string password, string email,
+            string password, string email,
             string? firstName = null, string? lastName = null)
         {
-            Username = username ?? throw new ArgumentNullException(nameof(username));
             Password = password ?? throw new ArgumentNullException(nameof(password));
             Email = email ?? throw new ArgumentNullException(nameof(email));
             FirstName = firstName;
@@ -47,7 +45,6 @@ public sealed class SetupHandler : IRequestHandler<SetupHandler.Request, Unit>
 
         _database.Users.Add(new User
         {
-            Username = request.Username.Trim(),
             PasswordHash = PasswordHasher.Hash(request.Password),
             Role = UserRole.Admin,
             Email = email,
@@ -68,10 +65,10 @@ public sealed class SetupHandler : IRequestHandler<SetupHandler.Request, Unit>
 public static class SetupHandlerExtensions
 {
     public static async Task Setup(
-        this ISender sender, string username, string password, string email,
+        this ISender sender, string password, string email,
         string? firstName = null, string? lastName = null, CancellationToken cancellationToken = default)
     {
         await sender.Send(
-            new SetupHandler.Request(username, password, email, firstName, lastName), cancellationToken);
+            new SetupHandler.Request(password, email, firstName, lastName), cancellationToken);
     }
 }

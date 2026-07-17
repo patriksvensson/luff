@@ -8,12 +8,12 @@ public sealed class DisableTwoFactorHandler : IRequestHandler<DisableTwoFactorHa
 
     public sealed class Request : IRequest<Unit>
     {
-        public string Username { get; }
+        public string Email { get; }
         public string Code { get; }
 
-        public Request(string username, string code)
+        public Request(string email, string code)
         {
-            Username = username ?? throw new ArgumentNullException(nameof(username));
+            Email = email ?? throw new ArgumentNullException(nameof(email));
             Code = code ?? throw new ArgumentNullException(nameof(code));
         }
     }
@@ -28,8 +28,8 @@ public sealed class DisableTwoFactorHandler : IRequestHandler<DisableTwoFactorHa
 
     public async Task<Unit> Handle(Request request, CancellationToken cancellationToken)
     {
-        var user = await _database.Users.FindAsync([request.Username], cancellationToken)
-            ?? throw new UserNotFoundException(request.Username);
+        var user = await _database.Users.FindAsync([request.Email], cancellationToken)
+            ?? throw new UserNotFoundException(request.Email);
 
         if (!user.TwoFactorEnabled)
         {
@@ -45,12 +45,12 @@ public sealed class DisableTwoFactorHandler : IRequestHandler<DisableTwoFactorHa
         user.TwoFactorSecret = null;
 
         var codes = await _database.RecoveryCodes
-            .Where(code => code.Username == user.Username)
+            .Where(code => code.Email == user.Email)
             .ToListAsync(cancellationToken);
         _database.RecoveryCodes.RemoveRange(codes);
 
         await _database.SaveChangesAsync(cancellationToken);
-        await _refreshTokens.RevokeAllAsync(user.Username, cancellationToken);
+        await _refreshTokens.RevokeAllAsync(user.Email, cancellationToken);
 
         return Unit.Value;
     }
@@ -59,8 +59,8 @@ public sealed class DisableTwoFactorHandler : IRequestHandler<DisableTwoFactorHa
 public static class DisableTwoFactorHandlerExtensions
 {
     public static async Task DisableTwoFactor(
-        this ISender sender, string username, string code, CancellationToken cancellationToken = default)
+        this ISender sender, string email, string code, CancellationToken cancellationToken = default)
     {
-        await sender.Send(new DisableTwoFactorHandler.Request(username, code), cancellationToken);
+        await sender.Send(new DisableTwoFactorHandler.Request(email, code), cancellationToken);
     }
 }

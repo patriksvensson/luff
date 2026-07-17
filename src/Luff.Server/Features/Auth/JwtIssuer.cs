@@ -29,7 +29,7 @@ public sealed class JwtIssuer : IJwtIssuer
             SigningCredentials = _credentials,
             Claims = new Dictionary<string, object>
             {
-                [JwtRegisteredClaimNames.Sub] = user.Username,
+                [JwtRegisteredClaimNames.Sub] = user.Email,
                 [JwtAuth.RoleClaim] = user.Role.ToString(),
             },
         };

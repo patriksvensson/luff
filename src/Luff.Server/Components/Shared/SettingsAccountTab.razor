@@ -4,7 +4,7 @@
 <div class="set-account">
     <div class="card set-section">
         <div class="eyebrow">Your account</div>
-        <div class="set-sub">Signed in as <span class="mono">@_username</span> | <span class="mono set-role">@_role</span></div>
+        <div class="set-sub">Signed in as <span class="mono">@_email</span> | <span class="mono set-role">@_role</span></div>
         <div class="set-form">
             <label class="field">
                 <span class="field-label">Current password</span>
@@ -107,7 +107,7 @@
 
 @if (_regenerating)
 {
-    <ConfirmDelete Name="@_username" Verb="Regenerate" Title="Regenerate your backup codes?" Busy="_busy" Error="@_regenerateError"
+    <ConfirmDelete Name="@_email" Verb="Regenerate" Title="Regenerate your backup codes?" Busy="_busy" Error="@_regenerateError"
                    OnConfirm="ConfirmRegenerate" OnClose="CancelRegenerate">
         Replaces your backup codes with a fresh set. Your existing codes stop working immediately.
     </ConfirmDelete>
@@ -117,7 +117,7 @@
     [CascadingParameter]
     private Task<AuthenticationState>? AuthState { get; set; }
 
-    private string _username = string.Empty;
+    private string _email = string.Empty;
     private string _role = "Operator";
 
     private string _currentPassword = string.Empty;
@@ -145,13 +145,13 @@
         if (AuthState is not null)
         {
             var state = await AuthState;
-            _username = state.User.Identity?.Name ?? "";
+            _email = state.User.Identity?.Name ?? "";
             _role = state.User.FindFirst(ClaimTypes.Role)?.Value ?? "Operator";
         }
 
-        if (!string.IsNullOrEmpty(_username))
+        if (!string.IsNullOrEmpty(_email))
         {
-            var status = await Sender.Send(new GetTwoFactorStatusHandler.Request(_username));
+            var status = await Sender.Send(new GetTwoFactorStatusHandler.Request(_email));
             _twoFactorEnabled = status.Enabled;
             _recoveryRemaining = status.RemainingRecoveryCodes;
         }
@@ -164,7 +164,7 @@
         _pwSaved = false;
         try
         {
-            await Sender.Send(new ChangePasswordHandler.Request(_username, _currentPassword, _newPassword));
+            await Sender.Send(new ChangePasswordHandler.Request(_email, _currentPassword, _newPassword));
             _currentPassword = string.Empty;
             _newPassword = string.Empty;
             _pwSaved = true;
@@ -185,7 +185,7 @@
         _twoFactorError = null;
         try
         {
-            var enrollment = await Sender.Send(new BeginTwoFactorEnrollmentHandler.Request(_username));
+            var enrollment = await Sender.Send(new BeginTwoFactorEnrollmentHandler.Request(_email));
             _enrollSecret = enrollment.Secret;
             _enrollQr = enrollment.QrSvg;
             _enrollCode = string.Empty;
@@ -217,7 +217,7 @@
         try
         {
             var response = await Sender.Send(
-                new ConfirmTwoFactorEnrollmentHandler.Request(_username, _enrollCode.Trim()));
+                new ConfirmTwoFactorEnrollmentHandler.Request(_email, _enrollCode.Trim()));
             _recoveryCodes = response.Codes;
             _codesCopied = false;
             _recoveryRemaining = response.Codes.Count;
@@ -255,7 +255,7 @@
         _regenerateError = null;
         try
         {
-            var response = await Sender.Send(new RegenerateRecoveryCodesHandler.Request(_username));
+            var response = await Sender.Send(new RegenerateRecoveryCodesHandler.Request(_email));
             _recoveryCodes = response.Codes;
             _codesCopied = false;
             _recoveryRemaining = response.Codes.Count;
@@ -277,7 +277,7 @@
         _twoFactorError = null;
         try
         {
-            await Sender.Send(new DisableTwoFactorHandler.Request(_username, _disableCode.Trim()));
+            await Sender.Send(new DisableTwoFactorHandler.Request(_email, _disableCode.Trim()));
             _twoFactorEnabled = false;
             _recoveryRemaining = 0;
             _recoveryCodes = null;

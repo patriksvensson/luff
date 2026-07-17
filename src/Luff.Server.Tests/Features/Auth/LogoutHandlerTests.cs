@@ -11,13 +11,13 @@ public sealed class LogoutHandlerTests
     {
         // Given
         using var fixture = new AuthFixture();
-        await fixture.HasUser("admin", "secret", UserRole.Admin);
-        var token = await fixture.CreateRefreshTokenService().IssueAsync("admin", CancellationToken.None);
+        await fixture.HasUser("admin@example.com", "secret", UserRole.Admin);
+        var token = await fixture.CreateRefreshTokenService().IssueAsync("admin@example.com", CancellationToken.None);
 
         // When
         await fixture.Logout(new LogoutHandler.Request(token));
 
         // Then
-        (await fixture.GetRefreshTokens("admin")).ShouldAllBe(entry => entry.RevokedAt != null);
+        (await fixture.GetRefreshTokens("admin@example.com")).ShouldAllBe(entry => entry.RevokedAt != null);
     }
 }

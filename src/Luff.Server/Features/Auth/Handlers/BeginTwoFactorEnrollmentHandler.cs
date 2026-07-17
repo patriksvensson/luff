@@ -8,11 +8,11 @@ public sealed class BeginTwoFactorEnrollmentHandler
 
     public sealed class Request : IRequest<TwoFactorEnrollmentResponse>
     {
-        public string Username { get; }
+        public string Email { get; }
 
-        public Request(string username)
+        public Request(string email)
         {
-            Username = username ?? throw new ArgumentNullException(nameof(username));
+            Email = email ?? throw new ArgumentNullException(nameof(email));
         }
     }
 
@@ -24,8 +24,8 @@ public sealed class BeginTwoFactorEnrollmentHandler
 
     public async Task<TwoFactorEnrollmentResponse> Handle(Request request, CancellationToken cancellationToken)
     {
-        var user = await _database.Users.FindAsync([request.Username], cancellationToken)
-            ?? throw new UserNotFoundException(request.Username);
+        var user = await _database.Users.FindAsync([request.Email], cancellationToken)
+            ?? throw new UserNotFoundException(request.Email);
 
         if (user.TwoFactorEnabled)
         {
@@ -38,7 +38,7 @@ public sealed class BeginTwoFactorEnrollmentHandler
         user.TwoFactorSecret = _protector.Protect(secret);
         await _database.SaveChangesAsync(cancellationToken);
 
-        var uri = Totp.BuildOtpauthUri(secret, user.Username);
+        var uri = Totp.BuildOtpauthUri(secret, user.Email);
         return new TwoFactorEnrollmentResponse(secret, uri, QrCode.RenderSvg(uri));
     }
 }
@@ -46,8 +46,8 @@ public sealed class BeginTwoFactorEnrollmentHandler
 public static class BeginTwoFactorEnrollmentHandlerExtensions
 {
     public static async Task<TwoFactorEnrollmentResponse> BeginTwoFactorEnrollment(
-        this ISender sender, string username, CancellationToken cancellationToken = default)
+        this ISender sender, string email, CancellationToken cancellationToken = default)
     {
-        return await sender.Send(new BeginTwoFactorEnrollmentHandler.Request(username), cancellationToken);
+        return await sender.Send(new BeginTwoFactorEnrollmentHandler.Request(email), cancellationToken);
     }
 }

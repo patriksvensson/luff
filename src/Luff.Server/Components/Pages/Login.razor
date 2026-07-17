@@ -27,8 +27,8 @@
 
         <EditForm Model="Input" method="post" OnValidSubmit="Authenticate" FormName="login">
             <label class="field">
-                <span class="field-label">Username</span>
-                <InputText class="input" @bind-Value="Input!.Username" autocomplete="username" autofocus />
+                <span class="field-label">Email</span>
+                <InputText type="email" class="input" @bind-Value="Input!.Email" autocomplete="email" autofocus />
             </label>
 
             <label class="field">
@@ -38,7 +38,7 @@
 
             @if (_failed)
             {
-                <div class="login-error">Incorrect username or password.</div>
+                <div class="login-error">Incorrect email or password.</div>
             }
 
             <button class="btn btn-primary login-submit" type="submit">Sign in</button>
@@ -74,14 +74,14 @@
     {
         try
         {
-            var user = await Verifier.VerifyAsync(Input!.Username, Input.Password, HttpContext.RequestAborted);
+            var user = await Verifier.VerifyAsync(Input!.Email, Input.Password, HttpContext.RequestAborted);
 
             if (user.TwoFactorEnabled)
             {
                 // Password is right but incomplete: hand off to the code step with a short-lived,
                 // role-less pending cookie rather than the real auth cookie
                 var pending = new ClaimsIdentity(
-                    [new Claim(ClaimTypes.Name, user.Username)], JwtAuth.TwoFactorPendingScheme);
+                    [new Claim(ClaimTypes.Name, user.Email)], JwtAuth.TwoFactorPendingScheme);
                 await HttpContext.SignInAsync(JwtAuth.TwoFactorPendingScheme, new ClaimsPrincipal(pending));
 
                 Navigation.NavigateTo(
@@ -91,7 +91,7 @@
 
             var claims = new List<Claim>
             {
-                new(ClaimTypes.Name, user.Username),
+                new(ClaimTypes.Name, user.Email),
                 new(ClaimTypes.Role, user.Role.ToString()),
             };
             var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
@@ -121,7 +121,7 @@
 
     public sealed class Credentials
     {
-        public string Username { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
         public string Password { get; set; } = string.Empty;
     }
 }

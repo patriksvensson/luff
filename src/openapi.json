@@ -2156,7 +2156,7 @@
         }
       }
     },
-    "/api/v1/users/{username}": {
+    "/api/v1/users/{email}": {
       "put": {
         "tags": [
           "Users"
@@ -2164,7 +2164,7 @@
         "operationId": "Users_Update",
         "parameters": [
           {
-            "name": "username",
+            "name": "email",
             "in": "path",
             "required": true,
             "schema": {
@@ -2232,7 +2232,7 @@
         "operationId": "Users_Delete",
         "parameters": [
           {
-            "name": "username",
+            "name": "email",
             "in": "path",
             "required": true,
             "schema": {
@@ -2267,7 +2267,7 @@
         }
       }
     },
-    "/api/v1/users/{username}/2fa/reset": {
+    "/api/v1/users/{email}/2fa/reset": {
       "post": {
         "tags": [
           "Users"
@@ -2275,7 +2275,7 @@
         "operationId": "Users_ResetTwoFactor",
         "parameters": [
           {
-            "name": "username",
+            "name": "email",
             "in": "path",
             "required": true,
             "schema": {
@@ -2599,16 +2599,12 @@
       },
       "CreateUserRequest": {
         "required": [
-          "username",
           "password",
           "role",
           "email"
         ],
         "type": "object",
         "properties": {
-          "username": {
-            "type": "string"
-          },
           "password": {
             "type": "string"
           },
@@ -2755,12 +2751,12 @@
       },
       "LoginRequest": {
         "required": [
-          "username",
+          "email",
           "password"
         ],
         "type": "object",
         "properties": {
-          "username": {
+          "email": {
             "type": "string"
           },
           "password": {
@@ -2995,15 +2991,11 @@
       },
       "SetupRequest": {
         "required": [
-          "username",
           "password",
           "email"
         ],
         "type": "object",
         "properties": {
-          "username": {
-            "type": "string"
-          },
           "password": {
             "type": "string"
           },
@@ -3128,15 +3120,11 @@
       },
       "UpdateUserRequest": {
         "required": [
-          "role",
-          "email"
+          "role"
         ],
         "type": "object",
         "properties": {
           "role": {
-            "type": "string"
-          },
-          "email": {
             "type": "string"
           },
           "firstName": {
@@ -3155,7 +3143,6 @@
       },
       "UserResponse": {
         "required": [
-          "username",
           "role",
           "email",
           "firstName",
@@ -3164,9 +3151,6 @@
         ],
         "type": "object",
         "properties": {
-          "username": {
-            "type": "string"
-          },
           "role": {
             "type": "string"
           },

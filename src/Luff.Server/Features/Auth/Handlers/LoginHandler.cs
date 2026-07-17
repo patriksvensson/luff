@@ -9,12 +9,12 @@ public sealed class LoginHandler : IRequestHandler<LoginHandler.Request, LoginRe
 
     public sealed class Request : IRequest<LoginResponse>
     {
-        public string Username { get; }
+        public string Email { get; }
         public string Password { get; }
 
-        public Request(string username, string password)
+        public Request(string email, string password)
         {
-            Username = username ?? throw new ArgumentNullException(nameof(username));
+            Email = email ?? throw new ArgumentNullException(nameof(email));
             Password = password ?? throw new ArgumentNullException(nameof(password));
         }
     }
@@ -30,16 +30,16 @@ public sealed class LoginHandler : IRequestHandler<LoginHandler.Request, LoginRe
 
     public async Task<LoginResponse> Handle(Request request, CancellationToken cancellationToken)
     {
-        var user = await _verifier.VerifyAsync(request.Username, request.Password, cancellationToken);
+        var user = await _verifier.VerifyAsync(request.Email, request.Password, cancellationToken);
 
         // With 2FA on, a correct password earns only a short-lived challenge.
         // The 2FA code later trades it for tokens.
         if (user.TwoFactorEnabled)
         {
-            return LoginResponse.Challenge(_challenge.Issue(user.Username));
+            return LoginResponse.Challenge(_challenge.Issue(user.Email));
         }
 
-        var refresh = await _refreshTokens.IssueAsync(user.Username, cancellationToken);
+        var refresh = await _refreshTokens.IssueAsync(user.Email, cancellationToken);
         return LoginResponse.Tokens(new AuthResponse(_jwt.Issue(user), refresh));
     }
 }
@@ -47,8 +47,8 @@ public sealed class LoginHandler : IRequestHandler<LoginHandler.Request, LoginRe
 public static class LoginHandlerExtensions
 {
     public static async Task<LoginResponse> Login(
-        this ISender sender, string username, string password, CancellationToken cancellationToken = default)
+        this ISender sender, string email, string password, CancellationToken cancellationToken = default)
     {
-        return await sender.Send(new LoginHandler.Request(username, password), cancellationToken);
+        return await sender.Send(new LoginHandler.Request(email, password), cancellationToken);
     }
 }

@@ -15,11 +15,10 @@ public sealed class CreateUserHandlerTests
 
         // When
         var result = await fixture.CreateUser(
-            new CreateUserHandler.Request("alice", "secret", "Operator", "alice@example.com", "Ada", "Lovelace"));
+            new CreateUserHandler.Request("secret", "Operator", "alice@example.com", "Ada", "Lovelace"));
 
         // Then
         result.ShouldSatisfyAllConditions(
-            response => response.Username.ShouldBe("alice"),
             response => response.Role.ShouldBe("Operator"),
             response => response.Email.ShouldBe("alice@example.com"),
             response => response.FirstName.ShouldBe("Ada"),
@@ -34,10 +33,10 @@ public sealed class CreateUserHandlerTests
 
         // When
         await fixture.CreateUser(
-            new CreateUserHandler.Request("alice", "secret", "Admin", "alice@example.com"));
+            new CreateUserHandler.Request("secret", "Admin", "alice@example.com"));
 
         // Then
-        var user = await fixture.FindUser("alice");
+        var user = await fixture.FindUser("alice@example.com");
         user.ShouldNotBeNull().PasswordHash.ShouldNotBe("secret");
         PasswordHasher.Verify("secret", user.PasswordHash).ShouldBeTrue();
     }
@@ -50,10 +49,10 @@ public sealed class CreateUserHandlerTests
 
         // When
         await fixture.CreateUser(
-            new CreateUserHandler.Request("alice", "secret", "Operator", "  Alice@Example.COM  "));
+            new CreateUserHandler.Request("secret", "Operator", "  Alice@Example.COM  "));
 
         // Then
-        (await fixture.FindUser("alice"))!.Email.ShouldBe("alice@example.com");
+        (await fixture.FindUser("alice@example.com"))!.Email.ShouldBe("alice@example.com");
     }
 
     [Fact]
@@ -61,15 +60,15 @@ public sealed class CreateUserHandlerTests
     {
         // Given
         using var fixture = new AuthFixture();
-        await fixture.HasUser("alice", "secret", UserRole.Operator);
+        await fixture.HasUser("alice@example.com", "secret", UserRole.Operator);
 
         // When
         var exception = await Record.ExceptionAsync(() =>
             fixture.CreateUser(
-                new CreateUserHandler.Request("alice", "other", "Admin", "other@example.com")));
+                new CreateUserHandler.Request("other", "Admin", "alice@example.com")));
 
         // Then
-        exception.ShouldBeOfType<UserAlreadyExistsException>();
+        exception.ShouldBeOfType<EmailAlreadyExistsException>();
     }
 
     [Fact]
@@ -77,12 +76,12 @@ public sealed class CreateUserHandlerTests
     {
         // Given
         using var fixture = new AuthFixture();
-        await fixture.HasUser("alice", "secret", UserRole.Operator, "shared@example.com");
+        await fixture.HasUser("shared@example.com", "secret", UserRole.Operator);
 
         // When
         var exception = await Record.ExceptionAsync(() =>
             fixture.CreateUser(
-                new CreateUserHandler.Request("bob", "secret", "Operator", "SHARED@example.com")));
+                new CreateUserHandler.Request("secret", "Operator", "SHARED@example.com")));
 
         // Then
         exception.ShouldBeOfType<EmailAlreadyExistsException>();
@@ -97,7 +96,7 @@ public sealed class CreateUserHandlerTests
         // When
         var exception = await Record.ExceptionAsync(() =>
             fixture.CreateUser(
-                new CreateUserHandler.Request("alice", "secret", "Operator", "not-an-email")));
+                new CreateUserHandler.Request("secret", "Operator", "not-an-email")));
 
         // Then
         exception.ShouldBeOfType<InvalidEmailException>();
@@ -112,7 +111,7 @@ public sealed class CreateUserHandlerTests
         // When
         var exception = await Record.ExceptionAsync(() =>
             fixture.CreateUser(
-                new CreateUserHandler.Request("alice", "secret", "Superuser", "alice@example.com")));
+                new CreateUserHandler.Request("secret", "Superuser", "alice@example.com")));
 
         // Then
         exception.ShouldBeOfType<InvalidUserRoleException>();

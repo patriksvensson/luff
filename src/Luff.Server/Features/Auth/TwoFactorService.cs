@@ -28,7 +28,7 @@ public sealed class TwoFactorService
             return true;
         }
 
-        return await TryConsumeRecoveryCodeAsync(user.Username, code, cancellationToken);
+        return await TryConsumeRecoveryCodeAsync(user.Email, code, cancellationToken);
     }
 
     public static IReadOnlyList<string> GenerateRecoveryCodes(int count = 10)
@@ -43,11 +43,11 @@ public sealed class TwoFactorService
     }
 
     private async Task<bool> TryConsumeRecoveryCodeAsync(
-        string username, string code, CancellationToken cancellationToken)
+        string email, string code, CancellationToken cancellationToken)
     {
         var hash = RecoveryCode.Hash(code);
         var entry = await _database.RecoveryCodes.FirstOrDefaultAsync(
-            recovery => recovery.Username == username && recovery.CodeHash == hash && recovery.ConsumedAt == null,
+            recovery => recovery.Email == email && recovery.CodeHash == hash && recovery.ConsumedAt == null,
             cancellationToken);
 
         if (entry is null)

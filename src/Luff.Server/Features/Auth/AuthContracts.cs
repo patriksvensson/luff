@@ -2,12 +2,12 @@ namespace Luff.Server.Features;
 
 public sealed class LoginRequest
 {
-    public string Username { get; }
+    public string Email { get; }
     public string Password { get; }
 
-    public LoginRequest(string username, string password)
+    public LoginRequest(string email, string password)
     {
-        Username = username ?? throw new ArgumentNullException(nameof(username));
+        Email = email ?? throw new ArgumentNullException(nameof(email));
         Password = password ?? throw new ArgumentNullException(nameof(password));
     }
 }
@@ -46,7 +46,6 @@ public sealed class ChangePasswordRequest
 
 public sealed class CreateUserRequest
 {
-    public string Username { get; }
     public string Password { get; }
     public string Role { get; }
     public string Email { get; }
@@ -54,10 +53,9 @@ public sealed class CreateUserRequest
     public string? LastName { get; }
 
     public CreateUserRequest(
-        string username, string password, string role, string email,
+        string password, string role, string email,
         string? firstName = null, string? lastName = null)
     {
-        Username = username ?? throw new ArgumentNullException(nameof(username));
         Password = password ?? throw new ArgumentNullException(nameof(password));
         Role = role ?? throw new ArgumentNullException(nameof(role));
         Email = email ?? throw new ArgumentNullException(nameof(email));
@@ -68,17 +66,15 @@ public sealed class CreateUserRequest
 
 public sealed class SetupRequest
 {
-    public string Username { get; }
     public string Password { get; }
     public string Email { get; }
     public string? FirstName { get; }
     public string? LastName { get; }
 
     public SetupRequest(
-        string username, string password, string email,
+        string password, string email,
         string? firstName = null, string? lastName = null)
     {
-        Username = username ?? throw new ArgumentNullException(nameof(username));
         Password = password ?? throw new ArgumentNullException(nameof(password));
         Email = email ?? throw new ArgumentNullException(nameof(email));
         FirstName = firstName;
@@ -89,17 +85,15 @@ public sealed class SetupRequest
 public sealed class UpdateUserRequest
 {
     public string Role { get; }
-    public string Email { get; }
     public string? FirstName { get; }
     public string? LastName { get; }
     public string? NewPassword { get; }
 
     public UpdateUserRequest(
-        string role, string email,
+        string role,
         string? firstName = null, string? lastName = null, string? newPassword = null)
     {
         Role = role ?? throw new ArgumentNullException(nameof(role));
-        Email = email ?? throw new ArgumentNullException(nameof(email));
         FirstName = firstName;
         LastName = lastName;
         NewPassword = newPassword;
@@ -120,7 +114,6 @@ public sealed class AuthResponse
 
 public sealed class UserResponse
 {
-    public string Username { get; }
     public string Role { get; }
     public string Email { get; }
     public string? FirstName { get; }
@@ -128,10 +121,9 @@ public sealed class UserResponse
     public bool TwoFactorEnabled { get; }
 
     public UserResponse(
-        string username, string role, string email,
+        string role, string email,
         string? firstName, string? lastName, bool twoFactorEnabled)
     {
-        Username = username ?? throw new ArgumentNullException(nameof(username));
         Role = role ?? throw new ArgumentNullException(nameof(role));
         Email = email ?? throw new ArgumentNullException(nameof(email));
         FirstName = firstName;

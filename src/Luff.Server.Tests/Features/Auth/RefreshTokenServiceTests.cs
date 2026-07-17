@@ -12,14 +12,14 @@ public sealed class RefreshTokenServiceTests
     {
         // Given
         using var fixture = new AuthFixture();
-        await fixture.HasUser("admin", "secret", UserRole.Admin);
+        await fixture.HasUser("admin@example.com", "secret", UserRole.Admin);
         var service = fixture.CreateRefreshTokenService();
 
         // When
-        var token = await service.IssueAsync("admin", CancellationToken.None);
+        var token = await service.IssueAsync("admin@example.com", CancellationToken.None);
 
         // Then
-        var stored = await fixture.GetRefreshTokens("admin");
+        var stored = await fixture.GetRefreshTokens("admin@example.com");
         stored.ShouldHaveSingleItem().ShouldSatisfyAllConditions(
             entry => entry.TokenHash.ShouldBe(RefreshToken.Hash(token)),
             entry => entry.ConsumedAt.ShouldBeNull(),
@@ -31,17 +31,17 @@ public sealed class RefreshTokenServiceTests
     {
         // Given
         using var fixture = new AuthFixture();
-        await fixture.HasUser("admin", "secret", UserRole.Admin);
+        await fixture.HasUser("admin@example.com", "secret", UserRole.Admin);
         var service = fixture.CreateRefreshTokenService();
-        var first = await service.IssueAsync("admin", CancellationToken.None);
+        var first = await service.IssueAsync("admin@example.com", CancellationToken.None);
 
         // When
-        var (second, username) = await service.RotateAsync(first, CancellationToken.None);
+        var (second, email) = await service.RotateAsync(first, CancellationToken.None);
 
         // Then
-        username.ShouldBe("admin");
+        email.ShouldBe("admin@example.com");
         second.ShouldNotBe(first);
-        var stored = await fixture.GetRefreshTokens("admin");
+        var stored = await fixture.GetRefreshTokens("admin@example.com");
         stored.Single(entry => entry.TokenHash == RefreshToken.Hash(first)).ConsumedAt.ShouldNotBeNull();
         stored.Single(entry => entry.TokenHash == RefreshToken.Hash(second)).ConsumedAt.ShouldBeNull();
     }
@@ -51,17 +51,17 @@ public sealed class RefreshTokenServiceTests
     {
         // Given
         using var fixture = new AuthFixture();
-        await fixture.HasUser("admin", "secret", UserRole.Admin);
+        await fixture.HasUser("admin@example.com", "secret", UserRole.Admin);
         var service = fixture.CreateRefreshTokenService();
-        var first = await service.IssueAsync("admin", CancellationToken.None);
-        var expiry = (await fixture.GetRefreshTokens("admin")).Single().ExpiresAt;
+        var first = await service.IssueAsync("admin@example.com", CancellationToken.None);
+        var expiry = (await fixture.GetRefreshTokens("admin@example.com")).Single().ExpiresAt;
 
         // When
         fixture.Time.Advance(TimeSpan.FromDays(5));
         var (second, _) = await service.RotateAsync(first, CancellationToken.None);
 
         // Then
-        (await fixture.GetRefreshTokens("admin"))
+        (await fixture.GetRefreshTokens("admin@example.com"))
             .Single(entry => entry.TokenHash == RefreshToken.Hash(second))
             .ExpiresAt.ShouldBe(expiry);
     }
@@ -71,9 +71,9 @@ public sealed class RefreshTokenServiceTests
     {
         // Given
         using var fixture = new AuthFixture();
-        await fixture.HasUser("admin", "secret", UserRole.Admin);
+        await fixture.HasUser("admin@example.com", "secret", UserRole.Admin);
         var service = fixture.CreateRefreshTokenService();
-        var first = await service.IssueAsync("admin", CancellationToken.None);
+        var first = await service.IssueAsync("admin@example.com", CancellationToken.None);
         await service.RotateAsync(first, CancellationToken.None);
 
         // When
@@ -81,7 +81,7 @@ public sealed class RefreshTokenServiceTests
 
         // Then
         exception.ShouldBeOfType<InvalidCredentialsException>();
-        (await fixture.GetRefreshTokens("admin")).ShouldAllBe(entry => entry.RevokedAt != null);
+        (await fixture.GetRefreshTokens("admin@example.com")).ShouldAllBe(entry => entry.RevokedAt != null);
     }
 
     [Fact]
@@ -89,9 +89,9 @@ public sealed class RefreshTokenServiceTests
     {
         // Given
         using var fixture = new AuthFixture();
-        await fixture.HasUser("admin", "secret", UserRole.Admin);
+        await fixture.HasUser("admin@example.com", "secret", UserRole.Admin);
         var service = fixture.CreateRefreshTokenService();
-        var token = await service.IssueAsync("admin", CancellationToken.None);
+        var token = await service.IssueAsync("admin@example.com", CancellationToken.None);
 
         // When
         fixture.Time.Advance(RefreshTokenService.Lifetime + TimeSpan.FromMinutes(1));
@@ -106,7 +106,7 @@ public sealed class RefreshTokenServiceTests
     {
         // Given
         using var fixture = new AuthFixture();
-        await fixture.HasUser("admin", "secret", UserRole.Admin);
+        await fixture.HasUser("admin@example.com", "secret", UserRole.Admin);
         var service = fixture.CreateRefreshTokenService();
 
         // When
@@ -121,15 +121,15 @@ public sealed class RefreshTokenServiceTests
     {
         // Given
         using var fixture = new AuthFixture();
-        await fixture.HasUser("admin", "secret", UserRole.Admin);
+        await fixture.HasUser("admin@example.com", "secret", UserRole.Admin);
         var service = fixture.CreateRefreshTokenService();
-        await service.IssueAsync("admin", CancellationToken.None);
-        await service.IssueAsync("admin", CancellationToken.None);
+        await service.IssueAsync("admin@example.com", CancellationToken.None);
+        await service.IssueAsync("admin@example.com", CancellationToken.None);
 
         // When
-        await service.RevokeAllAsync("admin", CancellationToken.None);
+        await service.RevokeAllAsync("admin@example.com", CancellationToken.None);
 
         // Then
-        (await fixture.GetRefreshTokens("admin")).ShouldAllBe(entry => entry.RevokedAt != null);
+        (await fixture.GetRefreshTokens("admin@example.com")).ShouldAllBe(entry => entry.RevokedAt != null);
     }
 }

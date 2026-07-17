@@ -60,30 +60,30 @@ public sealed class AuthFixture : IDisposable
         return await handler.Handle(request, CancellationToken.None);
     }
 
-    public async Task<TwoFactorEnrollmentResponse> BeginTwoFactorEnrollment(string username)
+    public async Task<TwoFactorEnrollmentResponse> BeginTwoFactorEnrollment(string email)
     {
         var handler = new BeginTwoFactorEnrollmentHandler(CreateContext(), _protector);
-        return await handler.Handle(new BeginTwoFactorEnrollmentHandler.Request(username), CancellationToken.None);
+        return await handler.Handle(new BeginTwoFactorEnrollmentHandler.Request(email), CancellationToken.None);
     }
 
-    public async Task<RecoveryCodesResponse> ConfirmTwoFactorEnrollment(string username, string code)
+    public async Task<RecoveryCodesResponse> ConfirmTwoFactorEnrollment(string email, string code)
     {
         var handler =
             new ConfirmTwoFactorEnrollmentHandler(CreateContext(), _protector, CreateRefreshTokenService(), Time);
         return await handler.Handle(
-            new ConfirmTwoFactorEnrollmentHandler.Request(username, code), CancellationToken.None);
+            new ConfirmTwoFactorEnrollmentHandler.Request(email, code), CancellationToken.None);
     }
 
-    public async Task DisableTwoFactor(string username, string code)
+    public async Task DisableTwoFactor(string email, string code)
     {
         var handler = new DisableTwoFactorHandler(CreateContext(), CreateTwoFactorService(), CreateRefreshTokenService());
-        await handler.Handle(new DisableTwoFactorHandler.Request(username, code), CancellationToken.None);
+        await handler.Handle(new DisableTwoFactorHandler.Request(email, code), CancellationToken.None);
     }
 
-    public async Task ResetUserTwoFactor(string username)
+    public async Task ResetUserTwoFactor(string email)
     {
         var handler = new ResetUserTwoFactorHandler(CreateContext(), CreateRefreshTokenService());
-        await handler.Handle(new ResetUserTwoFactorHandler.Request(username), CancellationToken.None);
+        await handler.Handle(new ResetUserTwoFactorHandler.Request(email), CancellationToken.None);
     }
 
     public async Task Logout(LogoutHandler.Request request)
@@ -128,31 +128,29 @@ public sealed class AuthFixture : IDisposable
         return await handler.Handle(new ListUsersHandler.Request(), CancellationToken.None);
     }
 
-    public async Task HasUser(string username, string password, UserRole role, string? email = null)
+    public async Task HasUser(string email, string password, UserRole role)
     {
         await using var context = CreateContext();
 
         context.Users.Add(new User
         {
-            Username = username,
+            Email = email,
             PasswordHash = PasswordHasher.Hash(password),
             Role = role,
-            Email = email ?? $"{username}@example.com",
         });
 
         await context.SaveChangesAsync();
     }
 
-    public async Task HasUserWithTwoFactor(string username, string password, UserRole role, string base32Secret)
+    public async Task HasUserWithTwoFactor(string email, string password, UserRole role, string base32Secret)
     {
         await using var context = CreateContext();
 
         context.Users.Add(new User
         {
-            Username = username,
+            Email = email,
             PasswordHash = PasswordHasher.Hash(password),
             Role = role,
-            Email = $"{username}@example.com",
             TwoFactorEnabled = true,
             TwoFactorSecret = _protector.Protect(base32Secret),
         });
@@ -160,28 +158,28 @@ public sealed class AuthFixture : IDisposable
         await context.SaveChangesAsync();
     }
 
-    public async Task<IReadOnlyList<RefreshToken>> GetRefreshTokens(string username)
+    public async Task<IReadOnlyList<RefreshToken>> GetRefreshTokens(string email)
     {
         await using var context = CreateContext();
 
         return await context.RefreshTokens
-            .Where(token => token.Username == username)
+            .Where(token => token.Email == email)
             .ToListAsync();
     }
 
-    public async Task<IReadOnlyList<RecoveryCode>> GetRecoveryCodes(string username)
+    public async Task<IReadOnlyList<RecoveryCode>> GetRecoveryCodes(string email)
     {
         await using var context = CreateContext();
 
         return await context.RecoveryCodes
-            .Where(code => code.Username == username)
+            .Where(code => code.Email == email)
             .ToListAsync();
     }
 
-    public async Task<User?> FindUser(string username)
+    public async Task<User?> FindUser(string email)
     {
         await using var context = CreateContext();
-        return await context.Users.FindAsync(username);
+        return await context.Users.FindAsync(email);
     }
 
     public void Dispose()

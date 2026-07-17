@@ -6,7 +6,6 @@ public sealed class CreateUserHandler : IRequestHandler<CreateUserHandler.Reques
 
     public sealed class Request : IRequest<UserResponse>
     {
-        public string Username { get; }
         public string Password { get; }
         public string Role { get; }
         public string Email { get; }
@@ -14,10 +13,9 @@ public sealed class CreateUserHandler : IRequestHandler<CreateUserHandler.Reques
         public string? LastName { get; }
 
         public Request(
-            string username, string password, string role, string email,
+            string password, string role, string email,
             string? firstName = null, string? lastName = null)
         {
-            Username = username ?? throw new ArgumentNullException(nameof(username));
             Password = password ?? throw new ArgumentNullException(nameof(password));
             Role = role ?? throw new ArgumentNullException(nameof(role));
             Email = email ?? throw new ArgumentNullException(nameof(email));
@@ -43,12 +41,6 @@ public sealed class CreateUserHandler : IRequestHandler<CreateUserHandler.Reques
             throw new InvalidEmailException(request.Email);
         }
 
-        var exists = await _database.Users.AnyAsync(user => user.Username == request.Username, cancellationToken);
-        if (exists)
-        {
-            throw new UserAlreadyExistsException(request.Username);
-        }
-
         var emailTaken = await _database.Users.AnyAsync(user => user.Email == email, cancellationToken);
         if (emailTaken)
         {
@@ -57,7 +49,6 @@ public sealed class CreateUserHandler : IRequestHandler<CreateUserHandler.Reques
 
         var entity = new User
         {
-            Username = request.Username,
             PasswordHash = PasswordHasher.Hash(request.Password),
             Role = role,
             Email = email,
@@ -78,10 +69,10 @@ public sealed class CreateUserHandler : IRequestHandler<CreateUserHandler.Reques
 public static class CreateUserHandlerExtensions
 {
     public static async Task<UserResponse> CreateUser(
-        this ISender sender, string username, string password, string role, string email,
+        this ISender sender, string password, string role, string email,
         string? firstName = null, string? lastName = null, CancellationToken cancellationToken = default)
     {
         return await sender.Send(
-            new CreateUserHandler.Request(username, password, role, email, firstName, lastName), cancellationToken);
+            new CreateUserHandler.Request(password, role, email, firstName, lastName), cancellationToken);
     }
 }

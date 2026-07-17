@@ -62,14 +62,14 @@
     private async Task Verify()
     {
         var pending = await HttpContext.AuthenticateAsync(JwtAuth.TwoFactorPendingScheme);
-        var username = pending.Principal?.Identity?.Name;
-        if (string.IsNullOrEmpty(username))
+        var email = pending.Principal?.Identity?.Name;
+        if (string.IsNullOrEmpty(email))
         {
             Navigation.NavigateTo("/login", forceLoad: true);
             return;
         }
 
-        var user = await Database.Users.FindAsync([username], HttpContext.RequestAborted);
+        var user = await Database.Users.FindAsync([email], HttpContext.RequestAborted);
         if (user is null || !user.TwoFactorEnabled)
         {
             await HttpContext.SignOutAsync(JwtAuth.TwoFactorPendingScheme);
@@ -85,7 +85,7 @@
 
         var claims = new List<Claim>
         {
-            new(ClaimTypes.Name, user.Username),
+            new(ClaimTypes.Name, user.Email),
             new(ClaimTypes.Role, user.Role.ToString()),
         };
         var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);

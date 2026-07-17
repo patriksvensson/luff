@@ -13,12 +13,12 @@ public sealed class RefreshTokenService
         _timeProvider = timeProvider ?? throw new ArgumentNullException(nameof(timeProvider));
     }
 
-    public async Task<string> IssueAsync(string username, CancellationToken cancellationToken)
+    public async Task<string> IssueAsync(string email, CancellationToken cancellationToken)
     {
-        return await CreateAsync(username, Guid.NewGuid(), _timeProvider.GetUtcNow().Add(Lifetime), cancellationToken);
+        return await CreateAsync(email, Guid.NewGuid(), _timeProvider.GetUtcNow().Add(Lifetime), cancellationToken);
     }
 
-    public async Task<(string Token, string Username)> RotateAsync(string presented, CancellationToken cancellationToken)
+    public async Task<(string Token, string Email)> RotateAsync(string presented, CancellationToken cancellationToken)
     {
         var hash = RefreshToken.Hash(presented);
         var token = await _database.RefreshTokens.FirstOrDefaultAsync(
@@ -39,8 +39,8 @@ public sealed class RefreshTokenService
         }
 
         token.ConsumedAt = now;
-        var next = await CreateAsync(token.Username, token.FamilyId, token.ExpiresAt, cancellationToken);
-        return (next, token.Username);
+        var next = await CreateAsync(token.Email, token.FamilyId, token.ExpiresAt, cancellationToken);
+        return (next, token.Email);
     }
 
     public async Task RevokeByTokenAsync(string presented, CancellationToken cancellationToken)
@@ -55,11 +55,11 @@ public sealed class RefreshTokenService
         }
     }
 
-    public async Task RevokeAllAsync(string username, CancellationToken cancellationToken)
+    public async Task RevokeAllAsync(string email, CancellationToken cancellationToken)
     {
         var now = _timeProvider.GetUtcNow();
         var tokens = await _database.RefreshTokens
-            .Where(entry => entry.Username == username && entry.RevokedAt == null)
+            .Where(entry => entry.Email == email && entry.RevokedAt == null)
             .ToListAsync(cancellationToken);
 
         foreach (var token in tokens)
@@ -86,14 +86,14 @@ public sealed class RefreshTokenService
     }
 
     private async Task<string> CreateAsync(
-        string username, Guid familyId, DateTimeOffset expiresAt, CancellationToken cancellationToken)
+        string email, Guid familyId, DateTimeOffset expiresAt, CancellationToken cancellationToken)
     {
         var token = RefreshToken.Generate();
 
         _database.RefreshTokens.Add(new RefreshToken
         {
             Id = Guid.NewGuid(),
-            Username = username,
+            Email = email,
             FamilyId = familyId,
             TokenHash = RefreshToken.Hash(token),
             ExpiresAt = expiresAt,

@@ -66,9 +66,8 @@ public sealed class LuffDbContext : DbContext
 
         modelBuilder.Entity<User>(user =>
         {
-            user.HasKey(entity => entity.Username);
+            user.HasKey(entity => entity.Email);
             user.Property(entity => entity.Role).HasConversion<string>();
-            user.HasIndex(entity => entity.Email).IsUnique();
         });
 
         modelBuilder.Entity<RefreshToken>(token =>
@@ -76,14 +75,14 @@ public sealed class LuffDbContext : DbContext
             token.HasKey(entity => entity.Id);
             token.HasIndex(entity => entity.TokenHash).IsUnique();
             token.HasIndex(entity => entity.FamilyId);
-            token.HasOne<User>().WithMany().HasForeignKey(entity => entity.Username);
+            token.HasOne<User>().WithMany().HasForeignKey(entity => entity.Email);
         });
 
         modelBuilder.Entity<RecoveryCode>(code =>
         {
             code.HasKey(entity => entity.Id);
             code.HasIndex(entity => entity.CodeHash).IsUnique();
-            code.HasOne<User>().WithMany().HasForeignKey(entity => entity.Username);
+            code.HasOne<User>().WithMany().HasForeignKey(entity => entity.Email);
         });
 
         modelBuilder.Entity<AppAgent>(attachment =>

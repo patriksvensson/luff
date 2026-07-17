@@ -10,12 +10,12 @@ public sealed class ConfirmTwoFactorEnrollmentHandler
 
     public sealed class Request : IRequest<RecoveryCodesResponse>
     {
-        public string Username { get; }
+        public string Email { get; }
         public string Code { get; }
 
-        public Request(string username, string code)
+        public Request(string email, string code)
         {
-            Username = username ?? throw new ArgumentNullException(nameof(username));
+            Email = email ?? throw new ArgumentNullException(nameof(email));
             Code = code ?? throw new ArgumentNullException(nameof(code));
         }
     }
@@ -32,8 +32,8 @@ public sealed class ConfirmTwoFactorEnrollmentHandler
 
     public async Task<RecoveryCodesResponse> Handle(Request request, CancellationToken cancellationToken)
     {
-        var user = await _database.Users.FindAsync([request.Username], cancellationToken)
-            ?? throw new UserNotFoundException(request.Username);
+        var user = await _database.Users.FindAsync([request.Email], cancellationToken)
+            ?? throw new UserNotFoundException(request.Email);
 
         if (user.TwoFactorEnabled)
         {
@@ -54,7 +54,7 @@ public sealed class ConfirmTwoFactorEnrollmentHandler
         user.TwoFactorEnabled = true;
 
         var stale = await _database.RecoveryCodes
-            .Where(code => code.Username == user.Username)
+            .Where(code => code.Email == user.Email)
             .ToListAsync(cancellationToken);
         _database.RecoveryCodes.RemoveRange(stale);
 
@@ -64,13 +64,13 @@ public sealed class ConfirmTwoFactorEnrollmentHandler
             _database.RecoveryCodes.Add(new RecoveryCode
             {
                 Id = Guid.NewGuid(),
-                Username = user.Username,
+                Email = user.Email,
                 CodeHash = RecoveryCode.Hash(code),
             });
         }
 
         await _database.SaveChangesAsync(cancellationToken);
-        await _refreshTokens.RevokeAllAsync(user.Username, cancellationToken);
+        await _refreshTokens.RevokeAllAsync(user.Email, cancellationToken);
 
         return new RecoveryCodesResponse(codes);
     }
@@ -79,8 +79,8 @@ public sealed class ConfirmTwoFactorEnrollmentHandler
 public static class ConfirmTwoFactorEnrollmentHandlerExtensions
 {
     public static async Task<RecoveryCodesResponse> ConfirmTwoFactorEnrollment(
-        this ISender sender, string username, string code, CancellationToken cancellationToken = default)
+        this ISender sender, string email, string code, CancellationToken cancellationToken = default)
     {
-        return await sender.Send(new ConfirmTwoFactorEnrollmentHandler.Request(username, code), cancellationToken);
+        return await sender.Send(new ConfirmTwoFactorEnrollmentHandler.Request(email, code), cancellationToken);
     }
 }

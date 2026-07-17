@@ -13,7 +13,7 @@ public static class InitialAdmin
         await using var scope = services.CreateAsyncScope();
 
         var options = scope.ServiceProvider.GetRequiredService<IOptions<InitialAdminOptions>>().Value;
-        if (string.IsNullOrWhiteSpace(options.Username) || string.IsNullOrWhiteSpace(options.Password))
+        if (string.IsNullOrWhiteSpace(options.Email) || string.IsNullOrWhiteSpace(options.Password))
         {
             return;
         }
@@ -21,8 +21,8 @@ public static class InitialAdmin
         if (!EmailAddress.TryNormalize(options.Email, out var email))
         {
             throw new InvalidOperationException(
-                "Auth:InitialAdmin sets a username and password but no valid email. " +
-                "Set Auth:InitialAdmin:Email (LUFF_ADMIN_EMAIL), or clear the username/password to use the setup wizard.");
+                "Auth:InitialAdmin sets a password but no valid email. " +
+                "Set Auth:InitialAdmin:Email (LUFF_ADMIN_EMAIL), or clear the password to use the setup wizard.");
         }
 
         var database = scope.ServiceProvider.GetRequiredService<LuffDbContext>();
@@ -33,7 +33,6 @@ public static class InitialAdmin
 
         database.Users.Add(new User
         {
-            Username = options.Username,
             PasswordHash = PasswordHasher.Hash(options.Password),
             Role = UserRole.Admin,
             Email = email,

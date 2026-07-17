@@ -17,9 +17,9 @@ public sealed class TwoFactorChallenge
         _timeProvider = timeProvider ?? throw new ArgumentNullException(nameof(timeProvider));
     }
 
-    public string Issue(string username)
+    public string Issue(string email)
     {
-        ArgumentNullException.ThrowIfNull(username);
+        ArgumentNullException.ThrowIfNull(email);
 
         var now = _timeProvider.GetUtcNow().UtcDateTime;
         var descriptor = new SecurityTokenDescriptor
@@ -32,7 +32,7 @@ public sealed class TwoFactorChallenge
             SigningCredentials = _credentials,
             Claims = new Dictionary<string, object>
             {
-                [JwtRegisteredClaimNames.Sub] = username,
+                [JwtRegisteredClaimNames.Sub] = email,
                 [PurposeClaim] = PurposeValue,
             },
         };
@@ -60,11 +60,11 @@ public sealed class TwoFactorChallenge
             || !result.Claims.TryGetValue(PurposeClaim, out var purpose)
             || purpose as string != PurposeValue
             || !result.Claims.TryGetValue(JwtRegisteredClaimNames.Sub, out var subject)
-            || subject is not string username)
+            || subject is not string email)
         {
             throw new TwoFactorChallengeInvalidException();
         }
 
-        return username;
+        return email;
     }
 }
