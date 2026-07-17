@@ -52,13 +52,10 @@ else
                 }
             </div>
         }
-
-        <div class="reg-note">
-            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="5" y="11" width="14" height="9" rx="1.6" /><path d="M8 11V8a4 4 0 0 1 8 0v3" />
-            </svg>
-            <span>Passwords are encrypted at rest. Reveal one with the eye toggle to copy it.</span>
-        </div>
+        else
+        {
+            <div class="cfg-empty">No Docker registries.</div>
+        }
 
         @if (_error is not null)
         {
