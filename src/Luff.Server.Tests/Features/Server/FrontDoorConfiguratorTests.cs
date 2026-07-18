@@ -9,7 +9,7 @@ public sealed class FrontDoorConfiguratorTests
     public void Should_Configure_A_Front_Door_Host_With_The_Upstream()
     {
         // Given
-        var fixture = new ServerFixture();
+        using var fixture = new ServerFixture();
         fixture.Agents.Register("agent-1");
         fixture.Registry.MarkConnected("agent-1", "1.0.0", hostsFrontDoor: true);
 
@@ -28,7 +28,7 @@ public sealed class FrontDoorConfiguratorTests
     public void Should_Not_Configure_An_Agent_That_Does_Not_Host_The_Front_Door()
     {
         // Given
-        var fixture = new ServerFixture();
+        using var fixture = new ServerFixture();
         fixture.Agents.Register("agent-1");
         fixture.Registry.MarkConnected("agent-1", "1.0.0", hostsFrontDoor: false);
 
@@ -44,7 +44,7 @@ public sealed class FrontDoorConfiguratorTests
     public void Should_Configure_Only_The_Front_Door_Hosts_When_Reconfiguring()
     {
         // Given
-        var fixture = new ServerFixture();
+        using var fixture = new ServerFixture();
         fixture.Agents.Register("agent-1");
         fixture.Agents.Register("agent-2");
         fixture.Registry.MarkConnected("agent-1", "1.0.0", hostsFrontDoor: true);
@@ -62,7 +62,7 @@ public sealed class FrontDoorConfiguratorTests
     public void Should_Not_Manage_Tls_For_An_Auto_Domain()
     {
         // Given
-        var fixture = new ServerFixture();
+        using var fixture = new ServerFixture();
         fixture.Agents.Register("agent-1");
         fixture.Registry.MarkConnected("agent-1", "1.0.0", hostsFrontDoor: true);
 
@@ -78,7 +78,7 @@ public sealed class FrontDoorConfiguratorTests
     public void Should_Not_Manage_Tls_For_A_Bare_Ip()
     {
         // Given
-        var fixture = new ServerFixture();
+        using var fixture = new ServerFixture();
         fixture.Agents.Register("agent-1");
         fixture.Registry.MarkConnected("agent-1", "1.0.0", hostsFrontDoor: true);
 
