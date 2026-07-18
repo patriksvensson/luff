@@ -174,4 +174,37 @@ public sealed class AgentLinkServiceTests
             chunk => chunk.Stream.ShouldBe(LogStreamKind.Stderr),
             chunk => chunk.Agent.ShouldBe("local"));
     }
+
+    [Fact]
+    public async Task Should_Return_From_Connect_When_The_Application_Is_Stopping()
+    {
+        // Given
+        var fixture = new AgentLinkServiceFixture();
+        var (running, reader) = fixture.ConnectOpenEnded(
+            AgentLinkServiceFixture.Hello("local", AgentLinkServiceFixture.ValidSecret));
+        await reader.Parked;
+
+        // When
+        fixture.Lifetime.StopApplication();
+
+        // Then
+        await running.WaitAsync(TimeSpan.FromSeconds(5));
+    }
+
+    [Fact]
+    public async Task Should_Not_Dispatch_Agent_Disconnected_When_The_Application_Is_Stopping()
+    {
+        // Given
+        var fixture = new AgentLinkServiceFixture();
+        var (running, reader) = fixture.ConnectOpenEnded(
+            AgentLinkServiceFixture.Hello("local", AgentLinkServiceFixture.ValidSecret));
+        await reader.Parked;
+
+        // When
+        fixture.Lifetime.StopApplication();
+        await running.WaitAsync(TimeSpan.FromSeconds(5));
+
+        // Then
+        fixture.Sender.Received<AgentDisconnectedHandler.Request>().ShouldBeEmpty();
+    }
 }

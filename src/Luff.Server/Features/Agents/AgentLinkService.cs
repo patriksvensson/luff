@@ -14,6 +14,7 @@ public sealed class AgentLinkService : Link.LinkBase
     private readonly IDeployEvents _events;
     private readonly IFleetEvents _fleet;
     private readonly ILogStream _logs;
+    private readonly IHostApplicationLifetime _lifetime;
     private readonly ILogger<AgentLinkService> _logger;
 
     public AgentLinkService(
@@ -23,6 +24,7 @@ public sealed class AgentLinkService : Link.LinkBase
         IDeployEvents events,
         IFleetEvents fleet,
         ILogStream logs,
+        IHostApplicationLifetime lifetime,
         ILogger<AgentLinkService> logger)
     {
         _sender = sender ?? throw new ArgumentNullException(nameof(sender));
@@ -31,6 +33,7 @@ public sealed class AgentLinkService : Link.LinkBase
         _events = events ?? throw new ArgumentNullException(nameof(events));
         _fleet = fleet ?? throw new ArgumentNullException(nameof(fleet));
         _logs = logs ?? throw new ArgumentNullException(nameof(logs));
+        _lifetime = lifetime ?? throw new ArgumentNullException(nameof(lifetime));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -39,7 +42,10 @@ public sealed class AgentLinkService : Link.LinkBase
         IServerStreamWriter<ControlMessage> responseStream,
         ServerCallContext context)
     {
-        var name = await Enroll(requestStream, context);
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(
+            context.CancellationToken, _lifetime.ApplicationStopping);
+
+        var name = await Enroll(requestStream, cts.Token);
 
         var outbound = _connections.Register(name);
         _connections.TrySend(name, new ControlMessage
@@ -50,31 +56,36 @@ public sealed class AgentLinkService : Link.LinkBase
             },
         });
 
-        using var cts = CancellationTokenSource.CreateLinkedTokenSource(context.CancellationToken);
-        var drainLoop = DrainLoop(outbound, responseStream, context.CancellationToken);
+        var drainLoop = DrainLoop(outbound, responseStream, cts.Token);
         var pingLoop = PingLoop(name, cts.Token);
 
-        await _sender.AgentConnected(name, context.CancellationToken);
+        await _sender.AgentConnected(name, cts.Token);
 
         try
         {
-            while (await requestStream.MoveNext(context.CancellationToken))
+            while (await requestStream.MoveNext(cts.Token))
             {
-                await Receive(name, requestStream.Current, context.CancellationToken);
+                await Receive(name, requestStream.Current, cts.Token);
             }
+        }
+        catch (OperationCanceledException) when (cts.IsCancellationRequested)
+        {
         }
         finally
         {
-            await cts.CancelAsync();
             _connections.Unregister(name);
             await drainLoop;
+            await cts.CancelAsync();
             await pingLoop;
 
             _registry.MarkDisconnected(name);
             _fleet.Publish(name, connected: false);
-            _logger.LogInformation("Agent {Agent} disconnected", name);
 
-            await _sender.AgentDisconnected(name, CancellationToken.None);
+            if (!_lifetime.ApplicationStopping.IsCancellationRequested)
+            {
+                _logger.LogInformation("Agent {Agent} disconnected", name);
+                await _sender.AgentDisconnected(name, CancellationToken.None);
+            }
         }
     }
 
@@ -175,9 +186,9 @@ public sealed class AgentLinkService : Link.LinkBase
             cancellationToken);
     }
 
-    private async Task<string> Enroll(IAsyncStreamReader<AgentMessage> requestStream, ServerCallContext context)
+    private async Task<string> Enroll(IAsyncStreamReader<AgentMessage> requestStream, CancellationToken cancellationToken)
     {
-        if (!await requestStream.MoveNext(context.CancellationToken))
+        if (!await requestStream.MoveNext(cancellationToken))
         {
             throw new RpcException(new Status(StatusCode.InvalidArgument,
                 "The agent closed the stream before enrolling"));
@@ -190,7 +201,7 @@ public sealed class AgentLinkService : Link.LinkBase
         }
 
         var hello = first.Hello;
-        if (!await _sender.AuthenticateAgent(hello.AgentName, hello.EnrollmentSecret, context.CancellationToken))
+        if (!await _sender.AuthenticateAgent(hello.AgentName, hello.EnrollmentSecret, cancellationToken))
         {
             _logger.LogWarning("Rejected agent {Agent}: Invalid enrollment secret", hello.AgentName);
             throw new RpcException(new Status(StatusCode.Unauthenticated, "Invalid enrollment secret"));

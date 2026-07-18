@@ -27,9 +27,14 @@ public static class LogEndpoints
         return group;
     }
 
-    private static async Task Tail(string name, string? agent, ISender sender, HttpContext context)
+    private static async Task Tail(
+        string name, string? agent, ISender sender, HttpContext context, IHostApplicationLifetime lifetime)
     {
-        var events = await sender.TailLogs(name, agent, context.RequestAborted);
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(
+            context.RequestAborted, lifetime.ApplicationStopping);
+        var token = cts.Token;
+
+        var events = await sender.TailLogs(name, agent, token);
 
         context.Response.ContentType = "application/x-ndjson";
         context.Features.Get<IHttpResponseBodyFeature>()?.DisableBuffering();
@@ -38,12 +43,12 @@ public static class LogEndpoints
         {
             await foreach (var logEvent in events)
             {
-                await JsonSerializer.SerializeAsync(context.Response.Body, logEvent, _json, context.RequestAborted);
-                await context.Response.Body.WriteAsync(_newline, context.RequestAborted);
-                await context.Response.Body.FlushAsync(context.RequestAborted);
+                await JsonSerializer.SerializeAsync(context.Response.Body, logEvent, _json, token);
+                await context.Response.Body.WriteAsync(_newline, token);
+                await context.Response.Body.FlushAsync(token);
             }
         }
-        catch (OperationCanceledException) when (context.RequestAborted.IsCancellationRequested)
+        catch (OperationCanceledException) when (token.IsCancellationRequested)
         {
         }
     }

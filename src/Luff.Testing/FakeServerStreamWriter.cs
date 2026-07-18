@@ -13,4 +13,11 @@ public sealed class FakeServerStreamWriter<T> : IServerStreamWriter<T>
         Written.Add(message);
         return Task.CompletedTask;
     }
+
+    public Task WriteAsync(T message, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        Written.Add(message);
+        return Task.CompletedTask;
+    }
 }

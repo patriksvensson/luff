@@ -130,8 +130,11 @@ hermetic tests, through the shared `TestOptions.For` helper. Not every audit fie
   each formatted per type (Discord colour-coded embeds with a per-event icon / Generic structured JSON) and
   POSTed **fire-and-forget** through a singleton background `NotificationDispatcher`, so a slow/down endpoint
   never blocks or fails the triggering operation. App-unhealthy fires only on the transition into unhealthy;
-  agent connect/disconnect fire on every link transition (no debounce; a reconnect or control-plane restart
-  alerts). Per-channel event subscription (choosing which kinds a channel forwards) is not built yet.
+  agent connect/disconnect fire on every link transition (no debounce), except a graceful control-plane
+  shutdown suppresses its disconnect alerts (the agent-link handler observes `ApplicationStopping` and tears
+  down quietly, so the control plane exits promptly instead of waiting out Kestrel's shutdown timeout) — a
+  restart therefore alerts on reconnect, not on the way down. Per-channel event subscription (choosing which
+  kinds a channel forwards) is not built yet.
 
 ## Security posture
 
