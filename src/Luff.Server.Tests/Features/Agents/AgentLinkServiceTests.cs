@@ -188,7 +188,7 @@ public sealed class AgentLinkServiceTests
         fixture.Lifetime.StopApplication();
 
         // Then
-        await running.WaitAsync(TimeSpan.FromSeconds(5));
+        await running.WaitAsync(TestTimeout.Backstop);
     }
 
     [Fact]
@@ -202,7 +202,7 @@ public sealed class AgentLinkServiceTests
 
         // When
         fixture.Lifetime.StopApplication();
-        await running.WaitAsync(TimeSpan.FromSeconds(5));
+        await running.WaitAsync(TestTimeout.Backstop);
 
         // Then
         fixture.Sender.Received<AgentDisconnectedHandler.Request>().ShouldBeEmpty();

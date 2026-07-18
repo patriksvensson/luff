@@ -30,7 +30,7 @@ public sealed class DeployEventsTests
         hub.PublishProgress(id, "agent-1", DeployPhase.Pulling);
         hub.PublishProgress(id, "agent-1", DeployPhase.Starting);
         hub.PublishResult(id, "agent-1", healthy: true, runningTag: "v2", failureReason: null);
-        await done.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        await done.Task.WaitAsync(TestTimeout.Backstop);
 
         // Then
         received.Select(deployEvent => deployEvent.Phase)
@@ -63,7 +63,7 @@ public sealed class DeployEventsTests
 
             return Task.CompletedTask;
         });
-        await got.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        await got.Task.WaitAsync(TestTimeout.Backstop);
 
         // Then
         received.Select(deployEvent => deployEvent.Phase).ShouldBe([DeployPhase.Pulling, DeployPhase.Starting]);
@@ -100,6 +100,6 @@ public sealed class DeployEventsTests
         hub.PublishResult(id, "agent-1", healthy: true, runningTag: "v2", failureReason: null);
 
         // Then
-        await Task.WhenAll(first.Task, second.Task).WaitAsync(TimeSpan.FromSeconds(2));
+        await Task.WhenAll(first.Task, second.Task).WaitAsync(TestTimeout.Backstop);
     }
 }
