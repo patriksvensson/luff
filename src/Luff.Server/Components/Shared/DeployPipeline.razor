@@ -182,19 +182,21 @@
         _ => 0,
     };
 
+    // These are CSS class tokens (step-@StepState), not user-facing labels, so they must stay lowercase to
+    // match .step-done / .step-active / .step-failed in the stylesheet.
     private static string StepState((int Completed, int Active, int FailedStep) progress, int index)
     {
         if (index == progress.FailedStep)
         {
-            return "Failed";
+            return "failed";
         }
 
         if (index < progress.Completed)
         {
-            return "Done";
+            return "done";
         }
 
-        return index == progress.Active ? "Active" : "Pending";
+        return index == progress.Active ? "active" : "pending";
     }
 
     private static string StatusWord(DeployLane lane)
