@@ -176,10 +176,15 @@ public sealed class AgentLinkWorker : BackgroundService
 
     private GrpcChannel CreateChannel()
     {
+        var options = new GrpcChannelOptions
+        {
+            ThrowOperationCanceledOnCancellation = true,
+        };
+
         if (!string.IsNullOrEmpty(_options.ServerPin))
         {
             var pin = _options.ServerPin;
-            var handler = new SocketsHttpHandler
+            options.HttpHandler = new SocketsHttpHandler
             {
                 SslOptions = new SslClientAuthenticationOptions
                 {
@@ -187,15 +192,10 @@ public sealed class AgentLinkWorker : BackgroundService
                         certificate is X509Certificate2 server && ServerCertificatePin.Matches(server, pin),
                 },
             };
-
-            return GrpcChannel.ForAddress(_options.ServerAddress, new GrpcChannelOptions
-            {
-                HttpHandler = handler,
-                DisposeHttpClient = true,
-            });
+            options.DisposeHttpClient = true;
         }
 
-        return GrpcChannel.ForAddress(_options.ServerAddress);
+        return GrpcChannel.ForAddress(_options.ServerAddress, options);
     }
 
     private async Task HealthReportLoop(ChannelWriter<AgentMessage> outbound, CancellationToken cancellationToken)
