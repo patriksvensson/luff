@@ -179,7 +179,6 @@ public static class Program
         builder.Services.AddScoped<IEventListener, NotificationListener>();
         builder.Services.AddSingleton<ILogStream, LogStream>();
         builder.Services.AddSingleton<FrontDoorConfigurator>();
-        builder.Services.AddSingleton<DockerComposeRenderer>();
         builder.Services.AddScoped<DeployEngine>();
         builder.Services.AddGrpc();
 

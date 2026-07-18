@@ -10,7 +10,6 @@ public sealed class DockerComposeRendererTests
     public void Should_Render_An_Internal_Service_With_A_Stable_Project_And_Bare_Alias()
     {
         // Given
-        var renderer = new DockerComposeRenderer();
         var app = new App
         {
             Name = "postgres",
@@ -21,12 +20,13 @@ public sealed class DockerComposeRendererTests
         };
 
         // When
-        var result = renderer.Render(app, Guid.NewGuid(), "17", [], [], []);
+        var result = DockerComposeRenderer.Render(
+            app, Guid.NewGuid(), "17", [], [], []);
 
         // Then
         result.ShouldSatisfyAllConditions(
             r => r.ShouldContain("name: luff-postgres\n"),
-            r => r.ShouldContain("- \"postgres\""),
+            r => r.ShouldContain("- postgres\n"),
             r => r.ShouldNotContain("healthcheck:"));
     }
 
@@ -34,7 +34,6 @@ public sealed class DockerComposeRendererTests
     public void Should_Render_The_App_As_A_Compose_Project()
     {
         // Given
-        var renderer = new DockerComposeRenderer();
         var app = new App
         {
             Name = "web",
@@ -44,7 +43,7 @@ public sealed class DockerComposeRendererTests
         };
 
         // When
-        var result = renderer.Render(
+        var result = DockerComposeRenderer.Render(
             app, Guid.Empty, "v1", [], [], []);
 
         // Then
@@ -53,15 +52,15 @@ public sealed class DockerComposeRendererTests
             name: luff-web-00000000000000000000000000000000
             services:
               app:
-                image: "nginx:v1"
+                image: nginx:v1
                 labels:
                   luff.managed: "true"
-                  luff.app: "web"
+                  luff.app: web
                 restart: unless-stopped
                 networks:
                   luff:
                     aliases:
-                      - "web-00000000000000000000000000000000"
+                      - web-00000000000000000000000000000000
             networks:
               luff:
                 external: true
@@ -73,7 +72,6 @@ public sealed class DockerComposeRendererTests
     public void Should_Declare_Environment_Keys_Sorted()
     {
         // Given
-        var renderer = new DockerComposeRenderer();
         var app = new App
         {
             Name = "web",
@@ -83,7 +81,7 @@ public sealed class DockerComposeRendererTests
         };
 
         // When
-        var result = renderer.Render(
+        var result = DockerComposeRenderer.Render(
             app, Guid.Empty, "v1",
             ["DATABASE_URL", "API_KEY"], [], []);
 
@@ -93,18 +91,18 @@ public sealed class DockerComposeRendererTests
             name: luff-web-00000000000000000000000000000000
             services:
               app:
-                image: "nginx:v1"
+                image: nginx:v1
                 environment:
                   - API_KEY
                   - DATABASE_URL
                 labels:
                   luff.managed: "true"
-                  luff.app: "web"
+                  luff.app: web
                 restart: unless-stopped
                 networks:
                   luff:
                     aliases:
-                      - "web-00000000000000000000000000000000"
+                      - web-00000000000000000000000000000000
             networks:
               luff:
                 external: true
@@ -115,7 +113,6 @@ public sealed class DockerComposeRendererTests
     public void Should_Render_Bind_And_Named_Volumes()
     {
         // Given
-        var renderer = new DockerComposeRenderer();
         var app = new App
         {
             Name = "web",
@@ -125,7 +122,7 @@ public sealed class DockerComposeRendererTests
         };
 
         // When
-        var result = renderer.Render(
+        var result = DockerComposeRenderer.Render(
             app, Guid.Empty, "v1", [],
             [
                 new Volume { AppName = "web", Source = "/srv/data", Target = "/data", ReadOnly = false },
@@ -138,18 +135,18 @@ public sealed class DockerComposeRendererTests
             name: luff-web-00000000000000000000000000000000
             services:
               app:
-                image: "nginx:v1"
+                image: nginx:v1
                 volumes:
-                  - "/srv/data:/data"
-                  - "cache:/var/cache:ro"
+                  - /srv/data:/data
+                  - cache:/var/cache:ro
                 labels:
                   luff.managed: "true"
-                  luff.app: "web"
+                  luff.app: web
                 restart: unless-stopped
                 networks:
                   luff:
                     aliases:
-                      - "web-00000000000000000000000000000000"
+                      - web-00000000000000000000000000000000
             networks:
               luff:
                 external: true
@@ -163,7 +160,6 @@ public sealed class DockerComposeRendererTests
     public void Should_Render_An_Http_Healthcheck_Block()
     {
         // Given
-        var renderer = new DockerComposeRenderer();
         var app = new App
         {
             Name = "web",
@@ -176,7 +172,7 @@ public sealed class DockerComposeRendererTests
         };
 
         // When
-        var result = renderer.Render(app, Guid.Empty, "v1", [], [], []);
+        var result = DockerComposeRenderer.Render(app, Guid.Empty, "v1", [], [], []);
 
         // Then
         result.ShouldBe(
@@ -184,21 +180,23 @@ public sealed class DockerComposeRendererTests
             name: luff-web-00000000000000000000000000000000
             services:
               app:
-                image: "nginx:v1"
+                image: nginx:v1
                 healthcheck:
-                  test: ["CMD-SHELL", "wget -q --spider http://localhost:80/healthz 2>/dev/null || curl -fsS http://localhost:80/healthz"]
+                  test:
+                    - CMD-SHELL
+                    - wget -q --spider http://localhost:80/healthz 2>/dev/null || curl -fsS http://localhost:80/healthz
                   interval: 5s
                   timeout: 3s
                   retries: 3
                   start_period: 120s
                 labels:
                   luff.managed: "true"
-                  luff.app: "web"
+                  luff.app: web
                 restart: unless-stopped
                 networks:
                   luff:
                     aliases:
-                      - "web-00000000000000000000000000000000"
+                      - web-00000000000000000000000000000000
             networks:
               luff:
                 external: true
@@ -209,7 +207,6 @@ public sealed class DockerComposeRendererTests
     public void Should_Not_Render_A_Healthcheck_For_The_Docker_Type()
     {
         // Given
-        var renderer = new DockerComposeRenderer();
         var app = new App
         {
             Name = "web",
@@ -220,7 +217,7 @@ public sealed class DockerComposeRendererTests
         };
 
         // When
-        var result = renderer.Render(app, Guid.Empty, "v1", [], [], []);
+        var result = DockerComposeRenderer.Render(app, Guid.Empty, "v1", [], [], []);
 
         // Then
         result.ShouldBe(
@@ -228,15 +225,15 @@ public sealed class DockerComposeRendererTests
             name: luff-web-00000000000000000000000000000000
             services:
               app:
-                image: "nginx:v1"
+                image: nginx:v1
                 labels:
                   luff.managed: "true"
-                  luff.app: "web"
+                  luff.app: web
                 restart: unless-stopped
                 networks:
                   luff:
                     aliases:
-                      - "web-00000000000000000000000000000000"
+                      - web-00000000000000000000000000000000
             networks:
               luff:
                 external: true
@@ -247,7 +244,6 @@ public sealed class DockerComposeRendererTests
     public void Should_Render_A_Direct_App_With_Loopback_Published_Ports()
     {
         // Given
-        var renderer = new DockerComposeRenderer();
         var app = new App
         {
             Name = "tool",
@@ -258,7 +254,7 @@ public sealed class DockerComposeRendererTests
         };
 
         // When
-        var result = renderer.Render(
+        var result = DockerComposeRenderer.Render(
             app, Guid.NewGuid(), "11", [], [],
             [
                 new PortMapping { AppName = "tool", HostPort = 8002, ContainerPort = 9090 },
@@ -271,18 +267,18 @@ public sealed class DockerComposeRendererTests
             name: luff-tool
             services:
               app:
-                image: "grafana:11"
+                image: grafana:11
                 ports:
-                  - "127.0.0.1:8001:3000"
-                  - "127.0.0.1:8002:9090"
+                  - 127.0.0.1:8001:3000
+                  - 127.0.0.1:8002:9090
                 labels:
                   luff.managed: "true"
-                  luff.app: "tool"
+                  luff.app: tool
                 restart: unless-stopped
                 networks:
                   luff:
                     aliases:
-                      - "tool"
+                      - tool
             networks:
               luff:
                 external: true

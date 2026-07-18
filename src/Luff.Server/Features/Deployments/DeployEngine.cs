@@ -4,20 +4,17 @@ public sealed class DeployEngine
 {
     private readonly LuffDbContext _database;
     private readonly IAgentConnections _connections;
-    private readonly DockerComposeRenderer _renderer;
     private readonly ISecretProtector _protector;
     private readonly IEventPublisher _events;
 
     public DeployEngine(
         LuffDbContext database,
         IAgentConnections connections,
-        DockerComposeRenderer renderer,
         ISecretProtector protector,
         IEventPublisher events)
     {
         _database = database ?? throw new ArgumentNullException(nameof(database));
         _connections = connections ?? throw new ArgumentNullException(nameof(connections));
-        _renderer = renderer ?? throw new ArgumentNullException(nameof(renderer));
         _protector = protector ?? throw new ArgumentNullException(nameof(protector));
         _events = events ?? throw new ArgumentNullException(nameof(events));
     }
@@ -223,9 +220,9 @@ public sealed class DeployEngine
 
     public async Task ReconcileOnStartupAsync(CancellationToken cancellationToken = default)
     {
-        // Orphaned deployments from a control plane crash never complete (the reporting connection died 
-        // with the old process) and block the deploy lane, since TryStartNextDeploymentAsync won't 
-        // start a new one while any in-progress row exists. Fail them here so the lane drains. 
+        // Orphaned deployments from a control plane crash never complete (the reporting connection died
+        // with the old process) and block the deploy lane, since TryStartNextDeploymentAsync won't
+        // start a new one while any in-progress row exists. Fail them here so the lane drains.
         // A redeploy or reconnecting agent will reconcile state
         var orphaned = await _database.Deployments
             .Where(deployment => deployment.Status == DeploymentStatus.InProgress)
@@ -392,7 +389,7 @@ public sealed class DeployEngine
             DeploymentId = deployment.Id.ToString(),
             App = deployment.AppName,
             Tag = deployment.Tag,
-            Compose = _renderer.Render(app, deployment.Id, deployment.Tag, environmentVariables.Keys, volumes, ports),
+            Compose = DockerComposeRenderer.Render(app, deployment.Id, deployment.Tag, environmentVariables.Keys, volumes, ports),
             Domain = frontless ? string.Empty : app.Domain,
             InternalPort = app.InternalPort,
             Upstream = frontless

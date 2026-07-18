@@ -1,8 +1,15 @@
+using YamlDotNet.Serialization;
+
 namespace Luff.Server.Features;
 
-public sealed class DockerComposeRenderer
+public static class DockerComposeRenderer
 {
-    public string Render(
+    private static readonly ISerializer _serializer = new SerializerBuilder()
+        .WithIndentedSequences()
+        .WithQuotingNecessaryStrings()
+        .Build();
+
+    public static string Render(
         App app,
         Guid deploymentId,
         string tag,
@@ -16,61 +23,78 @@ public sealed class DockerComposeRenderer
         var alias = app.IsCaddyFronted
             ? DeploymentNaming.Alias(app.Name, deploymentId)
             : DeploymentNaming.InternalAlias(app.Name);
-        var image = $"{app.Image}:{tag}";
         var mounts = volumes.OrderBy(volume => volume.Target, StringComparer.Ordinal).ToArray();
-        var environment = RenderEnvironment(environmentKeys);
-        var serviceVolumes = RenderVolumes(mounts);
-        var publishedPorts = RenderPorts(ports);
-        var healthCheck = RenderHealthCheck(app);
-        var volumeDeclarations = RenderVolumeDeclarations(app.Name, mounts);
 
-        return $"""
-            name: {project}
-            services:
-              app:
-                image: {Quote(image)}{environment}{serviceVolumes}{publishedPorts}{healthCheck}
-                labels:
-                  luff.managed: "true"
-                  luff.app: {Quote(app.Name)}
-                restart: unless-stopped
-                networks:
-                  luff:
-                    aliases:
-                      - {Quote(alias)}
-            networks:
-              luff:
-                external: true{volumeDeclarations}
-            """;
-    }
-
-    private static string RenderHealthCheck(App app)
-    {
-        if (app.HealthCheckType != AppHealthCheckType.Http || string.IsNullOrEmpty(app.HealthCheckEndpoint))
+        var service = new Dictionary<string, object?>
         {
-            return string.Empty;
+            ["image"] = $"{app.Image}:{tag}",
+        };
+
+        var environment = BuildEnvironment(environmentKeys);
+        if (environment.Count > 0)
+        {
+            service["environment"] = environment;
         }
 
-        var url = $"http://localhost:{app.InternalPort}{app.HealthCheckEndpoint}";
-        var test = $"wget -q --spider {url} 2>/dev/null || curl -fsS {url}";
-
-        var builder = new StringBuilder("\n    healthcheck:");
-        builder.Append("\n      test: [\"CMD-SHELL\", ").Append(Quote(test)).Append(']');
-        builder.Append("\n      interval: 5s");
-        builder.Append("\n      timeout: 3s");
-        builder.Append("\n      retries: 3");
-        builder.Append("\n      start_period: ").Append(app.HealthCheckTimeoutSeconds).Append('s');
-
-        return builder.ToString();
-    }
-
-    private static string RenderVolumes(IReadOnlyList<Volume> volumes)
-    {
-        if (volumes.Count == 0)
+        var serviceVolumes = BuildVolumes(mounts);
+        if (serviceVolumes.Count > 0)
         {
-            return string.Empty;
+            service["volumes"] = serviceVolumes;
         }
 
-        var builder = new StringBuilder("\n    volumes:");
+        var publishedPorts = BuildPorts(ports);
+        if (publishedPorts.Count > 0)
+        {
+            service["ports"] = publishedPorts;
+        }
+
+        var healthCheck = BuildHealthCheck(app);
+        if (healthCheck is not null)
+        {
+            service["healthcheck"] = healthCheck;
+        }
+
+        service["labels"] = new Dictionary<string, object?>
+        {
+            ["luff.managed"] = "true",
+            ["luff.app"] = app.Name,
+        };
+        service["restart"] = "unless-stopped";
+        service["networks"] = new Dictionary<string, object?>
+        {
+            ["luff"] = new Dictionary<string, object?>
+            {
+                ["aliases"] = new List<string> { alias },
+            },
+        };
+
+        var compose = new Dictionary<string, object?>
+        {
+            ["name"] = project,
+            ["services"] = new Dictionary<string, object?> { ["app"] = service },
+            ["networks"] = new Dictionary<string, object?>
+            {
+                ["luff"] = new Dictionary<string, object?> { ["external"] = true },
+            },
+        };
+
+        var volumeDeclarations = BuildVolumeDeclarations(app.Name, mounts);
+        if (volumeDeclarations.Count > 0)
+        {
+            compose["volumes"] = volumeDeclarations;
+        }
+
+        return _serializer.Serialize(compose).TrimEnd('\n');
+    }
+
+    private static List<string> BuildEnvironment(IEnumerable<string> keys)
+    {
+        return [.. keys.OrderBy(key => key, StringComparer.Ordinal)];
+    }
+
+    private static List<string> BuildVolumes(IReadOnlyList<Volume> volumes)
+    {
+        var mounts = new List<string>(volumes.Count);
         foreach (var volume in volumes)
         {
             var mount = $"{volume.Source}:{volume.Target}";
@@ -79,72 +103,54 @@ public sealed class DockerComposeRenderer
                 mount += ":ro";
             }
 
-            builder.Append("\n      - ").Append(Quote(mount));
+            mounts.Add(mount);
         }
 
-        return builder.ToString();
+        return mounts;
     }
 
-    private static string RenderPorts(IEnumerable<PortMapping> ports)
+    private static List<string> BuildPorts(IEnumerable<PortMapping> ports)
     {
-        var mappings = ports.OrderBy(port => port.HostPort).ToArray();
-        if (mappings.Length == 0)
-        {
-            return string.Empty;
-        }
-
-        var builder = new StringBuilder("\n    ports:");
-        foreach (var mapping in mappings)
-        {
-            builder.Append("\n      - ").Append(Quote($"127.0.0.1:{mapping.HostPort}:{mapping.ContainerPort}"));
-        }
-
-        return builder.ToString();
+        return ports
+            .OrderBy(port => port.HostPort)
+            .Select(mapping => $"127.0.0.1:{mapping.HostPort}:{mapping.ContainerPort}")
+            .ToList();
     }
 
-    private static string RenderVolumeDeclarations(string app, IReadOnlyList<Volume> volumes)
+    private static Dictionary<string, object?>? BuildHealthCheck(App app)
     {
+        if (app.HealthCheckType != AppHealthCheckType.Http || string.IsNullOrEmpty(app.HealthCheckEndpoint))
+        {
+            return null;
+        }
+
+        var url = $"http://localhost:{app.InternalPort}{app.HealthCheckEndpoint}";
+        var test = $"wget -q --spider {url} 2>/dev/null || curl -fsS {url}";
+
+        return new Dictionary<string, object?>
+        {
+            ["test"] = new List<string> { "CMD-SHELL", test },
+            ["interval"] = "5s",
+            ["timeout"] = "3s",
+            ["retries"] = 3,
+            ["start_period"] = $"{app.HealthCheckTimeoutSeconds}s",
+        };
+    }
+
+    private static Dictionary<string, object?> BuildVolumeDeclarations(string app, IReadOnlyList<Volume> volumes)
+    {
+        var declarations = new Dictionary<string, object?>();
         var named = volumes
             .Where(volume => !volume.IsBindMount)
             .Select(volume => volume.Source)
             .Distinct(StringComparer.Ordinal)
-            .OrderBy(name => name, StringComparer.Ordinal)
-            .ToArray();
+            .OrderBy(name => name, StringComparer.Ordinal);
 
-        if (named.Length == 0)
-        {
-            return string.Empty;
-        }
-
-        var builder = new StringBuilder("\nvolumes:");
         foreach (var name in named)
         {
-            builder.Append("\n  ").Append(name).Append(":\n    name: ").Append($"luff-{app}-{name}");
+            declarations[name] = new Dictionary<string, object?> { ["name"] = $"luff-{app}-{name}" };
         }
 
-        return builder.ToString();
-    }
-
-    private static string RenderEnvironment(IEnumerable<string> keys)
-    {
-        var ordered = keys.OrderBy(key => key, StringComparer.Ordinal).ToArray();
-        if (ordered.Length == 0)
-        {
-            return string.Empty;
-        }
-
-        var builder = new StringBuilder("\n    environment:");
-        foreach (var key in ordered)
-        {
-            builder.Append("\n      - ").Append(key);
-        }
-
-        return builder.ToString();
-    }
-
-    private static string Quote(string value)
-    {
-        value = value.Replace("\\", "\\\\").Replace("\"", "\\\"");
-        return $"\"{value}\"";
+        return declarations;
     }
 }

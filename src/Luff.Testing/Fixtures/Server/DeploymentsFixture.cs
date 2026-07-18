@@ -40,7 +40,6 @@ public sealed class DeploymentsFixture : IDisposable
         return new DeployEngine(
             context,
             Agents,
-            new DockerComposeRenderer(),
             new FakeSecretProtector(),
             Events);
     }

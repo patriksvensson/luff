@@ -400,7 +400,7 @@ public sealed class DeployEngineTests
 
         // Then
         message.ShouldNotBeNull()
-            .Deploy.Compose.ShouldContain("- \"/srv/data:/data\"");
+            .Deploy.Compose.ShouldContain("- /srv/data:/data");
     }
 
     [Fact]
