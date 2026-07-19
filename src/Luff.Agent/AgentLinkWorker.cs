@@ -370,7 +370,8 @@ public sealed class AgentLinkWorker : BackgroundService
         _logger.LogInformation("Rerouting {App} from {OldDomain} to {NewDomain}",
             reroute.App, reroute.OldDomain, reroute.NewDomain);
         await _agentDeployRunner.RerouteAsync(
-            reroute.OldDomain, reroute.NewDomain, reroute.Route, cancellationToken);
+            reroute.OldDomain, reroute.NewDomain, reroute.Route,
+            BasicAuth.From(reroute.BasicAuthUsername, reroute.BasicAuthHash), cancellationToken);
     }
 
     private async Task HandleAssertRoute(AssertRoute assert, CancellationToken cancellationToken)
@@ -382,7 +383,8 @@ public sealed class AgentLinkWorker : BackgroundService
         try
         {
             await _agentDeployRunner.AssertRouteAsync(
-                assert.Domain, assert.Upstream, assert.Route, cancellationToken);
+                assert.Domain, assert.Upstream, assert.Route,
+                BasicAuth.From(assert.BasicAuthUsername, assert.BasicAuthHash), cancellationToken);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {

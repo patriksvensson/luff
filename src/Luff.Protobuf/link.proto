@@ -67,6 +67,8 @@ message AssertRoute {
   string domain = 2;
   string upstream = 3;
   TlsRoute route = 4;
+  string basic_auth_username = 5;
+  string basic_auth_hash = 6;
 }
 
 message ConfigureFrontDoor {
@@ -85,6 +87,8 @@ message Reroute {
   string old_domain = 2;
   string new_domain = 3;
   TlsRoute route = 4;
+  string basic_auth_username = 5;
+  string basic_auth_hash = 6;
 }
 
 enum TlsRoute {
@@ -126,6 +130,8 @@ message Deploy {
   HealthCheckKind health_kind = 11;
   int32 health_timeout_seconds = 12;
   TlsRoute tls_route = 13;
+  string basic_auth_username = 14;
+  string basic_auth_hash = 15;
 }
 
 message RegistryCredentials {

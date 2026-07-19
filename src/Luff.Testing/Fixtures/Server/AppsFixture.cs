@@ -78,7 +78,8 @@ public sealed class AppsFixture : IDisposable
         string name, string image, string domain, int internalPort, TlsMode? tlsMode = null,
         string actor = "operator@example.com")
     {
-        var handler = new UpdateAppHandler(CreateContext(), Agents, Events);
+        var handler = new UpdateAppHandler(
+            CreateContext(), Agents, new FakeSecretProtector(), new FakeBasicAuthHasher(), Events);
         return await handler.Handle(
             new UpdateAppHandler.Request(name, image, internalPort, actor, domain: domain, tlsMode: tlsMode),
             CancellationToken.None);
@@ -86,8 +87,31 @@ public sealed class AppsFixture : IDisposable
 
     public async Task<AppResponse> UpdateApp(UpdateAppHandler.Request request)
     {
-        var handler = new UpdateAppHandler(CreateContext(), Agents, Events);
+        var handler = new UpdateAppHandler(
+            CreateContext(), Agents, new FakeSecretProtector(), new FakeBasicAuthHasher(), Events);
         return await handler.Handle(request, CancellationToken.None);
+    }
+
+    public async Task SetBasicAuth(
+        string name, string username, string password, string actor = "operator@example.com")
+    {
+        var handler = new SetBasicAuthHandler(
+            CreateContext(), Agents, new FakeSecretProtector(), new FakeBasicAuthHasher(), Events);
+        await handler.Handle(
+            new SetBasicAuthHandler.Request(name, username, password, actor), CancellationToken.None);
+    }
+
+    public async Task ClearBasicAuth(string name, string actor = "operator@example.com")
+    {
+        var handler = new ClearBasicAuthHandler(
+            CreateContext(), Agents, new FakeSecretProtector(), new FakeBasicAuthHasher(), Events);
+        await handler.Handle(new ClearBasicAuthHandler.Request(name, actor), CancellationToken.None);
+    }
+
+    public async Task<BasicAuthResponse> GetBasicAuth(string name)
+    {
+        var handler = new GetBasicAuthHandler(CreateContext(), new FakeSecretProtector());
+        return await handler.Handle(new GetBasicAuthHandler.Request(name), CancellationToken.None);
     }
 
     public async Task<AppResponse> StopApp(string name, string actor = "operator@example.com")

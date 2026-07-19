@@ -57,7 +57,7 @@ public sealed class WebhooksFixture : IDisposable
     {
         await using var context = CreateContext();
         var engine = new DeployEngine(
-            context, Agents, new FakeSecretProtector(), new FakeEventPublisher());
+            context, Agents, new FakeSecretProtector(), new FakeBasicAuthHasher(), new FakeEventPublisher());
         var handler = new TriggerWebhookHandler(context, _time, engine);
         return await handler.Handle(request, CancellationToken.None);
     }

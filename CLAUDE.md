@@ -95,8 +95,11 @@ hermetic tests, through the shared `TestOptions.For` helper. Not every audit fie
 
 - **App** — the unit of deployment: a `kind` (`Web` | `Internal` | `Direct`), `image`, `internalPort`,
   encrypted, reveal-able `envVars`, `volumes`, a health check (`Docker`/`Http`/`Tcp`/`None`), a `stopped`
-  desired run-state, current/previous tags. A **web** app also has a `domain` and `tlsMode` (route
-  fronted by Caddy). An **internal** service has **no domain** (not internet-exposed), reachable by sibling
+  desired run-state, current/previous tags. A **web** app also has a `domain`, a `tlsMode` (route
+  fronted by Caddy), and an optional **basic-auth** gate (`basicAuthUsername` + encrypted, reveal-able
+  `basicAuthPassword`, Operator-set on a dedicated `/apps/{name}/basic-auth` endpoint) enforced at its Caddy
+  route — only a fresh bcrypt hash, never the plaintext, crosses the agent link, and enabling or clearing it
+  re-asserts the route live. An **internal** service has **no domain** (not internet-exposed), reachable by sibling
   apps on the same host under its bare name; health limited to `Docker`/`Tcp`/`None` (no HTTP probe), and it
   defaults to the agent-side `Tcp` readiness probe. A **direct** app also has **no domain** and is not fronted
   by Caddy; it publishes one or more loopback-bound host ports (`127.0.0.1:host:container`, Admin-managed on a
@@ -163,6 +166,10 @@ hermetic tests, through the shared `TestOptions.For` helper. Not every audit fie
 - Front door serves **self-signed HTTPS by default** (Caddy `tls internal`); real domains get Let's Encrypt.
   Volume sources denylisted; image tags grammar-validated; the agent keeps a validation backstop on the
   rendered compose (rejects `privileged`/host-mounts/host-net/etc.).
+- **Optional per-app basic auth** (web apps only, opt-in) gates the app's Caddy route behind an HTTP
+  basic-auth prompt. The password is encrypted at rest (reveal-able to any authenticated caller, matching env
+  access); the control plane hands the agent only a freshly computed bcrypt hash, so the plaintext never
+  leaves it. Enabling, changing, or clearing the gate re-asserts the route immediately (no redeploy needed).
 - **No one-click destruction in the dashboard** — every destructive UI action (remove / delete / detach /
   revoke / unset / reset-2FA / regenerate-codes) routes through the shared type-to-confirm `ConfirmDelete`
   modal: the danger button stays disabled until the operator types the item's name (`Title` overrides the

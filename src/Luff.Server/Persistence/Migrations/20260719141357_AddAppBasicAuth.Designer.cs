@@ -3,6 +3,7 @@ using System;
 using Luff.Server.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Luff.Server.Persistence.Migrations
 {
     [DbContext(typeof(LuffDbContext))]
-    partial class LuffDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260719141357_AddAppBasicAuth")]
+    partial class AddAppBasicAuth
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.9");

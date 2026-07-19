@@ -14,6 +14,8 @@ public sealed class App : Entity
     public AppHealthCheckType HealthCheckType { get; set; } = AppHealthCheckType.Docker;
     public string? HealthCheckEndpoint { get; set; }
     public int HealthCheckTimeoutSeconds { get; set; } = 300;
+    public string? BasicAuthUsername { get; set; }
+    public string? BasicAuthPassword { get; set; }
 
     public bool IsCaddyFronted => Kind == AppKind.Web;
 }

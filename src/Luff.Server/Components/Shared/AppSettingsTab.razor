@@ -75,6 +75,44 @@
             </div>
         </div>
 
+        @if (!_frontless)
+        {
+            <div class="card settings-config">
+                <div class="eyebrow">Basic authentication</div>
+                <div class="settings-grid">
+                    <label class="field">
+                        <span class="field-label">Username</span>
+                        <input class="input mono" autocomplete="off" @bind="_authUsername" />
+                    </label>
+                    <div class="field">
+                        <span class="field-label">Password</span>
+                        <SecretField @bind-Value="_authPassword" Placeholder="password" />
+                    </div>
+                </div>
+                <p class="settings-note">
+                    Gate this app behind an HTTP basic-auth prompt at the proxy. Only the hashed credential reaches
+                    the agent, and changes take effect <b>immediately</b>.
+                </p>
+                @if (_authError is not null)
+                {
+                    <div class="cfg-error">@_authError</div>
+                }
+                <div class="settings-actions">
+                    <button class="btn btn-primary" @onclick="SaveBasicAuth" disabled="@_authBusy">
+                        @(_authConfigured ? "Update" : "Enable")
+                    </button>
+                    @if (_authConfigured)
+                    {
+                        <button class="btn btn-ghost" @onclick="StartClearAuth" disabled="@_authBusy">Remove</button>
+                    }
+                    @if (_authSaved)
+                    {
+                        <span class="settings-saved">Saved</span>
+                    }
+                </div>
+            </div>
+        }
+
         <div class="card danger">
             <div class="eyebrow danger-label">Danger zone</div>
             <div class="danger-row">
@@ -90,6 +128,14 @@
     <ConfirmDelete Name="@App" Verb="Delete" Busy="_busy" Error="@_deleteError"
                    OnConfirm="Delete" OnClose="CancelDelete">
         Deletes <span class="mono">@App</span> and its config. Running containers are left to drain. This can't be undone.
+    </ConfirmDelete>
+}
+
+@if (_clearingAuth)
+{
+    <ConfirmDelete Name="@App" Verb="Disable" Title="Disable basic authentication?" Busy="_authBusy"
+                   Error="@_clearAuthError" OnConfirm="ClearBasicAuth" OnClose="CancelClearAuth">
+        Removes the basic-auth gate from <span class="mono">@App</span>. Anyone who can reach the domain is no longer prompted. Applies immediately.
     </ConfirmDelete>
 }
 
@@ -113,6 +159,15 @@
     private string? _deleteError;
     private string? _error;
     private string _actor = Actors.System;
+
+    private bool _authConfigured;
+    private string _authUsername = string.Empty;
+    private string _authPassword = string.Empty;
+    private bool _authBusy;
+    private bool _authSaved;
+    private string? _authError;
+    private bool _clearingAuth;
+    private string? _clearAuthError;
 
     [CascadingParameter]
     private Task<AuthenticationState>? AuthState { get; set; }
@@ -140,6 +195,14 @@
         _domain = app.Domain ?? string.Empty;
         _port = app.InternalPort;
         _tlsMode = app.TlsMode;
+
+        if (!_frontless)
+        {
+            var basicAuth = await Sender.Send(new GetBasicAuthHandler.Request(App));
+            _authConfigured = basicAuth.Configured;
+            _authUsername = basicAuth.Username ?? string.Empty;
+            _authPassword = basicAuth.Password ?? string.Empty;
+        }
     }
 
     private async Task Save()
@@ -191,6 +254,63 @@
         {
             _deleteError = exception.Message;
             _busy = false;
+        }
+    }
+
+    private async Task SaveBasicAuth()
+    {
+        _authBusy = true;
+        _authError = null;
+        _authSaved = false;
+        try
+        {
+            await Sender.Send(new SetBasicAuthHandler.Request(App, _authUsername, _authPassword, _actor));
+            _authConfigured = true;
+            _authSaved = true;
+        }
+        catch (LuffException exception)
+        {
+            _authError = exception.Message;
+        }
+        finally
+        {
+            _authBusy = false;
+        }
+    }
+
+    private void StartClearAuth()
+    {
+        _clearAuthError = null;
+        _clearingAuth = true;
+    }
+
+    private void CancelClearAuth()
+    {
+        _clearingAuth = false;
+        _clearAuthError = null;
+    }
+
+    private async Task ClearBasicAuth()
+    {
+        _authBusy = true;
+        _clearAuthError = null;
+        try
+        {
+            await Sender.Send(new ClearBasicAuthHandler.Request(App, _actor));
+            _clearingAuth = false;
+            _authConfigured = false;
+            _authUsername = string.Empty;
+            _authPassword = string.Empty;
+            _authSaved = false;
+            _authError = null;
+        }
+        catch (LuffException exception)
+        {
+            _clearAuthError = exception.Message;
+        }
+        finally
+        {
+            _authBusy = false;
         }
     }
 }

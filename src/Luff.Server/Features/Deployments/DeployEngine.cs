@@ -5,17 +5,20 @@ public sealed class DeployEngine
     private readonly LuffDbContext _database;
     private readonly IAgentConnections _connections;
     private readonly ISecretProtector _protector;
+    private readonly IBasicAuthHasher _basicAuthHasher;
     private readonly IEventPublisher _events;
 
     public DeployEngine(
         LuffDbContext database,
         IAgentConnections connections,
         ISecretProtector protector,
+        IBasicAuthHasher basicAuthHasher,
         IEventPublisher events)
     {
         _database = database ?? throw new ArgumentNullException(nameof(database));
         _connections = connections ?? throw new ArgumentNullException(nameof(connections));
         _protector = protector ?? throw new ArgumentNullException(nameof(protector));
+        _basicAuthHasher = basicAuthHasher ?? throw new ArgumentNullException(nameof(basicAuthHasher));
         _events = events ?? throw new ArgumentNullException(nameof(events));
     }
 
@@ -328,6 +331,7 @@ public sealed class DeployEngine
                 continue;
             }
 
+            var (basicAuthUsername, basicAuthHash) = BasicAuthWire.Resolve(app, _basicAuthHasher, _protector);
             _connections.TrySend(agentName, new ControlMessage
             {
                 AssertRoute = new AssertRoute
@@ -336,6 +340,8 @@ public sealed class DeployEngine
                     Domain = app.Domain!,
                     Upstream = $"{DeploymentNaming.Alias(app.Name, deploymentId)}:{app.InternalPort}",
                     Route = TlsRouting.Resolve(app),
+                    BasicAuthUsername = basicAuthUsername,
+                    BasicAuthHash = basicAuthHash,
                 },
             });
         }
@@ -383,6 +389,7 @@ public sealed class DeployEngine
         // A frontless app (internal or direct) carries no domain, so the agent skips the Caddy route entirely,
         // and a stable project name makes `docker compose up` recreate in place instead of a parallel stack.
         var frontless = !app.IsCaddyFronted;
+        var (basicAuthUsername, basicAuthHash) = BasicAuthWire.Resolve(app, _basicAuthHasher, _protector);
 
         var deploy = new Deploy
         {
@@ -407,6 +414,8 @@ public sealed class DeployEngine
             },
             HealthTimeoutSeconds = app.HealthCheckTimeoutSeconds,
             TlsRoute = frontless ? TlsRoute.Http : TlsRouting.Resolve(app),
+            BasicAuthUsername = basicAuthUsername,
+            BasicAuthHash = basicAuthHash,
         };
 
         foreach (var entry in environmentVariables)

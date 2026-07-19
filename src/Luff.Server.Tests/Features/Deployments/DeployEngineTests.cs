@@ -1,6 +1,7 @@
 using Luff.Protobuf;
 using Luff.Server.Features;
 using Luff.Server.Infrastructure;
+using Luff.Testing.Extensions;
 using Shouldly;
 using Xunit;
 
@@ -110,7 +111,7 @@ public sealed class DeployEngineTests
 
         // Then
         fixture.Agents.GetChannel("agent-1").TryRead(out var message).ShouldBeTrue();
-        message!.AssertRoute.ShouldSatisfyAllConditions(
+        message.AssertRoute.ShouldSatisfyAllConditions(
             assert => assert.App.ShouldBe("web"),
             assert => assert.Domain.ShouldBe("web.example.com"),
             assert => assert.Upstream.ShouldBe($"web-{deploymentId:N}:80"),
@@ -339,6 +340,43 @@ public sealed class DeployEngineTests
         // Then
         message.ShouldNotBeNull()
             .Deploy.Env["API_KEY"].ShouldBe("secret");
+    }
+
+    [Fact]
+    public async Task Should_Carry_A_Bcrypt_Hash_Of_The_Basic_Auth_Password()
+    {
+        // Given
+        using var fixture = new DeploymentsFixture();
+        await fixture.HasApp("web", basicAuthUsername: "ops", basicAuthPassword: "protected:secret");
+        await fixture.HasAttachment("web", "agent-1");
+        await fixture.HasPendingDeployment("web", "v1");
+        await fixture.DeployEngine.TryStartNextDeploymentAsync("web");
+
+        // When
+        fixture.Agents.GetChannel("agent-1").TryRead(out var message);
+
+        // Then
+        message.ShouldNotBeNull().Deploy.ShouldSatisfyAllConditions(
+            deploy => deploy.BasicAuthUsername.ShouldBe("ops"),
+            deploy => deploy.BasicAuthHash.ShouldBe("bcrypt:secret"));
+    }
+
+    [Fact]
+    public async Task Should_Not_Carry_Basic_Auth_When_The_App_Has_None()
+    {
+        // Given
+        using var fixture = new DeploymentsFixture();
+        await fixture.HasApp("web");
+        await fixture.HasAttachment("web", "agent-1");
+        await fixture.HasPendingDeployment("web", "v1");
+        await fixture.DeployEngine.TryStartNextDeploymentAsync("web");
+
+        // When
+        fixture.Agents.GetChannel("agent-1").TryRead(out var message);
+
+        // Then
+        message.ShouldNotBeNull();
+        message.Deploy.BasicAuthUsername.ShouldBeEmpty();
     }
 
     [Fact]
