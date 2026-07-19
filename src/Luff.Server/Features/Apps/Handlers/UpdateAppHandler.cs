@@ -4,6 +4,8 @@ public sealed class UpdateAppHandler : IRequestHandler<UpdateAppHandler.Request,
 {
     private readonly LuffDbContext _database;
     private readonly IAgentConnections _connections;
+    private readonly ISecretProtector _protector;
+    private readonly IBasicAuthHasher _basicAuthHasher;
     private readonly IEventPublisher _events;
 
     public sealed class Request : IRequest<AppResponse>
@@ -28,10 +30,14 @@ public sealed class UpdateAppHandler : IRequestHandler<UpdateAppHandler.Request,
         }
     }
 
-    public UpdateAppHandler(LuffDbContext database, IAgentConnections connections, IEventPublisher events)
+    public UpdateAppHandler(
+        LuffDbContext database, IAgentConnections connections,
+        ISecretProtector protector, IBasicAuthHasher basicAuthHasher, IEventPublisher events)
     {
         _database = database ?? throw new ArgumentNullException(nameof(database));
         _connections = connections ?? throw new ArgumentNullException(nameof(connections));
+        _protector = protector ?? throw new ArgumentNullException(nameof(protector));
+        _basicAuthHasher = basicAuthHasher ?? throw new ArgumentNullException(nameof(basicAuthHasher));
         _events = events ?? throw new ArgumentNullException(nameof(events));
     }
 
@@ -108,6 +114,7 @@ public sealed class UpdateAppHandler : IRequestHandler<UpdateAppHandler.Request,
             .Select(attachment => attachment.AgentName)
             .ToListAsync(cancellationToken);
 
+        var (basicAuthUsername, basicAuthHash) = BasicAuthWire.Resolve(app, _basicAuthHasher, _protector);
         foreach (var agent in agents)
         {
             _connections.TrySend(agent, new ControlMessage
@@ -118,6 +125,8 @@ public sealed class UpdateAppHandler : IRequestHandler<UpdateAppHandler.Request,
                     OldDomain = previousDomain,
                     NewDomain = app.Domain,
                     Route = route,
+                    BasicAuthUsername = basicAuthUsername,
+                    BasicAuthHash = basicAuthHash,
                 },
             });
         }

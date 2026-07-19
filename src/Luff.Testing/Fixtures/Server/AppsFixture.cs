@@ -78,7 +78,8 @@ public sealed class AppsFixture : IDisposable
         string name, string image, string domain, int internalPort, TlsMode? tlsMode = null,
         string actor = "operator@example.com")
     {
-        var handler = new UpdateAppHandler(CreateContext(), Agents, Events);
+        var handler = new UpdateAppHandler(
+            CreateContext(), Agents, new FakeSecretProtector(), new FakeBasicAuthHasher(), Events);
         return await handler.Handle(
             new UpdateAppHandler.Request(name, image, internalPort, actor, domain: domain, tlsMode: tlsMode),
             CancellationToken.None);
@@ -86,7 +87,8 @@ public sealed class AppsFixture : IDisposable
 
     public async Task<AppResponse> UpdateApp(UpdateAppHandler.Request request)
     {
-        var handler = new UpdateAppHandler(CreateContext(), Agents, Events);
+        var handler = new UpdateAppHandler(
+            CreateContext(), Agents, new FakeSecretProtector(), new FakeBasicAuthHasher(), Events);
         return await handler.Handle(request, CancellationToken.None);
     }
 

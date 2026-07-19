@@ -86,6 +86,35 @@ public sealed class AgentDeployRunnerTests
     }
 
     [Fact]
+    public async Task Should_Forward_Basic_Auth_Credentials_To_Caddy()
+    {
+        // Given
+        var fixture = DeployRunnerFixture.CreateForSuccess();
+
+        // When
+        await fixture.RunAsync(
+            new Deploy
+            {
+                DeploymentId = "d1",
+                App = "web",
+                Tag = "v1",
+                Compose = "name: luff-web-d1",
+                Domain = "web.example.com",
+                InternalPort = 80,
+                Upstream = "web-d1:80",
+                Project = "luff-web-d1",
+                BasicAuthUsername = "ops",
+                BasicAuthHash = "$2a$11$examplehashvalue",
+            },
+            CancellationToken.None);
+
+        // Then
+        fixture.Caddy.RouteBasicAuth.ShouldNotBeNull().ShouldSatisfyAllConditions(
+            auth => auth.Username.ShouldBe("ops"),
+            auth => auth.Hash.ShouldBe("$2a$11$examplehashvalue"));
+    }
+
+    [Fact]
     public async Task Should_Not_Route_An_Internal_Service_With_No_Domain()
     {
         // Given

@@ -99,7 +99,9 @@ public sealed class AgentDeployRunner
             await Report(DeployPhase.Swapping);
             try
             {
-                await _caddy.ConfigureRouteAsync(deploy.Domain, deploy.Upstream, deploy.TlsRoute, cancellationToken);
+                await _caddy.ConfigureRouteAsync(
+                    deploy.Domain, deploy.Upstream, deploy.TlsRoute,
+                    BasicAuth.From(deploy.BasicAuthUsername, deploy.BasicAuthHash), cancellationToken);
             }
             catch (OperationCanceledException)
             {
@@ -254,18 +256,18 @@ public sealed class AgentDeployRunner
     }
 
     public async Task RerouteAsync(
-        string oldDomain, string newDomain, TlsRoute route, CancellationToken cancellationToken)
+        string oldDomain, string newDomain, TlsRoute route, BasicAuth? basicAuth, CancellationToken cancellationToken)
     {
-        await _caddy.RerouteAsync(oldDomain, newDomain, route, cancellationToken);
+        await _caddy.RerouteAsync(oldDomain, newDomain, route, basicAuth, cancellationToken);
     }
 
     public async Task AssertRouteAsync(
-        string domain, string upstream, TlsRoute route, CancellationToken cancellationToken)
+        string domain, string upstream, TlsRoute route, BasicAuth? basicAuth, CancellationToken cancellationToken)
     {
         // Make Caddy match the control plane's route truth on reconnect. Drop any stale route (possibly on the
         // wrong server, or gone after a Caddy restart) and recreate it fresh on the correct server
         await _caddy.RemoveRouteAsync(domain, cancellationToken);
-        await _caddy.ConfigureRouteAsync(domain, upstream, route, cancellationToken);
+        await _caddy.ConfigureRouteAsync(domain, upstream, route, basicAuth, cancellationToken);
     }
 
     public async Task ConfigureFrontDoorAsync(

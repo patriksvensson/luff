@@ -86,6 +86,7 @@ public static class Program
             .SetApplicationName("Luff");
         builder.Services.AddSingleton(agentLinkCertificate);
         builder.Services.AddSingleton<ISecretProtector, SecretProtector>();
+        builder.Services.AddSingleton<IBasicAuthHasher, BasicAuthHasher>();
 
         var signingKey = new SymmetricSecurityKey(ResolveSigningKey(keysDirectory));
         builder.Services.AddSingleton(signingKey);

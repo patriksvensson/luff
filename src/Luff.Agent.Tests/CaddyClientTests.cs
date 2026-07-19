@@ -117,12 +117,12 @@ public sealed class CaddyClientTests
 
         // When
         await fixture.Client.ConfigureRouteAsync("web.example.com", "web-d1:80", TlsRoute.Managed,
-            CancellationToken.None);
+            basicAuth: null, CancellationToken.None);
 
         // Then
         fixture.Handler.Requests.ShouldBe(new[]
         {
-            (HttpMethod.Patch, "/id/luff-web.example.com/handle/0/upstreams"),
+            (HttpMethod.Patch, "/id/luff-web.example.com-proxy/upstreams"),
             (HttpMethod.Post, "/config/apps/http/servers/srv443/routes"),
         });
     }
@@ -136,12 +136,12 @@ public sealed class CaddyClientTests
 
         // When
         await fixture.Client.ConfigureRouteAsync("web.127.0.0.1.sslip.io", "web-d1:80", TlsRoute.Http,
-            CancellationToken.None);
+            basicAuth: null, CancellationToken.None);
 
         // Then
         fixture.Handler.Requests.ShouldBe(new[]
         {
-            (HttpMethod.Patch, "/id/luff-web.127.0.0.1.sslip.io/handle/0/upstreams"),
+            (HttpMethod.Patch, "/id/luff-web.127.0.0.1.sslip.io-proxy/upstreams"),
             (HttpMethod.Post, "/config/apps/http/servers/srv0/routes"),
         });
     }
@@ -156,7 +156,7 @@ public sealed class CaddyClientTests
         // When
         await fixture.Client.ConfigureRouteAsync(
             "app.example.com", "app-d1:80",
-            TlsRoute.External, CancellationToken.None);
+            TlsRoute.External, basicAuth: null, CancellationToken.None);
 
         // Then
         fixture.Handler.Requests.ShouldContain((HttpMethod.Post, "/config/apps/http/servers/srv0/routes"));
@@ -175,7 +175,7 @@ public sealed class CaddyClientTests
         await fixture.Client.ConfigureRouteAsync(
             "web.127.0.0.1.sslip.io", "web-d1:80",
             TlsRoute.Http,
-            CancellationToken.None);
+            basicAuth: null, CancellationToken.None);
 
         // Then
         fixture.Handler.Bodies.ShouldAllBe(body => body == null || !body.Contains("X-Forwarded-Proto"));
@@ -194,13 +194,13 @@ public sealed class CaddyClientTests
 
         // When
         await fixture.Client.RerouteAsync("old.example.com", "new.example.com", TlsRoute.Managed,
-            CancellationToken.None);
+            basicAuth: null, CancellationToken.None);
 
         // Then
         fixture.Handler.Requests.ShouldBe(new[]
         {
-            (HttpMethod.Get, "/id/luff-old.example.com/handle/0/upstreams"),
-            (HttpMethod.Patch, "/id/luff-new.example.com/handle/0/upstreams"),
+            (HttpMethod.Get, "/id/luff-old.example.com-proxy/upstreams"),
+            (HttpMethod.Patch, "/id/luff-new.example.com-proxy/upstreams"),
             (HttpMethod.Post, "/config/apps/http/servers/srv443/routes"),
             (HttpMethod.Delete, "/id/luff-old.example.com"),
         });
@@ -218,15 +218,55 @@ public sealed class CaddyClientTests
             request => request.Method == HttpMethod.Get ? "[{\"dial\":\"web-d1:80\"}]" : null);
 
         // When
-        await fixture.Client.RerouteAsync("web.example.com", "web.example.com", TlsRoute.Http, CancellationToken.None);
+        await fixture.Client.RerouteAsync(
+            "web.example.com", "web.example.com", TlsRoute.Http, basicAuth: null, CancellationToken.None);
 
         // Then
         fixture.Handler.Requests.ShouldBe(new[]
         {
-            (HttpMethod.Get, "/id/luff-web.example.com/handle/0/upstreams"),
+            (HttpMethod.Get, "/id/luff-web.example.com-proxy/upstreams"),
             (HttpMethod.Delete, "/id/luff-web.example.com"),
-            (HttpMethod.Patch, "/id/luff-web.example.com/handle/0/upstreams"),
+            (HttpMethod.Patch, "/id/luff-web.example.com-proxy/upstreams"),
             (HttpMethod.Post, "/config/apps/http/servers/srv0/routes"),
         });
+    }
+
+    [Fact]
+    public async Task Should_Gate_A_Route_With_A_Basic_Auth_Handler_Ahead_Of_The_Proxy()
+    {
+        // Given
+        const string hash = "$2a$11$abcdefghijklmnopqrstuOeH1sMLViJ8p8Iq6R5xq7Qv9c0m1n2O";
+        var fixture = new CaddyAdminClientFixture(request =>
+            request.Method == HttpMethod.Patch ? HttpStatusCode.NotFound : HttpStatusCode.OK);
+
+        // When
+        await fixture.Client.ConfigureRouteAsync(
+            "web.example.com", "web-d1:80", TlsRoute.Managed, new BasicAuth("ops", hash), CancellationToken.None);
+
+        // Then
+        var body = fixture.Handler.Bodies.Single(body =>
+            body is not null && body.Contains("reverse_proxy", StringComparison.Ordinal))!;
+        body.ShouldContain("http_basic");
+        body.ShouldContain("\"ops\"");
+        // The bcrypt hash rides verbatim (it starts with "$", so Caddy needs no base64).
+        body.ShouldContain(hash);
+        // The auth gate must precede the proxy so it challenges before anything is forwarded upstream.
+        body.IndexOf("authentication", StringComparison.Ordinal)
+            .ShouldBeLessThan(body.IndexOf("reverse_proxy", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task Should_Not_Add_A_Basic_Auth_Handler_When_There_Are_No_Credentials()
+    {
+        // Given
+        var fixture = new CaddyAdminClientFixture(request =>
+            request.Method == HttpMethod.Patch ? HttpStatusCode.NotFound : HttpStatusCode.OK);
+
+        // When
+        await fixture.Client.ConfigureRouteAsync(
+            "web.example.com", "web-d1:80", TlsRoute.Managed, basicAuth: null, CancellationToken.None);
+
+        // Then
+        fixture.Handler.Bodies.ShouldAllBe(body => body == null || !body.Contains("http_basic"));
     }
 }

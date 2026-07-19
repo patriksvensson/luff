@@ -41,6 +41,7 @@ public sealed class DeploymentsFixture : IDisposable
             context,
             Agents,
             new FakeSecretProtector(),
+            new FakeBasicAuthHasher(),
             Events);
     }
 
@@ -67,7 +68,8 @@ public sealed class DeploymentsFixture : IDisposable
     public async Task HasApp(string name, string? currentImageTag = null, string image = "nginx",
         AppHealthCheckType appHealthCheckType = AppHealthCheckType.Docker, string? healthCheckEndpoint = null,
         string? previousImageTag = null, string? domain = null, TlsMode tlsMode = TlsMode.Managed,
-        AppKind kind = AppKind.Web, int internalPort = 80, bool stopped = false)
+        AppKind kind = AppKind.Web, int internalPort = 80, bool stopped = false,
+        string? basicAuthUsername = null, string? basicAuthPassword = null)
     {
         await using var context = CreateContext();
 
@@ -84,6 +86,8 @@ public sealed class DeploymentsFixture : IDisposable
             HealthCheckType = appHealthCheckType,
             HealthCheckEndpoint = healthCheckEndpoint,
             TlsMode = tlsMode,
+            BasicAuthUsername = basicAuthUsername,
+            BasicAuthPassword = basicAuthPassword,
         });
 
         await context.SaveChangesAsync();

@@ -342,6 +342,43 @@ public sealed class DeployEngineTests
     }
 
     [Fact]
+    public async Task Should_Carry_A_Bcrypt_Hash_Of_The_Basic_Auth_Password()
+    {
+        // Given
+        using var fixture = new DeploymentsFixture();
+        await fixture.HasApp("web", basicAuthUsername: "ops", basicAuthPassword: "protected:secret");
+        await fixture.HasAttachment("web", "agent-1");
+        await fixture.HasPendingDeployment("web", "v1");
+        await fixture.DeployEngine.TryStartNextDeploymentAsync("web");
+
+        // When
+        fixture.Agents.GetChannel("agent-1").TryRead(out var message);
+
+        // Then
+        message.ShouldNotBeNull().Deploy.ShouldSatisfyAllConditions(
+            deploy => deploy.BasicAuthUsername.ShouldBe("ops"),
+            // The wire carries a bcrypt hash of the decrypted password, never the plaintext.
+            deploy => deploy.BasicAuthHash.ShouldBe("bcrypt:secret"));
+    }
+
+    [Fact]
+    public async Task Should_Not_Carry_Basic_Auth_When_The_App_Has_None()
+    {
+        // Given
+        using var fixture = new DeploymentsFixture();
+        await fixture.HasApp("web");
+        await fixture.HasAttachment("web", "agent-1");
+        await fixture.HasPendingDeployment("web", "v1");
+        await fixture.DeployEngine.TryStartNextDeploymentAsync("web");
+
+        // When
+        fixture.Agents.GetChannel("agent-1").TryRead(out var message);
+
+        // Then
+        message.ShouldNotBeNull().Deploy.BasicAuthUsername.ShouldBeEmpty();
+    }
+
+    [Fact]
     public async Task Should_Attach_Decrypted_Registry_Credentials_When_The_Image_Matches()
     {
         // Given

@@ -8,9 +8,11 @@ namespace Luff.Agent;
 
 public interface ICaddyClient
 {
-    Task ConfigureRouteAsync(string host, string upstream, TlsRoute route, CancellationToken cancellationToken);
+    Task ConfigureRouteAsync(
+        string host, string upstream, TlsRoute route, BasicAuth? basicAuth, CancellationToken cancellationToken);
     Task RemoveRouteAsync(string host, CancellationToken cancellationToken);
-    Task RerouteAsync(string oldHost, string newHost, TlsRoute route, CancellationToken cancellationToken);
+    Task RerouteAsync(
+        string oldHost, string newHost, TlsRoute route, BasicAuth? basicAuth, CancellationToken cancellationToken);
     Task ConfigureFrontDoorAsync(string domain, string upstream, bool managedTls, CancellationToken cancellationToken);
 }
 
@@ -39,9 +41,10 @@ public sealed class CaddyClient : ICaddyClient, IDisposable
     }
 
     public async Task ConfigureRouteAsync(
-        string host, string upstream, TlsRoute route, CancellationToken cancellationToken)
+        string host, string upstream, TlsRoute route, BasicAuth? basicAuth, CancellationToken cancellationToken)
     {
         var id = $"luff-{host}";
+        var proxyId = ProxyId(host);
         var upstreams = new[]
         {
             new Dictionary<string, object?>
@@ -50,8 +53,10 @@ public sealed class CaddyClient : ICaddyClient, IDisposable
             }
         };
 
+        // Swap the live upstream by the reverse-proxy handler's own @id, so the swap is oblivious to any handlers
+        // (such as a basic-auth gate) that sit in front of the proxy in the route's handler chain.
         using var swap = new StringContent(JsonSerializer.Serialize(upstreams), Encoding.UTF8, "application/json");
-        var swapped = await _client.PatchAsync($"/id/{id}/handle/0/upstreams", swap, cancellationToken);
+        var swapped = await _client.PatchAsync($"/id/{proxyId}/upstreams", swap, cancellationToken);
         if (swapped.IsSuccessStatusCode)
         {
             return;
@@ -63,7 +68,8 @@ public sealed class CaddyClient : ICaddyClient, IDisposable
         var server = route == TlsRoute.Managed ? "srv443" : "srv0";
 
         using var creation = new StringContent(
-            JsonSerializer.Serialize(Route(id, host, upstream, forwardHttps: route == TlsRoute.External)),
+            JsonSerializer.Serialize(Route(
+                id, host, upstream, forwardHttps: route == TlsRoute.External, proxyId: proxyId, basicAuth: basicAuth)),
             Encoding.UTF8, "application/json");
         var create = await _client.PostAsync(
             $"/config/apps/http/servers/{server}/routes", creation, cancellationToken);
@@ -77,7 +83,7 @@ public sealed class CaddyClient : ICaddyClient, IDisposable
     }
 
     public async Task RerouteAsync(
-        string oldHost, string newHost, TlsRoute route, CancellationToken cancellationToken)
+        string oldHost, string newHost, TlsRoute route, BasicAuth? basicAuth, CancellationToken cancellationToken)
     {
         var upstream = await ReadUpstreamAsync(oldHost, cancellationToken);
         if (upstream is null)
@@ -90,12 +96,12 @@ public sealed class CaddyClient : ICaddyClient, IDisposable
             // Same host == same ID, which can't exist twice. Remove then recreate on the target server.
             // A TLS mode change moves the route between :80 and :443
             await RemoveRouteAsync(oldHost, cancellationToken);
-            await ConfigureRouteAsync(newHost, upstream, route, cancellationToken);
+            await ConfigureRouteAsync(newHost, upstream, route, basicAuth, cancellationToken);
             return;
         }
 
         // Different host == distinct ID. Create the new route before dropping the old one (zero-downtime)
-        await ConfigureRouteAsync(newHost, upstream, route, cancellationToken);
+        await ConfigureRouteAsync(newHost, upstream, route, basicAuth, cancellationToken);
         await RemoveRouteAsync(oldHost, cancellationToken);
     }
 
@@ -183,8 +189,11 @@ public sealed class CaddyClient : ICaddyClient, IDisposable
         created.EnsureSuccessStatusCode();
     }
 
+    private static string ProxyId(string host) => $"luff-{host}-proxy";
+
     private static Dictionary<string, object?> Route(
-        string id, string host, string upstream, bool forwardHttps = false)
+        string id, string host, string upstream,
+        bool forwardHttps = false, string? proxyId = null, BasicAuth? basicAuth = null)
     {
         var proxy = new Dictionary<string, object?>
         {
@@ -194,6 +203,12 @@ public sealed class CaddyClient : ICaddyClient, IDisposable
                 new Dictionary<string, object?> { ["dial"] = upstream },
             },
         };
+
+        if (proxyId is not null)
+        {
+            // Tag the reverse proxy so its upstream can later be swapped by @id, whatever its position in the chain.
+            proxy["@id"] = proxyId;
+        }
 
         if (forwardHttps)
         {
@@ -211,6 +226,15 @@ public sealed class CaddyClient : ICaddyClient, IDisposable
             };
         }
 
+        // A basic-auth gate must precede the proxy so it challenges before anything is forwarded upstream.
+        var handle = new List<Dictionary<string, object?>>();
+        if (basicAuth is not null)
+        {
+            handle.Add(BasicAuthHandler(basicAuth));
+        }
+
+        handle.Add(proxy);
+
         return new Dictionary<string, object?>
         {
             ["@id"] = id,
@@ -218,13 +242,37 @@ public sealed class CaddyClient : ICaddyClient, IDisposable
             {
                 new Dictionary<string, object?> { ["host"] = new[] { host } },
             },
-            ["handle"] = new[] { proxy },
+            ["handle"] = handle,
+        };
+    }
+
+    private static Dictionary<string, object?> BasicAuthHandler(BasicAuth basicAuth)
+    {
+        return new Dictionary<string, object?>
+        {
+            ["handler"] = "authentication",
+            ["providers"] = new Dictionary<string, object?>
+            {
+                ["http_basic"] = new Dictionary<string, object?>
+                {
+                    ["accounts"] = new[]
+                    {
+                        new Dictionary<string, object?>
+                        {
+                            ["username"] = basicAuth.Username,
+                            // A bcrypt hash starts with "$", so Caddy takes it verbatim (it only base64-decodes
+                            // passwords that don't).
+                            ["password"] = basicAuth.Hash,
+                        },
+                    },
+                },
+            },
         };
     }
 
     private async Task<string?> ReadUpstreamAsync(string host, CancellationToken cancellationToken)
     {
-        using var response = await _client.GetAsync($"/id/luff-{host}/handle/0/upstreams", cancellationToken);
+        using var response = await _client.GetAsync($"/id/{ProxyId(host)}/upstreams", cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
             return null;

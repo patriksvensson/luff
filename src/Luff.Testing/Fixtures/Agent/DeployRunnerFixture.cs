@@ -59,18 +59,18 @@ public sealed class DeployRunnerFixture
 
     public async Task RerouteAsync(
         string oldDomain, string newDomain, TlsRoute route = TlsRoute.Http,
-        CancellationToken cancellationToken = default)
+        BasicAuth? basicAuth = null, CancellationToken cancellationToken = default)
     {
         var runner = new AgentDeployRunner(DockerCompose, Caddy, TcpProbe, Clock);
-        await runner.RerouteAsync(oldDomain, newDomain, route, cancellationToken);
+        await runner.RerouteAsync(oldDomain, newDomain, route, basicAuth, cancellationToken);
     }
 
     public async Task AssertRouteAsync(
         string domain, string upstream, TlsRoute route = TlsRoute.Managed,
-        CancellationToken cancellationToken = default)
+        BasicAuth? basicAuth = null, CancellationToken cancellationToken = default)
     {
         var runner = new AgentDeployRunner(DockerCompose, Caddy, TcpProbe, Clock);
-        await runner.AssertRouteAsync(domain, upstream, route, cancellationToken);
+        await runner.AssertRouteAsync(domain, upstream, route, basicAuth, cancellationToken);
     }
 
     public async Task ConfigureFrontDoorAsync(
