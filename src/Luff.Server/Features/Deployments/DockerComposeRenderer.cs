@@ -7,6 +7,7 @@ public static class DockerComposeRenderer
     private static readonly ISerializer _serializer = new SerializerBuilder()
         .WithIndentedSequences()
         .WithQuotingNecessaryStrings()
+        .WithNewLine("\n")
         .Build();
 
     public static string Render(

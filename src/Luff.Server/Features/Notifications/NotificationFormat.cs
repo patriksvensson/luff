@@ -9,6 +9,7 @@ public static class NotificationFormat
         WriteIndented = true,
         IndentCharacter = ' ',
         IndentSize = 2,
+        NewLine = "\n",
     };
 
     public static string Build(NotificationChannelType type, AuditEvent auditEvent)
