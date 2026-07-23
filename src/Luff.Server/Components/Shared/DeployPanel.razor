@@ -77,7 +77,8 @@
     {
         <DeployPipeline App="App" Verb="@Verb" FromTag="@_fromTag" ToTag="@_toTag"
                         Elapsed="@_elapsed" Lanes="_orderedLanes" Outcome="@_outcome"
-                        AppUrl="@AppUrl" AppDomain="@AppDomain" FailureText="@_failureText" OnClose="Close" />
+                        AppUrl="@AppUrl" AppDomain="@AppDomain" FailureText="@_failureText"
+                        FailureNote="@FailureNote" OnClose="Close" />
     }
 </Modal>
 
@@ -87,6 +88,9 @@
 
     [Parameter]
     public DeployKind Kind { get; set; } = DeployKind.Deploy;
+
+    [Parameter]
+    public AppKind AppKind { get; set; } = AppKind.Web;
 
     [Parameter]
     public string? CurrentTag { get; set; }
@@ -115,6 +119,7 @@
     private bool _busy;
     private DeployOutcome _outcome = DeployOutcome.Running;
     private string? _failureText;
+    private DeployPhase? _failedPhase;
     private string? _fromTag;
     private string _toTag = string.Empty;
     private string _elapsed = "0.0s";
@@ -128,6 +133,32 @@
 
     private string? AppUrl =>
         AppDomain is null ? null : (Https ? "https://" : "http://") + AppDomain;
+
+    private string? FailureNote
+    {
+        get
+        {
+            if (_outcome != DeployOutcome.Failed)
+            {
+                return null;
+            }
+
+            var hasPrevious = CurrentTag is not null;
+            if (AppKind == AppKind.Web)
+            {
+                return hasPrevious ? "The running version is still serving." : "Nothing is serving yet.";
+            }
+
+            var recreated = _failedPhase is DeployPhase.Starting or DeployPhase.Healthy
+                or DeployPhase.Swapping or DeployPhase.Draining;
+            if (recreated)
+            {
+                return "The app is down.";
+            }
+
+            return hasPrevious ? "The running version is untouched." : "The app is down.";
+        }
+    }
 
     private async Task Run()
     {
@@ -213,7 +244,8 @@
         if (failed is not null)
         {
             _outcome = DeployOutcome.Failed;
-            _failureText = $"Failed on {failed.Agent} at {Stage(failed.Phase)}. Old version still serving.";
+            _failedPhase = failed.Phase;
+            _failureText = $"Failed on {failed.Agent} at {Stage(failed.Phase)}.";
             StopTicker();
             return;
         }

@@ -135,7 +135,34 @@ public sealed class AgentLinkService : Link.LinkBase
             case AgentMessage.PayloadOneofCase.HealthReport:
                 await HandleHealthReport(name, message.HealthReport, cancellationToken);
                 break;
+            case AgentMessage.PayloadOneofCase.AppActionResult:
+                await HandleAppActionResult(name, message.AppActionResult, cancellationToken);
+                break;
         }
+    }
+
+    private async Task HandleAppActionResult(
+        string agentName, AppActionResult result, CancellationToken cancellationToken)
+    {
+        var action = result.Action == AppAction.Stop ? AppRunAction.Stop : AppRunAction.Start;
+        if (result.Succeeded)
+        {
+            _logger.LogInformation("Agent {Agent} {Action} {App} succeeded", agentName, action, result.App);
+        }
+        else
+        {
+            _logger.LogWarning("Agent {Agent} {Action} {App} failed: {Reason}",
+                agentName, action, result.App, result.FailureReason);
+        }
+
+        await _sender.AgentAppActionResult(
+            agentName,
+            result.App,
+            action,
+            result.Actor,
+            result.Succeeded,
+            result.Succeeded ? null : result.FailureReason,
+            cancellationToken);
     }
 
     private async Task HandleHealthReport(string agent, HealthReport report, CancellationToken cancellationToken)

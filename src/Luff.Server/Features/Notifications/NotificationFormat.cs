@@ -78,6 +78,8 @@ public static class NotificationFormat
             AuditEventKind.AppDeleted => ("\U0001F5D1\U0000FE0F", 0x95A5A6),
             AuditEventKind.AppStarted => ("▶️", 0x2ECC71),
             AuditEventKind.AppStopped => ("⏹️", 0x95A5A6),
+            AuditEventKind.AppStartFailed => ("❌", 0xED4245),
+            AuditEventKind.AppStopFailed => ("❌", 0xED4245),
             AuditEventKind.AgentEnrolled => ("\U0001F5A5️", 0x95A5A6),
             AuditEventKind.AgentRemoved => ("\U0001F5A5️", 0x95A5A6),
             AuditEventKind.RegistryAdded => ("\U0001F4E6", 0x95A5A6),

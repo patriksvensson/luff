@@ -16,6 +16,7 @@ message AgentMessage {
     DeployResult deploy_result = 4;
     LogChunk log_chunk = 5;
     HealthReport health_report = 6;
+    AppActionResult app_action_result = 7;
   }
 }
 
@@ -37,10 +38,27 @@ message ControlMessage {
 
 message StopApp {
   string app = 1;
+  string actor = 2;
 }
 
 message StartApp {
   string app = 1;
+  string actor = 2;
+}
+
+// The agent's outcome for a StopApp/StartApp command, so the control plane can settle the app's health and
+// record whether it actually stopped or started (instead of assuming the command succeeded).
+message AppActionResult {
+  string app = 1;
+  AppAction action = 2;
+  string actor = 3;
+  bool succeeded = 4;
+  string failure_reason = 5;
+}
+
+enum AppAction {
+  APP_ACTION_START = 0;
+  APP_ACTION_STOP = 1;
 }
 
 // Periodic per-app runtime health, pushed by the agent while connected.

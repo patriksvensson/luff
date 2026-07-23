@@ -45,16 +45,16 @@ public sealed class DeployRunnerFixture
         await runner.RemoveAsync(app, domain, cancellationToken);
     }
 
-    public async Task StopAppAsync(string app, CancellationToken cancellationToken = default)
+    public async Task<DockerComposeResult> StopAppAsync(string app, CancellationToken cancellationToken = default)
     {
         var runner = new AgentDeployRunner(DockerCompose, Caddy, TcpProbe, Clock);
-        await runner.StopAppAsync(app, cancellationToken);
+        return await runner.StopAppAsync(app, cancellationToken);
     }
 
-    public async Task StartAppAsync(string app, CancellationToken cancellationToken = default)
+    public async Task<DockerComposeResult> StartAppAsync(string app, CancellationToken cancellationToken = default)
     {
         var runner = new AgentDeployRunner(DockerCompose, Caddy, TcpProbe, Clock);
-        await runner.StartAppAsync(app, cancellationToken);
+        return await runner.StartAppAsync(app, cancellationToken);
     }
 
     public async Task RerouteAsync(

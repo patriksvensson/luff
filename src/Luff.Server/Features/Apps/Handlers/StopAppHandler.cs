@@ -4,7 +4,6 @@ public sealed class StopAppHandler : IRequestHandler<StopAppHandler.Request, App
 {
     private readonly LuffDbContext _database;
     private readonly IAgentConnections _connections;
-    private readonly IEventPublisher _events;
 
     public sealed class Request : IRequest<AppResponse>
     {
@@ -18,11 +17,10 @@ public sealed class StopAppHandler : IRequestHandler<StopAppHandler.Request, App
         }
     }
 
-    public StopAppHandler(LuffDbContext database, IAgentConnections connections, IEventPublisher events)
+    public StopAppHandler(LuffDbContext database, IAgentConnections connections)
     {
         _database = database ?? throw new ArgumentNullException(nameof(database));
         _connections = connections ?? throw new ArgumentNullException(nameof(connections));
-        _events = events ?? throw new ArgumentNullException(nameof(events));
     }
 
     public async Task<AppResponse> Handle(Request request, CancellationToken cancellationToken)
@@ -42,20 +40,11 @@ public sealed class StopAppHandler : IRequestHandler<StopAppHandler.Request, App
             attachment.HealthDetail = null;
             _connections.TrySend(attachment.AgentName, new ControlMessage
             {
-                StopApp = new StopApp { App = app.Name },
+                StopApp = new StopApp { App = app.Name, Actor = request.Actor },
             });
         }
 
         await _database.SaveChangesAsync(cancellationToken);
-
-        await _events.PublishAsync(new AuditEvent
-        {
-            Kind = AuditEventKind.AppStopped,
-            Actor = request.Actor,
-            Title = $"App stopped: {app.Name}",
-            Message = $"{app.Name} was manually stopped.",
-            App = app.Name,
-        }, cancellationToken);
 
         return app.ToResponse();
     }

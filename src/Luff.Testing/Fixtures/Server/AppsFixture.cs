@@ -116,14 +116,24 @@ public sealed class AppsFixture : IDisposable
 
     public async Task<AppResponse> StopApp(string name, string actor = "operator@example.com")
     {
-        var handler = new StopAppHandler(CreateContext(), Agents, Events);
+        var handler = new StopAppHandler(CreateContext(), Agents);
         return await handler.Handle(new StopAppHandler.Request(name, actor), CancellationToken.None);
     }
 
     public async Task<AppResponse> StartApp(string name, string actor = "operator@example.com")
     {
-        var handler = new StartAppHandler(CreateContext(), Agents, Events);
+        var handler = new StartAppHandler(CreateContext(), Agents);
         return await handler.Handle(new StartAppHandler.Request(name, actor), CancellationToken.None);
+    }
+
+    public async Task AppActionResult(
+        string agentName, string app, AppRunAction action, bool succeeded, string? failureReason = null,
+        string actor = "operator@example.com")
+    {
+        var handler = new AgentAppActionResultHandler(CreateContext(), Events, TimeProvider.System);
+        await handler.Handle(
+            new AgentAppActionResultHandler.Request(agentName, app, action, actor, succeeded, failureReason),
+            CancellationToken.None);
     }
 
     public async Task<AppAgent?> GetAttachment(string appName, string agentName)

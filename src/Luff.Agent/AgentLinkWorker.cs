@@ -144,10 +144,10 @@ public sealed class AgentLinkWorker : BackgroundService
                         StopLogStream(logStreams, message.StopLogStream);
                         break;
                     case ControlMessage.PayloadOneofCase.StopApp:
-                        await HandleStopApp(message.StopApp, stoppingToken);
+                        await HandleStopApp(outbound.Writer, message.StopApp, stoppingToken);
                         break;
                     case ControlMessage.PayloadOneofCase.StartApp:
-                        await HandleStartApp(message.StartApp, stoppingToken);
+                        await HandleStartApp(outbound.Writer, message.StartApp, stoppingToken);
                         break;
                     case ControlMessage.PayloadOneofCase.None:
                         break;
@@ -239,16 +239,36 @@ public sealed class AgentLinkWorker : BackgroundService
         }
     }
 
-    private async Task HandleStopApp(StopApp stop, CancellationToken cancellationToken)
+    private async Task HandleStopApp(
+        ChannelWriter<AgentMessage> outbound, StopApp stop, CancellationToken cancellationToken)
     {
         _logger.LogInformation("Stopping {App}", stop.App);
-        await _agentDeployRunner.StopAppAsync(stop.App, cancellationToken);
+        var result = await _agentDeployRunner.StopAppAsync(stop.App, cancellationToken);
+        ReportAppAction(outbound, AppAction.Stop, stop.App, stop.Actor, result);
     }
 
-    private async Task HandleStartApp(StartApp start, CancellationToken cancellationToken)
+    private async Task HandleStartApp(
+        ChannelWriter<AgentMessage> outbound, StartApp start, CancellationToken cancellationToken)
     {
         _logger.LogInformation("Starting {App}", start.App);
-        await _agentDeployRunner.StartAppAsync(start.App, cancellationToken);
+        var result = await _agentDeployRunner.StartAppAsync(start.App, cancellationToken);
+        ReportAppAction(outbound, AppAction.Start, start.App, start.Actor, result);
+    }
+
+    private static void ReportAppAction(
+        ChannelWriter<AgentMessage> outbound, AppAction action, string app, string actor, DockerComposeResult result)
+    {
+        outbound.TryWrite(new AgentMessage
+        {
+            AppActionResult = new AppActionResult
+            {
+                App = app,
+                Action = action,
+                Actor = actor,
+                Succeeded = result.Succeeded,
+                FailureReason = result.Succeeded ? string.Empty : result.Output ?? "action failed",
+            },
+        });
     }
 
     private static async Task DrainOutbound(

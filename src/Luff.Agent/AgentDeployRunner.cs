@@ -87,7 +87,7 @@ public sealed class AgentDeployRunner
 
         if (reason is not null)
         {
-            return Failure(deploy, await Describe(deploy, reason, cancellationToken));
+            return Failure(deploy, await Describe(deploy.App, reason, cancellationToken));
         }
 
         await Report(DeployPhase.Healthy);
@@ -138,11 +138,22 @@ public sealed class AgentDeployRunner
         }
     }
 
-    public Task StopAppAsync(string app, CancellationToken cancellationToken) =>
+    public Task<DockerComposeResult> StopAppAsync(string app, CancellationToken cancellationToken) =>
         _dockerCompose.StopAppAsync(app, cancellationToken);
 
-    public Task StartAppAsync(string app, CancellationToken cancellationToken) =>
-        _dockerCompose.StartAppAsync(app, cancellationToken);
+    public async Task<DockerComposeResult> StartAppAsync(string app, CancellationToken cancellationToken)
+    {
+        var result = await _dockerCompose.StartAppAsync(app, cancellationToken);
+        if (!result.Succeeded)
+        {
+            return result;
+        }
+
+        var reason = await StartReasonAsync(app, cancellationToken);
+        return reason is null
+            ? new DockerComposeResult(true, null)
+            : new DockerComposeResult(false, await Describe(app, reason, cancellationToken));
+    }
 
     // Poll until the container is ready, failing fast the moment it crashes instead of waiting out the timeout.
     // Used for TCP and None, which start detached (no `docker compose --wait`).
@@ -247,12 +258,40 @@ public sealed class AgentDeployRunner
         return null;
     }
 
-    private async Task<string> Describe(Deploy deploy, string reason, CancellationToken cancellationToken)
+    private async Task<string> Describe(string app, string reason, CancellationToken cancellationToken)
     {
-        var logs = await _dockerCompose.TailLogsAsync(deploy.App, 20, cancellationToken);
+        var logs = await _dockerCompose.TailLogsAsync(app, 20, cancellationToken);
         return string.IsNullOrEmpty(logs)
-            ? $"{deploy.App} {reason}"
-            : $"{deploy.App} {reason}:\n{logs}";
+            ? $"{app} {reason}"
+            : $"{app} {reason}:\n{logs}";
+    }
+
+    private async Task<string?> StartReasonAsync(string app, CancellationToken cancellationToken)
+    {
+        var status = await _dockerCompose.InspectAsync(app, cancellationToken);
+        if (status is null)
+        {
+            return null;
+        }
+
+        if (status.Restarting)
+        {
+            return "the container is restart-looping";
+        }
+
+        if (!status.Running)
+        {
+            return status.ExitCode is { } code
+                ? $"the container exited with code {code}"
+                : "the container is not running";
+        }
+
+        if (status.Health == DockerHealth.Unhealthy)
+        {
+            return "the container reported an unhealthy health check";
+        }
+
+        return null;
     }
 
     public async Task RerouteAsync(

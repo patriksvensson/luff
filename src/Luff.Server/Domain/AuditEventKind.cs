@@ -9,6 +9,8 @@ public enum AuditEventKind
     AppDeleted,
     AppStarted,
     AppStopped,
+    AppStartFailed,
+    AppStopFailed,
     AppUnhealthy,
     AgentConnected,
     AgentDisconnected,

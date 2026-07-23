@@ -177,22 +177,20 @@ public sealed class DockerComposeRunner : IDockerComposeRunner
         }
     }
 
-    public async Task StopAppAsync(string app, CancellationToken cancellationToken)
+    public async Task<DockerComposeResult> StopAppAsync(string app, CancellationToken cancellationToken)
     {
         var containers = await GetContainersAsync([$"label=luff.app={app}"], cancellationToken);
-        if (containers.Count > 0)
-        {
-            await RunDockerAsync(["stop", .. containers], cancellationToken);
-        }
+        return containers.Count > 0
+            ? await RunDockerAsync(["stop", .. containers], cancellationToken)
+            : new DockerComposeResult(true, null);
     }
 
-    public async Task StartAppAsync(string app, CancellationToken cancellationToken)
+    public async Task<DockerComposeResult> StartAppAsync(string app, CancellationToken cancellationToken)
     {
         var containers = await GetContainersAsync([$"label=luff.app={app}"], cancellationToken);
-        if (containers.Count > 0)
-        {
-            await RunDockerAsync(["start", .. containers], cancellationToken);
-        }
+        return containers.Count > 0
+            ? await RunDockerAsync(["start", .. containers], cancellationToken)
+            : new DockerComposeResult(false, $"No container for {app} to start; deploy it first.");
     }
 
     public async Task<ContainerStatus?> InspectAsync(string app, CancellationToken cancellationToken)
@@ -446,7 +444,8 @@ public sealed class DockerComposeRunner : IDockerComposeRunner
         return [.. output.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)];
     }
 
-    private static async Task RunDockerAsync(IReadOnlyList<string> arguments, CancellationToken cancellationToken)
+    private static async Task<DockerComposeResult> RunDockerAsync(
+        IReadOnlyList<string> arguments, CancellationToken cancellationToken)
     {
         var info = new ProcessStartInfo("docker")
         {
@@ -460,13 +459,17 @@ public sealed class DockerComposeRunner : IDockerComposeRunner
             info.ArgumentList.Add(argument);
         }
 
-        using var process = Process.Start(info);
-        if (process is null)
-        {
-            return;
-        }
+        using var process = Process.Start(info)
+                            ?? throw new InvalidOperationException("Could not start docker");
 
+        var errorTask = process.StandardError.ReadToEndAsync(cancellationToken);
+        var outputTask = process.StandardOutput.ReadToEndAsync(cancellationToken);
         await process.WaitForExitAsync(cancellationToken);
+        await outputTask;
+
+        return process.ExitCode == 0
+            ? new DockerComposeResult(true, null)
+            : new DockerComposeResult(false, (await errorTask).Trim());
     }
 
     private static async Task<string> CaptureDockerAsync(

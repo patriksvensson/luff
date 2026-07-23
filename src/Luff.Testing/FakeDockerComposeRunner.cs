@@ -79,22 +79,25 @@ public sealed class FakeDockerComposeRunner : IDockerComposeRunner
     public string? StoppedApp { get; private set; }
     public string? StartedApp { get; private set; }
 
+    public DockerComposeResult StopResult { get; set; } = new(true, null);
+    public DockerComposeResult StartResult { get; set; } = new(true, null);
+
     // Inspect returns a healthy, running container by default so a normal deploy passes the stabilization
     // gate; tests set this to a crashed/looping status to exercise the failure path.
     public ContainerStatus? InspectResult { get; set; } = new(true, false, 0, null, DockerHealth.None);
     public List<ContainerReport> ManagedContainers { get; set; } = [];
     public string? TailedLogs { get; set; }
 
-    public Task StopAppAsync(string app, CancellationToken cancellationToken)
+    public Task<DockerComposeResult> StopAppAsync(string app, CancellationToken cancellationToken)
     {
         StoppedApp = app;
-        return Task.CompletedTask;
+        return Task.FromResult(StopResult);
     }
 
-    public Task StartAppAsync(string app, CancellationToken cancellationToken)
+    public Task<DockerComposeResult> StartAppAsync(string app, CancellationToken cancellationToken)
     {
         StartedApp = app;
-        return Task.CompletedTask;
+        return Task.FromResult(StartResult);
     }
 
     public Task<ContainerStatus?> InspectAsync(string app, CancellationToken cancellationToken)

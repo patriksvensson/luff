@@ -45,6 +45,7 @@ public sealed class AppDeploymentLine
 public sealed class AppDetail
 {
     public string Name { get; }
+    public AppKind Kind { get; }
     public bool Internal { get; }
     public bool Direct { get; }
     public bool Stopped { get; }
@@ -66,12 +67,13 @@ public sealed class AppDetail
     public IReadOnlyList<AppDeploymentLine> Deployments { get; }
 
     public AppDetail(
-        string name, bool @internal, bool direct, bool stopped, string image, string? domain, string? internalHost,
-        bool autoDomain, int internalPort, string? currentTag, string? previousTag, string tlsLabel,
-        bool tlsTrusted, string tlsMode, bool https, AppHealthState state, string? stateDetail, int behindCount,
-        IReadOnlyList<AppMachineLine> machines, IReadOnlyList<AppDeploymentLine> deployments)
+        string name, AppKind kind, bool @internal, bool direct, bool stopped, string image, string? domain,
+        string? internalHost, bool autoDomain, int internalPort, string? currentTag, string? previousTag,
+        string tlsLabel, bool tlsTrusted, string tlsMode, bool https, AppHealthState state, string? stateDetail,
+        int behindCount, IReadOnlyList<AppMachineLine> machines, IReadOnlyList<AppDeploymentLine> deployments)
     {
         Name = name;
+        Kind = kind;
         Internal = @internal;
         Direct = direct;
         Stopped = stopped;
@@ -189,7 +191,7 @@ public sealed class AppDetailHandler : IRequestHandler<AppDetailHandler.Request,
         var internalHost = isInternal ? $"{app.Name}:{app.InternalPort}" : null;
 
         return new AppDetail(
-            app.Name, isInternal, isDirect, app.Stopped, app.Image, app.Domain, internalHost, autoDomain,
+            app.Name, app.Kind, isInternal, isDirect, app.Stopped, app.Image, app.Domain, internalHost, autoDomain,
             app.InternalPort, app.CurrentImageTag, app.PreviousImageTag,
             tlsLabel, tlsTrusted, app.TlsMode.ToString(), https,
             state, detail, machines.Count(machine => machine.Behind), machines, lines);

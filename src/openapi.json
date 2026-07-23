@@ -2627,6 +2627,8 @@
           "AppDeleted",
           "AppStarted",
           "AppStopped",
+          "AppStartFailed",
+          "AppStopFailed",
           "AppUnhealthy",
           "AgentConnected",
           "AgentDisconnected",

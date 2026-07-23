@@ -118,7 +118,7 @@ else
 
     @if (_modal is not null)
     {
-        <DeployPanel Kind="@(_modal.Value)" App="@_detail.Name" CurrentTag="@_detail.CurrentTag"
+        <DeployPanel Kind="@(_modal.Value)" AppKind="_detail.Kind" App="@_detail.Name" CurrentTag="@_detail.CurrentTag"
                      PreviousTag="@_detail.PreviousTag"
                      Machines="_detail.Machines.Select(machine => machine.Agent).ToList()"
                      AppDomain="@_detail.Domain" Https="_detail.Https" Actor="@_actor" OnClose="CloseModal" />

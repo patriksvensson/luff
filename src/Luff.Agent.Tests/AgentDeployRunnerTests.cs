@@ -285,12 +285,45 @@ public sealed class AgentDeployRunnerTests
         var fixture = DeployRunnerFixture.CreateForSuccess();
 
         // When
-        await fixture.StopAppAsync("postgres");
-        await fixture.StartAppAsync("postgres");
+        var stop = await fixture.StopAppAsync("postgres");
+        var start = await fixture.StartAppAsync("postgres");
 
         // Then
         fixture.DockerCompose.StoppedApp.ShouldBe("postgres");
         fixture.DockerCompose.StartedApp.ShouldBe("postgres");
+        stop.Succeeded.ShouldBeTrue();
+        start.Succeeded.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task Should_Fail_The_Start_When_Docker_Start_Errors()
+    {
+        // Given
+        var fixture = DeployRunnerFixture.CreateForSuccess();
+        fixture.DockerCompose.StartResult = new DockerComposeResult(false, "no such volume");
+
+        // When
+        var result = await fixture.StartAppAsync("postgres");
+
+        // Then
+        result.Succeeded.ShouldBeFalse();
+        result.Output.ShouldNotBeNull().ShouldContain("no such volume");
+    }
+
+    [Fact]
+    public async Task Should_Fail_The_Start_When_The_Container_Does_Not_Stay_Up()
+    {
+        // Given
+        var fixture = DeployRunnerFixture.CreateForSuccess();
+        fixture.DockerCompose.InspectResult = new ContainerStatus(
+            Running: false, Restarting: false, RestartCount: 0, ExitCode: 1, Health: DockerHealth.None);
+
+        // When
+        var result = await fixture.StartAppAsync("postgres");
+
+        // Then
+        result.Succeeded.ShouldBeFalse();
+        result.Output.ShouldNotBeNull().ShouldContain("exited with code 1");
     }
 
     [Fact]

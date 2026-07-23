@@ -16,13 +16,14 @@ public sealed class StopStartAppHandlerTests
         var reader = fixture.Agents.Register("agent-1");
 
         // When
-        var result = await fixture.StopApp("web");
+        var result = await fixture.StopApp("web", actor: "alice@example.com");
 
         // Then
         result.Stopped.ShouldBeTrue();
         (await fixture.GetAppFromDatabase("web")).ShouldNotBeNull().Stopped.ShouldBeTrue();
         reader.TryRead(out var message).ShouldBeTrue();
         message!.StopApp.App.ShouldBe("web");
+        message.StopApp.Actor.ShouldBe("alice@example.com");
     }
 
     [Fact]
@@ -54,41 +55,28 @@ public sealed class StopStartAppHandlerTests
         reader.TryRead(out _);
 
         // When
-        var result = await fixture.StartApp("web");
+        var result = await fixture.StartApp("web", actor: "alice@example.com");
 
         // Then
         result.Stopped.ShouldBeFalse();
         reader.TryRead(out var message).ShouldBeTrue();
         message!.StartApp.App.ShouldBe("web");
+        message.StartApp.Actor.ShouldBe("alice@example.com");
     }
 
     [Fact]
-    public async Task Should_Notify_When_An_App_Is_Stopped()
+    public async Task Should_Not_Notify_Until_The_Agent_Confirms_The_Outcome()
     {
         // Given
         using var fixture = new AppsFixture();
         await fixture.HasApp("web");
-
-        // When
-        await fixture.StopApp("web", actor: "alice@example.com");
-
-        // Then
-        fixture.Events.Published.ShouldContain(evt =>
-            evt.Kind == AuditEventKind.AppStopped && evt.App == "web" && evt.Actor == "alice@example.com");
-    }
-
-    [Fact]
-    public async Task Should_Notify_When_An_App_Is_Started()
-    {
-        // Given
-        using var fixture = new AppsFixture();
-        await fixture.HasApp("web");
+        await fixture.HasAttachment("web", "agent-1");
+        fixture.Agents.Register("agent-1");
 
         // When
         await fixture.StartApp("web", actor: "alice@example.com");
 
         // Then
-        fixture.Events.Published.ShouldContain(evt =>
-            evt.Kind == AuditEventKind.AppStarted && evt.App == "web" && evt.Actor == "alice@example.com");
+        fixture.Events.Published.ShouldNotContain(evt => evt.Kind == AuditEventKind.AppStarted);
     }
 }

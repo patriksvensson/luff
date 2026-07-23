@@ -84,7 +84,10 @@
                 </span>
                 <div class="foot-text">
                     <div class="foot-title">@FailureText</div>
-                    <div class="foot-note">The old version keeps serving.</div>
+                    @if (FailureNote is not null)
+                    {
+                        <div class="foot-note">@FailureNote</div>
+                    }
                 </div>
                 <button class="btn btn-ghost" @onclick="OnClose">Close</button>
                 break;
@@ -139,6 +142,9 @@
 
     [Parameter]
     public string? FailureText { get; set; }
+
+    [Parameter]
+    public string? FailureNote { get; set; }
 
     [Parameter]
     public EventCallback OnClose { get; set; }

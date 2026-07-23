@@ -28,11 +28,11 @@ public interface IDockerComposeRunner
         string app,
         CancellationToken cancellationToken);
 
-    Task StopAppAsync(
+    Task<DockerComposeResult> StopAppAsync(
         string app,
         CancellationToken cancellationToken);
 
-    Task StartAppAsync(
+    Task<DockerComposeResult> StartAppAsync(
         string app,
         CancellationToken cancellationToken);
 

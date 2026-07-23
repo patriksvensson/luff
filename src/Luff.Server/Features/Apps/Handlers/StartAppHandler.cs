@@ -4,7 +4,6 @@ public sealed class StartAppHandler : IRequestHandler<StartAppHandler.Request, A
 {
     private readonly LuffDbContext _database;
     private readonly IAgentConnections _connections;
-    private readonly IEventPublisher _events;
 
     public sealed class Request : IRequest<AppResponse>
     {
@@ -18,11 +17,10 @@ public sealed class StartAppHandler : IRequestHandler<StartAppHandler.Request, A
         }
     }
 
-    public StartAppHandler(LuffDbContext database, IAgentConnections connections, IEventPublisher events)
+    public StartAppHandler(LuffDbContext database, IAgentConnections connections)
     {
         _database = database ?? throw new ArgumentNullException(nameof(database));
         _connections = connections ?? throw new ArgumentNullException(nameof(connections));
-        _events = events ?? throw new ArgumentNullException(nameof(events));
     }
 
     public async Task<AppResponse> Handle(Request request, CancellationToken cancellationToken)
@@ -38,25 +36,16 @@ public sealed class StartAppHandler : IRequestHandler<StartAppHandler.Request, A
 
         foreach (var attachment in attachments)
         {
-            // The agent's next health report settles the real status; show it as coming up meanwhile.
+            // The agent confirms the real outcome over the link; show it as coming up meanwhile.
             attachment.HealthStatus = AppRuntimeHealth.Starting;
             attachment.HealthDetail = null;
             _connections.TrySend(attachment.AgentName, new ControlMessage
             {
-                StartApp = new StartApp { App = app.Name },
+                StartApp = new StartApp { App = app.Name, Actor = request.Actor },
             });
         }
 
         await _database.SaveChangesAsync(cancellationToken);
-
-        await _events.PublishAsync(new AuditEvent
-        {
-            Kind = AuditEventKind.AppStarted,
-            Actor = request.Actor,
-            Title = $"App started: {app.Name}",
-            Message = $"{app.Name} was manually started.",
-            App = app.Name,
-        }, cancellationToken);
 
         return app.ToResponse();
     }

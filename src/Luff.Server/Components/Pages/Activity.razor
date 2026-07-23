@@ -65,7 +65,8 @@ else
         {
             AuditEventKind.DeploySucceeded or AuditEventKind.AgentConnected or AuditEventKind.AppStarted
                 or AuditEventKind.ServerStarted or AuditEventKind.TwoFactorEnabled => "dot-green",
-            AuditEventKind.DeployFailed or AuditEventKind.AgentDisconnected => "dot-red",
+            AuditEventKind.DeployFailed or AuditEventKind.AgentDisconnected
+                or AuditEventKind.AppStartFailed or AuditEventKind.AppStopFailed => "dot-red",
             AuditEventKind.AppUnhealthy or AuditEventKind.TwoFactorDisabled => "dot-amber",
             _ => "dot-neutral",
         };
